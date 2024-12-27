@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "esModuleInterop": true,
+    "module": "CommonJS"
+  },
+  "references": [
+    {
+      "path": "../src"
+    }
+  ]
+}

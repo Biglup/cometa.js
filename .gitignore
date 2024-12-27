@@ -1,0 +1,16 @@
+# guard accidental inclusion after incorrectly using npm install
+package-lock.json
+coverage
+node_modules
+docs
+.idea
+.env
+tsconfig.tsbuildinfo
+lerna-debug.log
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+dist
