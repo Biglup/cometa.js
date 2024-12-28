@@ -14,16 +14,4 @@
  * limitations under the License.
  */
 
-import * as CometaCore from './cometa';
-import * as CometaModule from './module';
-import * as Encoding from './encoding';
-import * as GarbageCollection from './garbageCollection';
-import * as TxBuilder from './txBuilder';
-
-export const Cometa = {
-  Encoding,
-  GarbageCollection,
-  TxBuilder,
-  ...CometaModule,
-  ...CometaCore
-};
+export { finalizationRegistry } from './finalizationRegistry';

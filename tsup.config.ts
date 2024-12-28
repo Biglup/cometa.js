@@ -7,13 +7,14 @@ export default defineConfig({
   dts: true,
   entry: ['src/index.ts'],
   esbuildOptions(options) {
-    options.platform = 'node';
+    options.platform = 'neutral';
     options.target = ['es2021'];
-    options.resolveExtensions = ['.js', '.ts'];
-    options.external = []; // Make sure no package is treated as external
+    options.resolveExtensions = ['.js', '.ts', '.wasm'];
+    options.external = ['fs', 'path'];
   },
   format: ['cjs', 'esm'],
   legacyOutput: false,
+  minify: true,
   noExternal: [/(.*)/],
   outDir: 'dist',
   silent: false,
