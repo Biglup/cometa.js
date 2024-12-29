@@ -16,20 +16,8 @@
 
 /* IMPORTS ********************************************************************/
 
-import * as CometaCore from './cometa';
-import * as CometaModule from './module';
-import * as Encoding from './encoding';
-import * as GarbageCollection from './garbageCollection';
-import * as TxBuilder from './txBuilder';
-
-/* EXPORTS ********************************************************************/
-
-export const Cometa = {
-  ...CometaCore,
-  ...CometaModule,
-  ...Encoding,
-  ...GarbageCollection,
-  ...TxBuilder
-};
-
-export default Cometa;
+export * from './cometa';
+export * from './module';
+export * from './encoding';
+export * from './garbageCollection';
+export * from './txBuilder';
