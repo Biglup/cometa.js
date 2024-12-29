@@ -16,4 +16,5 @@
 
 /* EXPORTS ********************************************************************/
 
-export { ProtocolVersion } from './ProtocolVersion';
+export * from './string';
+export * from './number';

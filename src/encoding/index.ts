@@ -14,5 +14,10 @@
  * limitations under the License.
  */
 
-export { CborReader } from './CborReader';
-export { CborWriter } from './CborWriter';
+/* EXPORTS ********************************************************************/
+
+export * from './CborMajorType';
+export * from './CborReader';
+export * from './CborReaderState';
+export * from './CborTag';
+export * from './CborWriter';

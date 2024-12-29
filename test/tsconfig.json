@@ -2,11 +2,14 @@
   "compilerOptions": {
     "baseUrl": ".",
     "esModuleInterop": true,
-    "module": "CommonJS"
+    "module": "CommonJS",
+    "target": "ES2021",
+    "types": ["jest", "node"],
+    "allowJs": true,
+    "strict": true,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true
   },
-  "references": [
-    {
-      "path": "../src"
-    }
-  ]
+  "include": ["../dist/**/*", "../test/**/*"],
+  "exclude": ["node_modules", "../src"]
 }

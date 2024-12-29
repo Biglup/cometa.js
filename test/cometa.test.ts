@@ -14,8 +14,18 @@
  * limitations under the License.
  */
 
+/* IMPORTS ********************************************************************/
+
+import { Cometa } from '../dist/cjs';
+
+/* TESTS **********************************************************************/
+
 describe('Cometa', () => {
-  it('tests', () => {
-    expect(true).toEqual(true);
+  beforeAll(async () => {
+    await Cometa.ready();
+  });
+
+  it('getLibCardanoCVersion', () => {
+    expect(Cometa.getLibCardanoCVersion()).toMatch(/^\d+\.\d+\.\d+$/);
   });
 });

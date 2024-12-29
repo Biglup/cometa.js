@@ -3,6 +3,7 @@ import { CborWriter } from '../encoding/CborWriter';
 import { finalizationRegistry } from '../garbageCollection/finalizationRegistry';
 import { getModule } from '../module';
 
+// TODO: Example, remove
 export class ProtocolVersion {
   public ptr: number;
 

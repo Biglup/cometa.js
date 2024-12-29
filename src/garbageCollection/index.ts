@@ -14,4 +14,6 @@
  * limitations under the License.
  */
 
+/* EXPORTS ********************************************************************/
+
 export { finalizationRegistry } from './finalizationRegistry';
