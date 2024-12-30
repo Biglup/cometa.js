@@ -17,8 +17,8 @@
 /* IMPORTS ********************************************************************/
 
 import { CborTag } from './CborTag';
+import { assertSuccess, splitToLowHigh64bit, writeStringToMemory } from '../marshaling';
 import { finalizationRegistry } from '../garbageCollection/finalizationRegistry';
-import { getErrorString, splitToLowHigh64bit, writeStringToMemory } from '../marshaling';
 import { getModule } from '../module';
 
 /* DEFINITIONS ****************************************************************/
@@ -87,9 +87,7 @@ export class CborWriter {
       try {
         const writeResult = module.cbor_writer_write_bigint(this.ptr, bigintPtr);
 
-        if (writeResult !== 0) {
-          throw new Error(this.getLastError());
-        }
+        assertSuccess(writeResult, this.getLastError());
       } finally {
         module.bigint_unref(bigintPtrPtr);
       }
@@ -114,10 +112,8 @@ export class CborWriter {
    */
   public writeBoolean(value: boolean): CborWriter {
     const result = getModule().cbor_writer_write_bool(this.ptr, value);
-    if (result !== 0) {
-      const errorMsg = `Failed to write boolean value: ${getErrorString(result)} ${this.getLastError()}`;
-      throw new Error(errorMsg);
-    }
+
+    assertSuccess(result, this.getLastError());
 
     return this;
   }
@@ -140,10 +136,8 @@ export class CborWriter {
 
       const { low, high } = splitToLowHigh64bit(data.length);
       const result = getModule().cbor_writer_write_bytestring(this.ptr, bufferPtr, low, high);
-      if (result !== 0) {
-        const errorMsg = `Failed to write byte string value: ${getErrorString(result)} ${this.getLastError()}`;
-        throw new Error(errorMsg);
-      }
+
+      assertSuccess(result, this.getLastError());
     } finally {
       getModule()._free(bufferPtr);
     }
@@ -175,10 +169,7 @@ export class CborWriter {
     try {
       const result = module.cbor_writer_write_textstring(this.ptr, textPtr, low, high);
 
-      if (result !== 0) {
-        const errorMsg = `Failed to write text string value: ${getErrorString(result)} ${this.getLastError()}`;
-        throw new Error(errorMsg);
-      }
+      assertSuccess(result, this.getLastError());
     } finally {
       module._free(textPtr);
     }
@@ -203,10 +194,8 @@ export class CborWriter {
     try {
       getModule().HEAPU8.set(data, bufferPtr);
       const result = getModule().cbor_writer_write_encoded(this.ptr, bufferPtr, data.length);
-      if (result !== 0) {
-        const errorMsg = `Failed to write encoded value: ${getErrorString(result)} ${this.getLastError()}`;
-        throw new Error(errorMsg);
-      }
+
+      assertSuccess(result, this.getLastError());
     } finally {
       getModule()._free(bufferPtr);
     }
@@ -232,10 +221,8 @@ export class CborWriter {
 
     const { low, high } = splitToLowHigh64bit(size);
     const result = getModule().cbor_writer_write_start_array(this.ptr, low, high);
-    if (result !== 0) {
-      const errorMsg = `Failed to write start array: ${getErrorString(result)} ${this.getLastError()}`;
-      throw new Error(errorMsg);
-    }
+
+    assertSuccess(result, this.getLastError());
 
     return this;
   }
@@ -252,10 +239,8 @@ export class CborWriter {
    */
   public endArray(): CborWriter {
     const result = getModule().cbor_writer_write_end_array(this.ptr);
-    if (result !== 0) {
-      const errorMsg = `Failed to write end array: ${getErrorString(result)} ${this.getLastError()}`;
-      throw new Error(errorMsg);
-    }
+
+    assertSuccess(result, this.getLastError());
 
     return this;
   }
@@ -279,10 +264,8 @@ export class CborWriter {
     const { low, high } = splitToLowHigh64bit(size);
 
     const result = getModule().cbor_writer_write_start_map(this.ptr, low, high);
-    if (result !== 0) {
-      const errorMsg = `Failed to write start map: ${getErrorString(result)} ${this.getLastError()}`;
-      throw new Error(errorMsg);
-    }
+
+    assertSuccess(result, this.getLastError());
 
     return this;
   }
@@ -300,10 +283,8 @@ export class CborWriter {
    */
   public endMap(): CborWriter {
     const result = getModule().cbor_writer_write_end_map(this.ptr);
-    if (result !== 0) {
-      const errorMsg = `Failed to write end map: ${getErrorString(result)} ${this.getLastError()}`;
-      throw new Error(errorMsg);
-    }
+
+    assertSuccess(result, this.getLastError());
 
     return this;
   }
@@ -345,10 +326,8 @@ export class CborWriter {
   public writeUnsignedInt(value: number | bigint): CborWriter {
     const { low, high } = splitToLowHigh64bit(value);
     const result = getModule().cbor_writer_write_uint(this.ptr, low, high);
-    if (result !== 0) {
-      const errorMsg = `Failed to write unsigned int: ${getErrorString(result)} ${this.getLastError()}`;
-      throw new Error(errorMsg);
-    }
+
+    assertSuccess(result, this.getLastError());
 
     return this;
   }
@@ -368,10 +347,8 @@ export class CborWriter {
   public writeSignedInt(value: number | bigint): CborWriter {
     const { low, high } = splitToLowHigh64bit(value);
     const result = getModule().cbor_writer_write_signed_int(this.ptr, low, high);
-    if (result !== 0) {
-      const errorMsg = `Failed to write signed int: ${getErrorString(result)} ${this.getLastError()}`;
-      throw new Error(errorMsg);
-    }
+
+    assertSuccess(result, this.getLastError());
 
     return this;
   }
@@ -387,10 +364,8 @@ export class CborWriter {
    */
   public writeNull(): CborWriter {
     const result = getModule().cbor_writer_write_null(this.ptr);
-    if (result !== 0) {
-      const errorMsg = `Failed to write null: ${getErrorString(result)} ${this.getLastError()}`;
-      throw new Error(errorMsg);
-    }
+
+    assertSuccess(result, this.getLastError());
 
     return this;
   }
@@ -406,10 +381,8 @@ export class CborWriter {
    */
   public writeUndefined(): CborWriter {
     const result = getModule().cbor_writer_write_undefined(this.ptr);
-    if (result !== 0) {
-      const errorMsg = `Failed to write undefined: ${getErrorString(result)} ${this.getLastError()}`;
-      throw new Error(errorMsg);
-    }
+
+    assertSuccess(result, this.getLastError());
 
     return this;
   }
@@ -428,10 +401,8 @@ export class CborWriter {
    */
   public writeTag(tag: CborTag | number): CborWriter {
     const result = getModule().cbor_writer_write_tag(this.ptr, tag);
-    if (result !== 0) {
-      const errorMsg = `Failed to write tag: ${getErrorString(result)} ${this.getLastError()}`;
-      throw new Error(errorMsg);
-    }
+
+    assertSuccess(result, this.getLastError());
 
     return this;
   }
@@ -452,10 +423,9 @@ export class CborWriter {
     const bufferPtr = module._malloc(size);
     try {
       const result = module.cbor_writer_encode(this.ptr, bufferPtr, size);
-      if (result !== 0) {
-        const errorMsg = `Failed to encode data: ${getErrorString(result)} ${this.getLastError()}`;
-        throw new Error(errorMsg);
-      }
+
+      assertSuccess(result, this.getLastError());
+
       return new Uint8Array(module.HEAPU8.subarray(bufferPtr, bufferPtr + size));
     } finally {
       module._free(bufferPtr);
@@ -475,6 +445,7 @@ export class CborWriter {
     const module = getModule();
 
     const hexSize = module.cbor_writer_get_hex_size(this.ptr);
+
     if (hexSize === 0) {
       throw new Error('Failed to get hex size: Writer contains no data or is invalid.');
     }
@@ -483,10 +454,7 @@ export class CborWriter {
     try {
       const result = module.cbor_writer_encode_hex(this.ptr, hexPtr, hexSize);
 
-      if (result !== 0) {
-        const errorMsg = `Failed to encode hex: ${getErrorString(result)} ${this.getLastError()}`;
-        throw new Error(errorMsg);
-      }
+      assertSuccess(result, this.getLastError());
 
       return module.UTF8ToString(hexPtr);
     } finally {
@@ -505,10 +473,7 @@ export class CborWriter {
    */
   public reset(): CborWriter {
     const result = getModule().cbor_writer_reset(this.ptr);
-    if (result !== 0) {
-      const errorMsg = `Failed to reset writer: ${getErrorString(result)} ${this.getLastError()}`;
-      throw new Error(errorMsg);
-    }
+    assertSuccess(result, this.getLastError());
 
     return this;
   }
