@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+/* IMPORTS ********************************************************************/
+
+import { getModule } from '../module';
+
 /* CONSTANTS *****************************************************************/
 
 export const MIN_SIGNED_64BIT = -(2n ** 63n);
@@ -49,4 +53,32 @@ export const splitToLowHigh64bit = (value: number | bigint): { low: number; high
   const high = Number(bigIntValue >> 32n);
 
   return { high, low };
+};
+
+/**
+ * Reads a 64-bit integer (signed or unsigned) from memory and returns it as a `bigint`.
+ *
+ * This function reads a 64-bit value split into two 32-bit integers (low and high) from a given
+ * memory address. It combines the two parts to reconstruct the full 64-bit value. The value
+ * can be interpreted as either signed or unsigned, based on the `isSigned` parameter.
+ *
+ * @param ptr - The memory address (pointer) where the 64-bit integer is located.
+ * @param isSigned - A boolean indicating whether the value should be interpreted as signed (`true`) or unsigned (`false`).
+ *
+ * @returns The reconstructed 64-bit integer as a `bigint`. For signed integers, the value includes
+ *          negative representation if applicable. For unsigned integers, the value is always non-negative.
+ */
+export const readI64 = (ptr: any, isSigned = false): bigint => {
+  const module = getModule();
+
+  const low = BigInt(module.getValue(ptr, 'i32')) & 0xffffffffn;
+  const high = BigInt(module.getValue(ptr + 4, 'i32')) & 0xffffffffn;
+
+  const combined = (high << 32n) | low;
+
+  if (isSigned && combined >= 0x8000000000000000n) {
+    return combined - 0x10000000000000000n;
+  }
+
+  return combined;
 };

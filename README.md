@@ -1,3 +1,41 @@
-# COMETA
+<div align="center">
+  <a href="https://www.meteor.com" target="_blank">
+    <img align="center" width="300" src="assets/cometa_js.png">
+  </a>
+</div>
 
-Work in progress. Come back later.
+<br>
+
+<div align="center">
+
+[![Static Badge](https://img.shields.io/badge/Metric-Val-06f50?logoColor=ffffff)]()
+[![Static Badge](https://img.shields.io/badge/Metric-Val-06f50?logoColor=ffffff)]()
+[![Static Badge](https://img.shields.io/badge/Metric-Val-06f50?logoColor=ffffff)]()
+[![Static Badge](https://img.shields.io/badge/Metric-Val-06f50?logoColor=ffffff)]()
+[![Static Badge](https://img.shields.io/badge/Metric-Val-06f50?logoColor=ffffff)]()
+
+</div>
+
+<hr>
+
+Cometa .JS is ....
+
+<hr>
+
+- [Official Website]()
+- [Installation]()
+- [Documentation]()
+
+<hr>
+
+### **TBD**
+
+<hr>
+
+### **TBD**
+
+<hr>
+
+### **TBD**
+
+<hr>

@@ -21,3 +21,4 @@ export * from './CborReader';
 export * from './CborReaderState';
 export * from './CborTag';
 export * from './CborWriter';
+export * from './CborSimpleValue';
