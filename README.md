@@ -1,5 +1,5 @@
 <div align="center">
-  <a href="https://www.meteor.com" target="_blank">
+  <a href="" target="_blank">
     <img align="center" width="300" src="assets/cometa_js.png">
   </a>
 </div>
