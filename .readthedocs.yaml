@@ -8,7 +8,6 @@ build:
   tools:
     nodejs: "18"
     python: "3.11"
-
   jobs:
     post_install:
       # Ensure Yarn is installed
@@ -16,3 +15,5 @@ build:
       # Install dependencies and build docs using Yarn
       - yarn install
       - yarn docs
+sphinx:
+  configuration: docs/conf.py

@@ -1,8 +1,8 @@
 {
   "entryPoints": ["src/index.ts"],
   "readme": "GETTING_STARTED.md",
-  "out": "docs/typedoc",
-  "json": "docs/typedoc/typedoc.json",
+  "out": "docs/html",
+  "json": "docs/html/typedoc.json",
   "exclude": ["**/*.spec.ts", "**/*.test.ts"],
   "tsconfig": "tsconfig.json",
   "includeVersion": true,
