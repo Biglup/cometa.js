@@ -11,5 +11,5 @@ build:
 
   jobs:
     post_install:
-      - npm ci
-      - npx typedoc --options typedoc.json
+      - yarn install
+      - yarn docs
