@@ -16,4 +16,4 @@ build:
       - yarn install
       - yarn docs
 sphinx:
-  configuration: docs/conf.py
+  configuration: ./conf.py
