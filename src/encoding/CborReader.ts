@@ -82,9 +82,8 @@ export class CborReader {
    */
   public static fromHex(hexString: string): CborReader {
     const module = getModule();
-    const memory = module.HEAPU8;
 
-    const hexPtr = writeStringToMemory(hexString, memory);
+    const hexPtr = writeStringToMemory(hexString);
     try {
       const ptr = module.cbor_reader_from_hex(hexPtr, hexString.length);
       if (!ptr) {

@@ -10,20 +10,23 @@ module.exports = {
     '@typescript-eslint/ban-types': 0,
     // covered by unicorn/prefer-module
     '@typescript-eslint/explicit-module-boundary-types': 0,
+    '@typescript-eslint/no-explicit-any': 0,
     '@typescript-eslint/no-shadow': ['error'],
     '@typescript-eslint/no-unused-expressions': ['error', { allowShortCircuit: true, allowTernary: true }],
+
     '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+
     // needed for inference from type guards
     '@typescript-eslint/no-var-requires': 0,
 
     // typescript checks return types
     camelcase: 0,
-
     'consistent-return': 0,
+
     'import/no-extraneous-dependencies': ['error', { devDependencies: ['**/test/**/*.ts'] }],
+
     // eslint compains about TS enums hence disable here and enable @typescript-eslint/no-shadow
     'import/no-unresolved': 0,
-
     'linebreak-style': [2, 'unix'],
     'max-len': [
       'warn',
@@ -35,7 +38,6 @@ module.exports = {
         ignoreUrls: true
       }
     ],
-    '@typescript-eslint/no-explicit-any': 0,
     'new-cap': 0,
     'no-bitwise': 0,
     'no-magic-numbers': 0,
@@ -57,6 +59,7 @@ module.exports = {
     'sort-imports-es6-autofix/sort-imports-es6': 'warn',
     'sort-keys-fix/sort-keys-fix': ['warn', 'asc', { natural: true }],
     'template-tag-spacing': 0,
+    'unicorn/better-regex': 0,
     'unicorn/filename-case': 0,
     'unicorn/no-array-callback-reference': 0,
     'unicorn/no-array-reduce': 0,

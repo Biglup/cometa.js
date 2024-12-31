@@ -69,9 +69,8 @@ export class CborWriter {
    */
   public writeBigInt(value: BigInt): CborWriter {
     const module = getModule();
-    const memory = module.HEAPU8;
     const bigintStr = value.toString();
-    const strPtr = writeStringToMemory(bigintStr, memory);
+    const strPtr = writeStringToMemory(bigintStr);
 
     const bigintPtrPtr = module._malloc(4);
 
@@ -158,12 +157,11 @@ export class CborWriter {
    */
   public writeTextString(text: string): CborWriter {
     const module = getModule();
-    const memory = module.HEAPU8;
 
     const encoder = new TextEncoder();
     const encodedText = encoder.encode(text);
 
-    const textPtr = writeStringToMemory(text, memory);
+    const textPtr = writeStringToMemory(text);
     const { low, high } = splitToLowHigh64bit(encodedText.length);
 
     try {

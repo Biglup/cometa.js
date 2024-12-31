@@ -24,25 +24,24 @@ import { getModule } from '../module';
  * Writes a UTF-8 encoded string to a specified memory location in the WASM heap.
  *
  * @param str - The string to encode and write. A null terminator (`\0`) is appended automatically.
- * @param memory - The WASM memory heap (`HEAPU8`) where the string will be written.
  * @returns The pointer (address) to the start of the allocated memory containing the encoded string.
  * @throws {Error} Throws an error if memory allocation fails.
  */
-export const writeStringToMemory = (str: string, memory: Uint8Array): number => {
+export const writeStringToMemory = (str: string): number => {
+  const module = getModule();
   const encoder = new TextEncoder();
   const encoded = encoder.encode(`${str}\0`);
 
-  const ptr = getModule()._malloc(encoded.length);
-
+  const ptr = module._malloc(encoded.length);
   if (!ptr) {
     throw new Error('Memory allocation failed.');
   }
 
   try {
-    memory.set(encoded, ptr);
-  } catch {
-    getModule()._free(ptr);
-    throw new Error('Failed to write string to memory');
+    module.HEAPU8.set(encoded, ptr);
+  } catch (error) {
+    module._free(ptr);
+    throw new Error(`Failed to write string to memory: ${error}`);
   }
 
   return ptr;

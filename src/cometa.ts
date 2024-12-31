@@ -30,3 +30,38 @@ import { getModule } from './module';
  * @returns {string} The version string of the libcardano-c library.
  */
 export const getLibCardanoCVersion = (): string => getModule().UTF8ToString(getModule().get_lib_version());
+
+/**
+ * Converts a hexadecimal string to a Uint8Array.
+ *
+ * @param {string} hexString The hexadecimal string to convert.
+ * @returns {Uint8Array} The binary data as a Uint8Array.
+ * @throws {Error} If the input string is not a valid hex string.
+ */
+export const hexToUint8Array = (hexString: string): Uint8Array => {
+  if (hexString.length % 2 !== 0) {
+    throw new Error('Invalid hex string: length must be even.');
+  }
+
+  // eslint-disable-next-line wrap-regex
+  if (hexString.length > 0 && !/^[\da-f]+$/i.test(hexString)) {
+    throw new TypeError('Invalid hex string: contains non-hexadecimal characters.');
+  }
+
+  const byteArray = new Uint8Array(hexString.length / 2);
+
+  for (let i = 0; i < hexString.length; i += 2) {
+    byteArray[i / 2] = Number.parseInt(hexString.slice(i, i + 2), 16);
+  }
+
+  return byteArray;
+};
+
+/**
+ * Converts a Uint8Array to a hexadecimal string.
+ *
+ * @param {Uint8Array} byteArray The binary data to convert.
+ * @returns {string} The hexadecimal string representation of the data.
+ */
+export const uint8ArrayToHex = (byteArray: Uint8Array): string =>
+  [...byteArray].map((byte) => byte.toString(16).padStart(2, '0')).join('');

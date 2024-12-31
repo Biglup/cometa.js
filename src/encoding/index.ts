@@ -22,3 +22,5 @@ export * from './CborReaderState';
 export * from './CborTag';
 export * from './CborWriter';
 export * from './CborSimpleValue';
+export * from './Base58';
+export * from './Bech32';
