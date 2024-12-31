@@ -14,3 +14,4 @@ lerna-debug.log
 !.yarn/sdks
 !.yarn/versions
 dist
+mkdocs.yml
