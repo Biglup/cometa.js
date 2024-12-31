@@ -7,13 +7,9 @@ build:
   os: ubuntu-22.04
   tools:
     nodejs: "18"
-    python: "3.11"
-  jobs:
-    post_install:
-      # Ensure Yarn is installed
-      - npm install --global yarn
-      # Install dependencies and build docs using Yarn
-      - yarn install
-      - yarn docs
-sphinx:
-  configuration: ./conf.py
+  commands:
+    - npm install --global yarn
+    - yarn install
+    - yarn docs
+    - mkdir --parents _readthedocs/html/
+    - cp --recursive docs/html/* _readthedocs/html/
