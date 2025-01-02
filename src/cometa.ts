@@ -65,3 +65,19 @@ export const hexToUint8Array = (hexString: string): Uint8Array => {
  */
 export const uint8ArrayToHex = (byteArray: Uint8Array): string =>
   [...byteArray].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+
+/**
+ * Converts a UTF-8 string to a Uint8Array.
+ *
+ * @param {string} str - The UTF-8 string to convert.
+ * @returns {Uint8Array} The converted Uint8Array.
+ */
+export const utf8ToUint8Array = (str: string): Uint8Array => new TextEncoder().encode(str);
+
+/**
+ * Converts a Uint8Array to a UTF-8 string.
+ *
+ * @param {Uint8Array} uint8Array - The Uint8Array to convert.
+ * @returns {string} The converted UTF-8 string.
+ */
+export const uint8ArrayToUtf8 = (uint8Array: Uint8Array): string => new TextDecoder().decode(uint8Array);

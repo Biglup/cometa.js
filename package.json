@@ -1,6 +1,6 @@
 {
   "name": "@biglup/cometa",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Cometa JS is a lightweight and high performance library designed to streamline transaction building and smart contract interactions on the Cardano blockchain",
   "engines": {
     "node": ">=16.0.0",
@@ -29,7 +29,8 @@
     "test": "yarn build && node --expose-gc ./node_modules/.bin/jest -c ./jest.config.js",
     "cleanup:dist": "rm -rf dist",
     "cleanup:nm": "rm -rf node_modules",
-    "cleanup": "run-s cleanup:dist cleanup:nm",
+    "cleanup:docs": "rm -rf docs",
+    "cleanup": "run-s cleanup:dist cleanup:nm cleanup:docs",
     "lint": "eslint -c ./complete.eslintrc.js \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint:fix": "yarn lint --fix",
     "prepack": "yarn build",

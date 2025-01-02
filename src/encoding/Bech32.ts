@@ -43,6 +43,9 @@ export type Bech32DecodeResult = {
  * and for decoding Bech32 strings back into their HRP and binary data components.
  */
 export class Bech32 {
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  private constructor() {}
+
   /**
    * Encodes binary data into a Bech32 string with a specified human-readable prefix (HRP).
    *
