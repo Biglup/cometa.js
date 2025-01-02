@@ -1,0 +1,42 @@
+name: Build and Test
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+    tags-ignore:
+      - '*'
+
+jobs:
+  build_and_unit_tests:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Install System Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential curl
+
+      - name: Install Node.js 18 and Yarn
+        run: |
+          curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+          sudo apt install -y nodejs
+          
+          npm install --global yarn
+
+      - name: Verify Node.js and Yarn Versions
+        run: |
+          node -v
+          yarn -v
+
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+        with:
+          submodules: "true"
+
+      - name: Install Dependencies
+        run: yarn install
+
+      - name: Run Unit Tests
+        run: yarn test
