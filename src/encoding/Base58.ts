@@ -30,6 +30,9 @@ import { hexToUint8Array, uint8ArrayToHex } from '../cometa';
  * the required buffer sizes for encoding/decoding and to perform the actual encoding/decoding.
  */
 export class Base58 {
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  private constructor() {}
+
   /**
    * Encodes binary data into a Base58 string.
    *

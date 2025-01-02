@@ -1,1 +1,0 @@
-project = 'Cometa JS'
