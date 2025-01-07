@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+/* IMPORTS *******************************************************************/
+
+import { ensureModuleHasRandomValue } from './randomValue';
+
 /* GLOBALS ********************************************************************/
 
 let _Module: any;
@@ -44,6 +48,7 @@ export const ready = async (): Promise<void> => {
       },
       onRuntimeInitialized: () => {
         _isReady = true;
+
         resolve();
       }
     });
@@ -51,6 +56,7 @@ export const ready = async (): Promise<void> => {
     moduleInstance
       .then((instance: any) => {
         _Module = instance;
+        ensureModuleHasRandomValue(_Module);
       })
       .catch((error: any) => {
         reject(error);

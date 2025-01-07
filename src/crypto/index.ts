@@ -17,3 +17,5 @@
 /* EXPORTS ********************************************************************/
 
 export * from './Crc32';
+export * from './Pbkdf2HmacSha512';
+export * from './Emip003';

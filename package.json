@@ -36,7 +36,8 @@
     "prepack": "yarn build",
     "docs": "typedoc --options typedoc.json"
   },
-  "dependencies": {},
+  "dependencies": {
+  },
   "devDependencies": {
     "@atixlabs/eslint-config": "^1.2.3",
     "@docusaurus/plugin-content-docs": "^3.6.3",
