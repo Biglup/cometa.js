@@ -10,7 +10,10 @@ export default defineConfig({
     options.platform = 'neutral';
     options.target = ['es2021'];
     options.resolveExtensions = ['.js', '.ts', '.wasm'];
-    options.external = ['fs', 'path'];
+    options.external = ['fs', 'path', 'crypto'];
+    options.logOverride = {
+      'direct-eval': 'silent'
+    };
   },
   format: ['cjs', 'esm'],
   legacyOutput: false,
