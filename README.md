@@ -33,7 +33,7 @@ Built on the foundation of [libcardano-c](https://github.com/Biglup/cardano-c), 
 
 ### **Installation**
 
-To install Cometa.js, you can use yarn:
+To install Cometa.js on your project, use the following command:
 
 ```bash
 yarn add @biglup/cometa
@@ -41,11 +41,13 @@ yarn add @biglup/cometa
 
 <hr>
 
-### **Testing**
+### **Building and Testing**
 
-To run the tests, use the following command:
+To build and run the tests, use the following commands:
 
 ```bash
+yarn install
+yarn build
 yarn test
 ```
 
