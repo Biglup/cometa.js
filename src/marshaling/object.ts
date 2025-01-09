@@ -60,10 +60,10 @@ export const unrefObject = (ptr: number): void => {
 export const assertSuccess = (result: number, lastError: string): void => {
   if (result !== 0) {
     if (lastError === '') {
-      throw new Error(`Error: ${result}`);
+      throw new Error(`${result}`);
     }
 
-    const errorMsg = `Error: ${getErrorString(result)} ${lastError}`;
+    const errorMsg = `${getErrorString(result)}. ${lastError}`;
     throw new Error(errorMsg);
   }
 };
