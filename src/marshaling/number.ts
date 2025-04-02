@@ -82,3 +82,25 @@ export const readI64 = (ptr: any, isSigned = false): bigint => {
 
   return combined;
 };
+
+/**
+ * Writes a 64-bit integer to memory at the specified pointer.
+ *
+ * @param ptr The pointer to write to.
+ * @param value The value to write (can be number or bigint).
+ * @param signed Whether to treat the value as signed (default: true).
+ */
+export const writeI64 = (ptr: number, value: number | bigint, signed = true): void => {
+  const module = getModule();
+  const bigValue = BigInt(value);
+
+  const low = Number(bigValue & 0xffffffffn);
+  let high = Number((bigValue >> 32n) & 0xffffffffn);
+
+  if (signed && bigValue < 0n) {
+    high |= 0xffffffff00000000;
+  }
+
+  module.setValue(ptr, low, 'i32');
+  module.setValue(ptr + 4, high, 'i32');
+};

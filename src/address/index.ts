@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Biglup Labs.
+ * Copyright 2025 Biglup Labs.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,15 @@
  * limitations under the License.
  */
 
-/* EXPORTS ********************************************************************/
-
-export * from './string';
-export * from './number';
-export * from './object';
-export * from './credential';
-export * from './blake2b';
+export * from './Address';
+export * from './AddressType';
+export * from './BaseAddress';
+export * from './ByronAddress';
+export * from './Credential';
+export * from './CredentialType';
+export * from './EnterpriseAddress';
+export * from './NetworkId';
+export * from './PointerAddress';
+export * from './RewardAddress';
+export * from './StakePointer';
+export * from './ByronAddressType';

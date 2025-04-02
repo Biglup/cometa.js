@@ -1,4 +1,16 @@
-Next (V1.0.2)
+Next (V1.0.3)
+---------------------
+
+This version includes bindings to the address parsing libcardano-c library. The following functions are included:
+
+- Add Binding to Address
+- Add Binding to BaseAddress
+- Add Binding to ByronAddress
+- Add Binding to EnterpriseAddress
+- Add Binding to PointerAddress
+- Add Binding to RewardAddress
+
+V1.0.2
 ---------------------
 
 This version includes bindings to the cryptographic functions of the libcardano-c library. The following functions are included:
