@@ -93,15 +93,3 @@ export const readBufferData = (bufferPtr: number): Uint8Array => {
     unrefObject(bufferPtr);
   }
 };
-
-export const readBlake2bHashData = (bufferPtr: number): Uint8Array => {
-  const module = getModule();
-  const size = module.blake2b_hash_get_bytes_size(bufferPtr);
-  const dataPtr = module.blake2b_hash_get_data(bufferPtr);
-
-  try {
-    return new Uint8Array(module.HEAPU8.subarray(dataPtr, dataPtr + size));
-  } finally {
-    unrefObject(bufferPtr);
-  }
-};

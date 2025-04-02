@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Biglup Labs.
+ * Copyright 2025 Biglup Labs.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,17 @@
  * limitations under the License.
  */
 
-/* EXPORTS ********************************************************************/
+/**
+ * Defines the network identifiers used within the Cardano ecosystem.
+ *
+ * This enumeration is used to specify the network for which a Cardano transaction or operation is intended.
+ *
+ * @enum {number}
+ */
+export enum NetworkId {
+  /** Represents the test network (testnet). */
+  Testnet = 0,
 
-export * from './string';
-export * from './number';
-export * from './object';
-export * from './credential';
-export * from './blake2b';
+  /** Represents the main network (mainnet). */
+  Mainnet = 1
+}

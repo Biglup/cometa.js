@@ -29,11 +29,20 @@ import { getModule } from '../module';
  * systems for hashing arbitrary data.
  */
 export class Blake2b {
+  /**
+   * Private constructor to prevent instantiation.
+   *
+   * This class is designed to be used statically, with all methods being static.
+   * The constructor is private to enforce this design pattern.
+   */
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   private constructor() {}
 
   /**
    * Computes a BLAKE2b hash of the given data with the specified hash length.
+   *
+   * This method takes arbitrary binary data and computes its BLAKE2b hash with
+   * the specified output length. BLAKE2b supports output lengths from 1 to 64 bytes.
    *
    * @param {Uint8Array} data - The input data to be hashed.
    *                            This is a binary array representing the data.
