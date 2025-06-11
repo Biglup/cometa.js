@@ -17,6 +17,7 @@
 /* IMPORTS *******************************************************************/
 
 import { ensureModuleHasRandomValue } from './randomValue';
+import { wasmImports } from './interop';
 
 /* GLOBALS ********************************************************************/
 
@@ -42,7 +43,10 @@ export const ready = async (): Promise<void> => {
   const ModuleFactory = (await import('../libcardano-c/cardano_c.js')).default;
 
   return new Promise<void>((resolve, reject) => {
+    Object.assign(globalThis, wasmImports);
+
     const moduleInstance = ModuleFactory({
+      ...wasmImports,
       onAbort: (err: unknown) => {
         reject(err);
       },

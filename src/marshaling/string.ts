@@ -48,6 +48,18 @@ export const writeStringToMemory = (str: string): number => {
 };
 
 /**
+ * Calculates the number of bytes required to store a UTF-8-encoded copy of
+ * the given string **including** a trailing NUL (`\0`) terminator.
+ *
+ * @param str - The JavaScript string to measure.
+ * @returns The byte length (`Uint8`) that must be allocated in the WASM heap
+ *          before calling {@link writeStringToMemory} or a similar routine.
+ *          Always `≥ 1` because the terminating NUL is counted even for the
+ *          empty string.
+ */
+export const utf8ByteLen = (str: string): number => new TextEncoder().encode(str).length + 1;
+
+/**
  * Retrieves the human-readable string representation of a given error code.
  *
  * This function uses the WASM module to convert an error code into a descriptive string.
