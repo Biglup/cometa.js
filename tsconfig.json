@@ -31,7 +31,7 @@
     "./src/**/*.ts",
     "./src/**/*.js",
     "./libcardano-c/*"
-  ],
+, "test/marshaling/drepVotingThresholds.test.ts"  ],
   "exclude": [
     "./node_modules",
     "./dist",
