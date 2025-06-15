@@ -1,4 +1,6 @@
+import { UnitInterval } from './UnitInterval';
+
 export interface ExUnitsPrices {
-  memory: number;
-  steps: number;
+  memory: UnitInterval;
+  steps: UnitInterval;
 }

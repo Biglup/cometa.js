@@ -60,19 +60,22 @@ export class Provider {
   get lastError(): string {
     return getModule().provider_get_last_error(this.ptr);
   }
-
-  public getParameters(): number {
+  public async getParameters(): Promise<number> {
     const m = getModule();
-    const outPtr = allocPtr();
+    const outPtr = m._malloc(4);
 
-    const rc = m.provider_get_parameters(this.ptr, outPtr);
-    assertSuccess(rc, this.lastError);
+    try {
+      m.provider_get_parameters(this.ptr, outPtr);
 
-    const paramsPtr = readPtr(outPtr);
-    m._free(outPtr);
-    return paramsPtr; // TODO wrap in dedicated class
+      const rc = await m.Asyncify.whenDone();
+
+      assertSuccess(rc, this.lastError);
+
+      return m.getValue(outPtr, 'i32');
+    } finally {
+      m._free(outPtr);
+    }
   }
-
   /** Fetch all UTXOs at a Cardano address. */
   async getUnspentOutputs(address: /* TODO Address */ any): Promise<number /* utxo_list* */> {
     const m = getModule();

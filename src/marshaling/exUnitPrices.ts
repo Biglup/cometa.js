@@ -16,19 +16,12 @@
 
 /* IMPORTS *******************************************************************/
 
+import { ExUnitsPrices } from '../common';
 import { assertSuccess } from './object';
-import { derefUnitInterval, readUnitIntervalAsDouble, writeUnitIntervalAsDouble } from './unitInterval';
+import { derefUnitInterval, readIntervalComponents, writeUnitInterval } from './unitInterval';
 import { getModule } from '../module';
 
 /* DEFINITIONS ****************************************************************/
-
-/**
- * Interface representing execution unit prices with memory and step prices.
- */
-export interface ExUnitPrices {
-  memPrice: number; // Memory price in lovelace per byte (between 0 and 1)
-  stepPrice: number; // Step price in lovelace per step (between 0 and 1)
-}
 
 /**
  * Writes an ExUnitPrices object to WASM memory.
@@ -37,11 +30,11 @@ export interface ExUnitPrices {
  * @returns A pointer to the created execution unit prices in WASM memory.
  * @throws {Error} If the prices are invalid or creation fails.
  */
-export const writeExUnitPrices = (prices: ExUnitPrices): number => {
+export const writeExUnitPrices = (prices: ExUnitsPrices): number => {
   const module = getModule();
   const pricesPtrPtr = module._malloc(4);
-  const memPricePtr = writeUnitIntervalAsDouble(prices.memPrice);
-  const stepPricePtr = writeUnitIntervalAsDouble(prices.stepPrice);
+  const memPricePtr = writeUnitInterval(prices.memory);
+  const stepPricePtr = writeUnitInterval(prices.steps);
 
   try {
     const result = module.ex_unit_prices_new(memPricePtr, stepPricePtr, pricesPtrPtr);
@@ -62,7 +55,7 @@ export const writeExUnitPrices = (prices: ExUnitPrices): number => {
  * @returns The ExUnitPrices object.
  * @throws {Error} If the pointer is null or reading fails.
  */
-export const readExUnitPrices = (ptr: number): ExUnitPrices => {
+export const readExUnitPrices = (ptr: number): ExUnitsPrices => {
   if (!ptr) {
     throw new Error('Pointer is null');
   }
@@ -76,15 +69,15 @@ export const readExUnitPrices = (ptr: number): ExUnitPrices => {
     const memResult = module.ex_unit_prices_get_memory_prices(ptr, memPricePtrPtr);
     assertSuccess(memResult, 'Failed to read memory price');
     const memPricePtr = module.getValue(memPricePtrPtr, 'i32');
-    const memPrice = readUnitIntervalAsDouble(memPricePtr);
+    const memory = readIntervalComponents(memPricePtr);
 
     // Read step price
     const stepResult = module.ex_unit_prices_get_steps_prices(ptr, stepPricePtrPtr);
     assertSuccess(stepResult, 'Failed to read step price');
     const stepPricePtr = module.getValue(stepPricePtrPtr, 'i32');
-    const stepPrice = readUnitIntervalAsDouble(stepPricePtr);
+    const steps = readIntervalComponents(stepPricePtr);
 
-    return { memPrice, stepPrice };
+    return { memory, steps };
   } finally {
     module._free(memPricePtrPtr);
     module._free(stepPricePtrPtr);

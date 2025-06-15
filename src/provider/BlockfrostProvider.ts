@@ -62,89 +62,94 @@ export class BlockfrostProvider extends BaseProvider {
 
   async getParameters(): Promise<ProtocolParameters> {
     const query = 'epochs/latest/parameters';
-    const json = await fetch(`${this.url}${query}`, {
+    const response = await fetch(`${this.url}${query}`, { // Await the fetch call
       headers: this.headers()
-    }).then((resp) => resp.json());
+    });
+
+    // Check for network errors before parsing JSON
+    if (!response.ok) {
+      throw new Error(`getParameters: Network request failed with status ${response.status}`);
+    }
+
+    const json = await response.json(); // Await the JSON parsing
 
     if (!json) {
       throw new Error('getParameters: Could not parse response json');
     }
 
-    const response = json;
+    const data = json; // Renamed to 'data' to avoid confusion with the `json` variable itself being the object.
 
-    if ('message' in response) {
-      throw new Error(`getParameters: Blockfrost threw "${response.message}"`);
+    if ('message' in data) { // Now `data` is the parsed JSON object
+      throw new Error(`getParameters: Blockfrost threw "${data.message}"`);
     }
 
-    const costModels: CostModel[] = Object.entries((response.cost_models_raw ?? {}) as Record<string, number[]>).map(
+    const costModels: CostModel[] = Object.entries((data.cost_models_raw ?? {}) as Record<string, number[]>).map(
       ([language, costs]) => ({ costs, language })
     );
 
     return {
-      adaPerUtxoByte: Number(response.coins_per_utxo_word),
-      collateralPercent: Number(response.collateral_percent),
-      committeeTermLimit: Number(response.committee_max_term_length),
+      adaPerUtxoByte: Number(data.coins_per_utxo_word),
+      collateralPercent: Number(data.collateral_percent),
+      committeeTermLimit: Number(data.committee_max_term_length),
       costModels,
-      decentralisationParam: toUnitInterval(response.decentralisation_param),
-      drepDeposit: Number(response.drep_deposit),
-      drepInactivityPeriod: Number(response.drep_activity),
+      decentralisationParam: toUnitInterval(data.decentralisation_param),
+      drepDeposit: Number(data.drep_deposit),
+      drepInactivityPeriod: Number(data.drep_activity),
       drepVotingThresholds: {
-        committeeNoConfidence: toUnitInterval(response.dvt_committee_no_confidence),
-        committeeNormal: toUnitInterval(response.dvt_committee_normal),
-        hardForkInitiation: toUnitInterval(response.dvt_hard_fork_initiation),
-        motionNoConfidence: toUnitInterval(response.dvt_motion_no_confidence),
-        ppEconomicGroup: toUnitInterval(response.dvt_p_p_economic_group),
-        ppGovernanceGroup: toUnitInterval(response.dvt_p_p_gov_group),
-        ppNetworkGroup: toUnitInterval(response.dvt_p_p_network_group),
-        ppTechnicalGroup: toUnitInterval(response.dvt_p_p_technical_group),
-        treasuryWithdrawal: toUnitInterval(response.dvt_treasury_withrawal),
-        updateConstitution: toUnitInterval(response.dvt_update_to_constitution)
+        committeeNoConfidence: toUnitInterval(data.dvt_committee_no_confidence),
+        committeeNormal: toUnitInterval(data.dvt_committee_normal),
+        hardForkInitiation: toUnitInterval(data.dvt_hard_fork_initiation),
+        motionNoConfidence: toUnitInterval(data.dvt_motion_no_confidence),
+        ppEconomicGroup: toUnitInterval(data.dvt_p_p_economic_group),
+        ppGovernanceGroup: toUnitInterval(data.dvt_p_p_gov_group),
+        ppNetworkGroup: toUnitInterval(data.dvt_p_p_network_group),
+        ppTechnicalGroup: toUnitInterval(data.dvt_p_p_technical_group),
+        treasuryWithdrawal: toUnitInterval(data.dvt_treasury_withrawal),
+        updateConstitution: toUnitInterval(data.dvt_update_to_constitution)
       },
       executionCosts: {
-        memory: Number(response.price_mem),
-        steps: Number(response.price_step)
+        memory: toUnitInterval(data.price_mem),
+        steps: toUnitInterval(data.price_step)
       },
-      expansionRate: toUnitInterval(response.rho),
-      extraEntropy: response.extra_entropy as string | null,
-      governanceActionDeposit: Number(response.gov_action_deposit),
-      governanceActionValidityPeriod: Number(response.gov_action_lifetime),
-      keyDeposit: Number(response.key_deposit),
-      maxBlockBodySize: Number(response.max_block_size),
+      expansionRate: toUnitInterval(data.rho),
+      extraEntropy: data.extra_entropy as string | null,
+      governanceActionDeposit: Number(data.gov_action_deposit),
+      governanceActionValidityPeriod: Number(data.gov_action_lifetime),
+      keyDeposit: Number(data.key_deposit),
+      maxBlockBodySize: Number(data.max_block_size),
       maxBlockExUnits: {
-        memory: Number(response.max_block_ex_mem),
-        steps: Number(response.max_block_ex_steps)
+        memory: Number(data.max_block_ex_mem),
+        steps: Number(data.max_block_ex_steps)
       },
-      maxBlockHeaderSize: Number(response.max_block_header_size),
-      maxCollateralInputs: Number(response.max_collateral_inputs),
-      maxEpoch: Number(response.e_max),
+      maxBlockHeaderSize: Number(data.max_block_header_size),
+      maxCollateralInputs: Number(data.max_collateral_inputs),
+      maxEpoch: Number(data.e_max),
       maxTxExUnits: {
-        memory: Number(response.max_tx_ex_mem),
-        steps: Number(response.max_tx_ex_steps)
+        memory: Number(data.max_tx_ex_mem),
+        steps: Number(data.max_tx_ex_steps)
       },
-      maxTxSize: Number(response.max_tx_size),
-      maxValueSize: Number(response.max_val_size),
-      minCommitteeSize: Number(response.committee_min_size),
-      minFeeA: Number(response.min_fee_a),
-      minFeeB: Number(response.min_fee_b),
-      minPoolCost: Number(response.min_pool_cost),
-      nOpt: Number(response.n_opt),
-      poolDeposit: Number(response.pool_deposit),
-      poolPledgeInfluence: toUnitInterval(response.a0),
+      maxTxSize: Number(data.max_tx_size),
+      maxValueSize: Number(data.max_val_size),
+      minCommitteeSize: Number(data.committee_min_size),
+      minFeeA: Number(data.min_fee_a),
+      minFeeB: Number(data.min_fee_b),
+      minPoolCost: Number(data.min_pool_cost),
+      nOpt: Number(data.n_opt),
+      poolDeposit: Number(data.pool_deposit),
+      poolPledgeInfluence: toUnitInterval(data.a0),
       poolVotingThresholds: {
-        committeeNoConfidence: toUnitInterval(response.pvt_committee_no_confidence),
-        committeeNormal: toUnitInterval(response.pvt_committee_normal),
-        hardForkInitiation: toUnitInterval(response.pvt_hard_fork_initiation),
-        motionNoConfidence: toUnitInterval(response.pvt_motion_no_confidence),
-        securityRelevantParamVotingThreshold: toUnitInterval(
-          response.pvt_p_p_security_group ?? response.pvtpp_security_group
-        )
+        committeeNoConfidence: toUnitInterval(data.pvt_committee_no_confidence),
+        committeeNormal: toUnitInterval(data.pvt_committee_normal),
+        hardForkInitiation: toUnitInterval(data.pvt_hard_fork_initiation),
+        motionNoConfidence: toUnitInterval(data.pvt_motion_no_confidence),
+        securityRelevantParamVotingThreshold: toUnitInterval(data.pvt_p_p_security_group ?? data.pvtpp_security_group)
       },
       protocolVersion: {
-        major: Number(response.protocol_major_ver),
-        minor: Number(response.protocol_minor_ver)
+        major: Number(data.protocol_major_ver),
+        minor: Number(data.protocol_minor_ver)
       },
-      refScriptCostPerByte: toUnitInterval(response.min_fee_ref_script_cost_per_byte),
-      treasuryGrowthRate: toUnitInterval(response.tau)
+      refScriptCostPerByte: toUnitInterval(data.min_fee_ref_script_cost_per_byte),
+      treasuryGrowthRate: toUnitInterval(data.tau)
     };
   }
 

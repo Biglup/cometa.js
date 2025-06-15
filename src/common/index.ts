@@ -27,4 +27,5 @@ export * from './CostModel';
 export * from './PoolVotingThresholds';
 export * from './UnitInterval';
 export * from './DelegateRepresentativeThresholds';
-export * from './ProtocolVersion'; 
+export * from './ProtocolVersion';
+export * from './ExUnitsPrices';

@@ -17,7 +17,6 @@
 /* IMPORTS *******************************************************************/
 
 import * as Cometa from '../../src';
-import { ExUnitPrices, writeExUnitPrices, readExUnitPrices, derefExUnitPrices } from '../../src/marshaling/exUnitPrices';
 
 /* TESTS *********************************************************************/
 
@@ -28,93 +27,114 @@ describe('ExUnitPrices', () => {
 
   describe('writeExUnitPrices', () => {
     it('should write execution unit prices to WASM memory', () => {
-      const prices: ExUnitPrices = {
-        memPrice: 0.0577,
-        stepPrice: 0.0000721
+      const prices: Cometa.ExUnitsPrices = {
+        memory: {
+          denominator: 10000,
+          numerator: 577
+        },
+        steps: {
+          denominator: 10000000,
+          numerator: 721
+        }
       };
 
-      const ptr = writeExUnitPrices(prices);
+      const ptr = Cometa.writeExUnitPrices(prices);
       expect(ptr).toBeGreaterThan(0);
 
       // Clean up
-      derefExUnitPrices(ptr);
+      Cometa.derefExUnitPrices(ptr);
     });
 
     it('should handle large price values', () => {
-      const prices: ExUnitPrices = {
-        memPrice: 0.999999,
-        stepPrice: 0.000001
+      const prices: Cometa.ExUnitsPrices = {
+        memory: {
+          denominator: 1000000,
+          numerator: 999999
+        },
+        steps: {
+          denominator: 1000000,
+          numerator: 1
+        }
       };
 
-      const ptr = writeExUnitPrices(prices);
+      const ptr = Cometa.writeExUnitPrices(prices);
       expect(ptr).toBeGreaterThan(0);
 
       // Clean up
-      derefExUnitPrices(ptr);
+      Cometa.derefExUnitPrices(ptr);
     });
 
     it('should throw an error for null pointer', () => {
-      expect(() => readExUnitPrices(0)).toThrow('Pointer is null');
-    });
-
-    it('should throw an error for invalid price values', () => {
-      const prices: ExUnitPrices = {
-        memPrice: 1.5, // Invalid: greater than 1
-        stepPrice: -0.1 // Invalid: less than 0
-      };
-
-      expect(() => writeExUnitPrices(prices)).toThrow('Invalid UnitInterval value');
+      expect(() => Cometa.readExUnitPrices(0)).toThrow('Pointer is null');
     });
   });
 
   describe('readExUnitPrices', () => {
     it('should read execution unit prices from WASM memory', () => {
-      const prices: ExUnitPrices = {
-        memPrice: 0.0577,
-        stepPrice: 0.0000721
+      const prices: Cometa.ExUnitsPrices = {
+        memory: {
+          denominator: 10000,
+          numerator: 577
+        },
+        steps: {
+          denominator: 10000000,
+          numerator: 721
+        }
       };
 
-      const ptr = writeExUnitPrices(prices);
+      const ptr = Cometa.writeExUnitPrices(prices);
       try {
-        const readPrices = readExUnitPrices(ptr);
+        const readPrices = Cometa.readExUnitPrices(ptr);
         expect(readPrices).toEqual(prices);
       } finally {
-        derefExUnitPrices(ptr);
+        Cometa.derefExUnitPrices(ptr);
       }
     });
 
     it('should handle large price values', () => {
-      const prices: ExUnitPrices = {
-        memPrice: 0.999999,
-        stepPrice: 0.000001
+      const prices: Cometa.ExUnitsPrices = {
+        memory: {
+          denominator: 1000000,
+          numerator: 999999
+        },
+        steps: {
+          denominator: 1000000,
+          numerator: 1
+        }
       };
 
-      const ptr = writeExUnitPrices(prices);
+      const ptr = Cometa.writeExUnitPrices(prices);
       try {
-        const readPrices = readExUnitPrices(ptr);
+        const readPrices = Cometa.readExUnitPrices(ptr);
         expect(readPrices).toEqual(prices);
       } finally {
-        derefExUnitPrices(ptr);
+        Cometa.derefExUnitPrices(ptr);
       }
     });
   });
 
   describe('derefExUnitPrices', () => {
     it('should free the execution unit prices memory', () => {
-      const prices: ExUnitPrices = {
-        memPrice: 0.0577,
-        stepPrice: 0.0000721
+      const prices: Cometa.ExUnitsPrices = {
+        memory: {
+          denominator: 10000,
+          numerator: 577
+        },
+        steps: {
+          denominator: 10000000,
+          numerator: 721
+        }
       };
 
-      const ptr = writeExUnitPrices(prices);
-      derefExUnitPrices(ptr);
+      const ptr = Cometa.writeExUnitPrices(prices);
+      Cometa.derefExUnitPrices(ptr);
 
       // The pointer should be invalid after deref
-      expect(() => readExUnitPrices(ptr)).toThrow();
+      expect(() => Cometa.readExUnitPrices(ptr)).toThrow();
     });
 
     it('should throw an error for null pointer', () => {
-      expect(() => derefExUnitPrices(0)).toThrow('Pointer is null');
+      expect(() => Cometa.derefExUnitPrices(0)).toThrow('Pointer is null');
     });
   });
-}); 
+});

@@ -17,7 +17,8 @@
 /* IMPORTS *******************************************************************/
 
 import { ensureModuleHasRandomValue } from './randomValue';
-import { wasmImports } from './interop';
+import { getFromInstanceRegistry } from './instanceRegistry';
+import { writeProtocolParameters } from './marshaling';
 
 /* GLOBALS ********************************************************************/
 
@@ -43,10 +44,24 @@ export const ready = async (): Promise<void> => {
   const ModuleFactory = (await import('../libcardano-c/cardano_c.js')).default;
 
   return new Promise<void>((resolve, reject) => {
-    Object.assign(globalThis, wasmImports);
+    Object.assign(globalThis, {
+      get_provider_from_registry(objectId: any) {
+        // eslint-disable-next-line sonarjs/no-empty-collection
+        return getFromInstanceRegistry(objectId);
+      },
+      marshal_protocol_parameters(params: any) {
+        // This calls your existing `writeProtocolParameters` function
+        // You must make sure `writeProtocolParameters` is available here
+        try {
+          return writeProtocolParameters(params);
+        } catch (error) {
+          console.error('Error in writeProtocolParameters:', error);
+          return 0; // Return null pointer on error
+        }
+      }
+    });
 
     const moduleInstance = ModuleFactory({
-      ...wasmImports,
       onAbort: (err: unknown) => {
         reject(err);
       },

@@ -27,5 +27,6 @@ export * from './costmdls';
 export * from './costModel';
 export * from './exUnits';
 export * from './exUnitPrices';
-export * from './drepVotingThresholds';
 export * from './poolVotingThresholds';
+export * from './drepVotingThresholds';
+export * from './protocolParameters';

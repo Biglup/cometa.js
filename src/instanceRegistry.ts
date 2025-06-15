@@ -1,5 +1,5 @@
 /**
- * Copyright 2025 Biglup Labs.
+ * Copyright 2024 Biglup Labs.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
-/* EXPORTS ********************************************************************/
+/* GLOBALS ********************************************************************/
 
-import { buildTrampolines } from './trampolines';
-import { providerSpecs } from './providerSpecs';
+const _registry = new Map<number, any>();
 
-export const wasmImports = buildTrampolines(providerSpecs);
-export { register, unregister } from './trampolines';
+/* DEFINITIONS ****************************************************************/
+
+export const registerInstance = (id: number, obj: any) => _registry.set(id, obj);
+export const unregisterInstance = (id: number) => _registry.delete(id);
+
+export const getFromInstanceRegistry = (id: number) => _registry.get(id);

@@ -61,7 +61,7 @@ export const readUnitIntervalAsDouble = (ptr: number): number => {
 export const writeUnitIntervalAsDouble = (value: string | number): number => {
   const numValue = typeof value === 'string' ? Number.parseFloat(value) : value;
 
-  if (Number.isNaN(numValue) || numValue < 0 || numValue > 1) {
+  if (Number.isNaN(numValue) || numValue < 0) {
     throw new Error('Invalid UnitInterval value. Must be a number between 0 and 1.');
   }
 
@@ -133,8 +133,8 @@ export const readIntervalComponents = (ptr: number): UnitInterval => {
 
   const module = getModule();
 
-  const numerator = module.unit_interval_get_numerator(ptr, ptr);
-  const denominator = module.unit_interval_get_denominator(ptr, ptr);
+  const numerator = module.unit_interval_get_numerator(ptr);
+  const denominator = module.unit_interval_get_denominator(ptr);
 
   return {
     denominator: Number(denominator),

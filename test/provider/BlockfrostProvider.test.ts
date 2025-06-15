@@ -17,7 +17,6 @@
 /* IMPORTS ********************************************************************/
 
 import * as Cometa from '../../dist/cjs';
-import { Provider } from '../../src';
 
 /* TESTS **********************************************************************/
 
@@ -26,14 +25,14 @@ describe('BlockfrostProvider', () => {
     await Cometa.ready();
   });
 
-  it('should create an instance', () => {
+  it('should create an instance', async () => {
     const provider = new Cometa.BlockfrostProvider({
       network: Cometa.NetworkMagic.PREPROD,
       projectId: 'preprodeMB9jfka6qXsluxEhPLhKczRdaC5QKab'
     });
 
     const provi = Cometa.Provider.fromPtr(provider.providerPtr);
-    const params = provi.getParameters();
-    expect(params).toEqual({});
+    const params = await provi.getParameters();
+    expect(Cometa.readProtocolParameters(params)).toEqual({});
   });
 });

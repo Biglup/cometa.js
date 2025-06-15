@@ -16,7 +16,7 @@
 
 /* IMPORTS ********************************************************************/
 
-import { getErrorString } from './string';
+import { getErrorString, writeStringToMemory } from './string';
 import { getModule } from '../module';
 
 /* DEFINITIONS ****************************************************************/
@@ -93,3 +93,17 @@ export const readBufferData = (bufferPtr: number): Uint8Array => {
     unrefObject(bufferPtr);
   }
 };
+
+export const hexToBufferObject = (hex: string): number => {
+  const module = getModule();
+  const string = writeStringToMemory(hex);
+  const bufferPtr = module.buffer_from_hex(string, hex.length);
+
+  module._free(string);
+  if (!bufferPtr) {
+    throw new Error('Failed to create buffer object from hex string');
+  }
+
+  return bufferPtr;
+};
+

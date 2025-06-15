@@ -15,10 +15,10 @@
  */
 
 import { ProtocolParameters, Redeemer, TransactionInput, UTxO } from '../common';
-import { assertSuccess, utf8ByteLen, writeStringToMemory } from '../marshaling';
+import { assertSuccess, unrefObject, utf8ByteLen, writeStringToMemory } from '../marshaling';
 import { finalizationRegistry } from '../garbageCollection';
 import { getModule } from '../module';
-import { register, unregister } from '../interop';
+import { registerInstance, unregisterInstance } from '../instanceRegistry';
 
 let nextId = 0;
 
@@ -49,14 +49,19 @@ export abstract class BaseProvider {
   protected constructor(networkMagic: number, humanName: string) {
     this.objectId = nextId++;
 
-    register(this.objectId, this);
+    registerInstance(this.objectId, this);
     this.providerPtr = createEmscriptenProvider(networkMagic, humanName, this.objectId);
 
     if (!this.providerPtr) throw new Error('create_emscripten_provider failed');
 
     finalizationRegistry.register(this, {
-      freeFunc: unregister,
-      ptr: this.objectId
+      freeFunc: ({ objectId, ptr }: { objectId: number; ptr: number }) => {
+        if (ptr) {
+          unrefObject(ptr);
+        }
+        unregisterInstance(objectId);
+      },
+      ptr: { objectId: this.objectId, ptr: this.providerPtr }
     });
   }
 
