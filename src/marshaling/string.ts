@@ -48,6 +48,30 @@ export const writeStringToMemory = (str: string): number => {
 };
 
 /**
+ * Writes a byte array to a specified memory location in the WASM heap.
+ *
+ * @param bytes - The byte array to write.
+ * @returns The pointer (address) to the start of the allocated memory containing the byte array.
+ * @throws {Error} Throws an error if memory allocation fails or if writing fails.
+ */
+export const writeBytesToMemory = (bytes: Uint8Array): number => {
+  const module = getModule();
+  const ptr = module._malloc(bytes.length);
+  if (!ptr) {
+    throw new Error('Memory allocation failed.');
+  }
+
+  try {
+    module.HEAPU8.set(bytes, ptr);
+  } catch (error) {
+    module._free(ptr);
+    throw new Error(`Failed to write bytes to memory: ${error}`);
+  }
+
+  return ptr;
+};
+
+/**
  * Calculates the number of bytes required to store a UTF-8-encoded copy of
  * the given string **including** a trailing NUL (`\0`) terminator.
  *

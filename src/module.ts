@@ -16,6 +16,7 @@
 
 /* IMPORTS *******************************************************************/
 
+import { Address } from './address';
 import { ensureModuleHasRandomValue } from './randomValue';
 import { getFromInstanceRegistry } from './instanceRegistry';
 import { writeProtocolParameters } from './marshaling';
@@ -58,6 +59,14 @@ export const ready = async (): Promise<void> => {
           console.error('Error in writeProtocolParameters:', error);
           return 0; // Return null pointer on error
         }
+      },
+      marshal_utxo_list(_utxoList: any) {
+        return 10;
+      },
+      marshall_address(addressPtr: number) {
+        console.error(`must serialize address: ${addressPtr}`);
+        const addr = new Address(addressPtr, false);
+        return addr.toString();
       }
     });
 

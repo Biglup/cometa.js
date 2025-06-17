@@ -159,6 +159,7 @@ export class BlockfrostProvider extends BaseProvider {
 
     const results: Set<UTxO> = new Set();
 
+    console.error('getUnspentOutputs: Fetching UTxOs for address:', address);
     for (;;) {
       const pagination = `count=${maxPageCount}&page=${page}`;
       const query = `/addresses/${address}/utxos?${pagination}`;
@@ -176,8 +177,8 @@ export class BlockfrostProvider extends BaseProvider {
         throw new Error(`getUnspentOutputs: Blockfrost threw "${response.message}"`);
       }
 
-      for (const blockfrostUTxO of response) {
-        results.add({
+      for (const _blockfrostUTxO of response) {
+        /*results.add({
           address: blockfrostUTxO.address,
           amount: blockfrostUTxO.amount,
           block: blockfrostUTxO.block,
@@ -186,7 +187,7 @@ export class BlockfrostProvider extends BaseProvider {
           outputIndex: blockfrostUTxO.output_index,
           referenceScriptHash: blockfrostUTxO.reference_script_hash,
           txHash: blockfrostUTxO.tx_hash
-        });
+        });*/
       }
 
       if (response.length < maxPageCount) {
@@ -222,8 +223,8 @@ export class BlockfrostProvider extends BaseProvider {
         throw new Error(`getUnspentOutputsWithAsset: Blockfrost threw "${response.message}"`);
       }
 
-      for (const blockfrostUTxO of response) {
-        results.add({
+      for (const _blockfrostUTxO of response) {
+       /* results.add({
           address: blockfrostUTxO.address,
           amount: blockfrostUTxO.amount,
           block: blockfrostUTxO.block,
@@ -232,7 +233,7 @@ export class BlockfrostProvider extends BaseProvider {
           outputIndex: blockfrostUTxO.output_index,
           referenceScriptHash: blockfrostUTxO.reference_script_hash,
           txHash: blockfrostUTxO.tx_hash
-        });
+        });*/
       }
 
       if (response.length < maxPageCount) {
@@ -270,7 +271,7 @@ export class BlockfrostProvider extends BaseProvider {
 
     const utxos: Array<UTxO> = [];
 
-    for (const blockfrostUTxO of response) {
+    for (const _blockfrostUTxO of response) {/*
       utxos.push({
         address: blockfrostUTxO.address,
         amount: blockfrostUTxO.amount,
@@ -280,7 +281,7 @@ export class BlockfrostProvider extends BaseProvider {
         outputIndex: blockfrostUTxO.output_index,
         referenceScriptHash: blockfrostUTxO.reference_script_hash,
         txHash: blockfrostUTxO.tx_hash
-      });
+      });*/
     }
     // Ensures a single UTxO holds the asset
     if (utxos.length !== 1) {
@@ -315,7 +316,7 @@ export class BlockfrostProvider extends BaseProvider {
         if (blockfrostUTxO.output_index !== txIndex) {
           continue;
         }
-
+/*
         results.add({
           address: blockfrostUTxO.address,
           amount: blockfrostUTxO.amount,
@@ -325,7 +326,7 @@ export class BlockfrostProvider extends BaseProvider {
           outputIndex: blockfrostUTxO.output_index,
           referenceScriptHash: blockfrostUTxO.reference_script_hash,
           txHash: blockfrostUTxO.tx_hash
-        });
+        });*/
       }
     }
 
@@ -405,13 +406,13 @@ export class BlockfrostProvider extends BaseProvider {
 
   async evaluateTransaction(tx: string, additionalUtxos?: UTxO[]): Promise<Redeemer[]> {
     const additionalUtxoSet = new Set();
-    for (const utxo of additionalUtxos || []) {
+    for (const _utxo of additionalUtxos || []) {/*
       const txIn = {
         index: utxo.outputIndex,
         txId: utxo.txHash
-      };
+      };*/
 
-      const txOut = {
+     /* const txOut = {
         address: utxo.address,
         datum: utxo.inlineDatum,
         datum_hash: utxo.dataHash,
@@ -420,9 +421,9 @@ export class BlockfrostProvider extends BaseProvider {
           assets: utxo.amount.filter((asset) => asset.unit !== 'lovelace'),
           coins: BigInt(utxo.amount.find((asset) => asset.unit === 'lovelace')?.quantity || 0)
         }
-      };
+      };*/
 
-      additionalUtxoSet.add([txIn, txOut]);
+      //additionalUtxoSet.add([txIn, txOut]);
     }
 
     const payload = {
@@ -467,8 +468,8 @@ export class BlockfrostProvider extends BaseProvider {
       throw new Error('evaluateTransaction: Blockfrost endpoint returned no redeemers.');
     }
 
-    for (const redeemer of result.redeemers) {
-      evaledRedeemers.add({
+    for (const _redeemer of result.redeemers) {
+      /*evaledRedeemers.add({
         dataCbor: '',
         executionUnits: {
           memory: redeemer.execution_units.mem,
@@ -476,7 +477,7 @@ export class BlockfrostProvider extends BaseProvider {
         },
         index: redeemer.index, // TOOD: Add
         purpose: redeemer.purpose
-      });
+      });*/
     }
 
     return [...evaledRedeemers];

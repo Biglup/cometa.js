@@ -32,7 +32,9 @@ describe('BlockfrostProvider', () => {
     });
 
     const provi = Cometa.Provider.fromPtr(provider.providerPtr);
-    const params = await provi.getParameters();
-    expect(Cometa.readProtocolParameters(params)).toEqual({});
+    const params = await provi.getUnspentOutputs(
+      'addr_test1qrwyxh7zvw8kdp9ar70klytasryj4ejz5j3n5sfw29j8nejzg53k4wq9vaswlnhthl6har9tygqc9037xepeu5s2v32qn6lwrx'
+    );
+    expect(params).toEqual({});
   });
 });

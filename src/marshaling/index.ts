@@ -30,3 +30,6 @@ export * from './exUnitPrices';
 export * from './poolVotingThresholds';
 export * from './drepVotingThresholds';
 export * from './protocolParameters';
+export * from './txIn';
+export * from './value';
+export * from './plutusData';

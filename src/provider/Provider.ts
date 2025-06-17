@@ -1,3 +1,4 @@
+import { Address } from '../address';
 import { assertSuccess } from '../marshaling';
 import { finalizationRegistry } from '../garbageCollection';
 import { getModule } from '../module';
@@ -77,16 +78,24 @@ export class Provider {
     }
   }
   /** Fetch all UTXOs at a Cardano address. */
-  async getUnspentOutputs(address: /* TODO Address */ any): Promise<number /* utxo_list* */> {
+  async getUnspentOutputs(address: string): Promise<number> {
+    console.error(`getUnspentOutputs(${address})`);
     const m = getModule();
     const outPtr = allocPtr();
+    const addressObj = Address.fromString(address);
 
-    const rc = m.provider_get_unspent_outputs(this.ptr, address.ptr /* assuming you have an Address wrapper */, outPtr);
+    console.error('A');
+    console.error(addressObj);
+    m.provider_get_unspent_outputs(this.ptr, addressObj.ptr, outPtr);
+    console.error('B');
+    const rc = await m.Asyncify.whenDone();
+    console.error('C');
+
     assertSuccess(rc, this.lastError);
 
     const listPtr = readPtr(outPtr);
     m._free(outPtr);
-    return listPtr; // TODO wrap
+    return listPtr;
   }
 
   /** Rewards available for a reward address. */

@@ -57,9 +57,9 @@ export const unrefObject = (ptr: number): void => {
  * @throws {Error} If the `result` code is non-zero. The thrown error includes the `lastError`
  * string to aid in diagnosing the issue.
  */
-export const assertSuccess = (result: number, lastError: string): void => {
+export const assertSuccess = (result: number, lastError?: string): void => {
   if (result !== 0) {
-    if (lastError === '') {
+    if (!lastError || lastError === '') {
       throw new Error(`${result}`);
     }
 

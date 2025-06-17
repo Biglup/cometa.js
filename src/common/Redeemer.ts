@@ -1,4 +1,5 @@
 import { ExUnits } from './ExUnits';
+import { PlutusData } from './PlutusData';
 
 export enum RedeemerPurpose {
   spend = 'spend',
@@ -12,6 +13,6 @@ export enum RedeemerPurpose {
 export interface Redeemer {
   index: number;
   purpose: RedeemerPurpose;
-  dataCbor: string;
+  data: PlutusData;
   executionUnits: ExUnits;
 }

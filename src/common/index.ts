@@ -29,3 +29,8 @@ export * from './UnitInterval';
 export * from './DelegateRepresentativeThresholds';
 export * from './ProtocolVersion';
 export * from './ExUnitsPrices';
+export * from './Script';
+export * from './PlutusData';
+export * from './TxIn';
+export * from './TxOut';
+export * from './Value';
