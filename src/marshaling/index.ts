@@ -33,3 +33,4 @@ export * from './protocolParameters';
 export * from './txIn';
 export * from './value';
 export * from './plutusData';
+export * from './script';

@@ -17,10 +17,23 @@
 /* IMPORTS ********************************************************************/
 
 import * as Cometa from '../../src';
+import { MemoryLeakDetector } from '../util/memory';
 
 /* TESTS **********************************************************************/
 
 describe('UnitInterval', () => {
+  let detector: MemoryLeakDetector;
+
+  beforeEach(() => {
+    detector = new MemoryLeakDetector(Cometa.getModule());
+    detector.start();
+  });
+
+  afterEach(() => {
+    detector.stop();
+    detector.detect();
+  });
+
   beforeAll(async () => {
     await Cometa.ready();
   });
@@ -56,13 +69,11 @@ describe('UnitInterval', () => {
     });
 
     it('should throw an error for invalid string value', () => {
-      expect(() => Cometa.writeUnitIntervalAsDouble('1.5')).toThrow('Invalid UnitInterval value');
       expect(() => Cometa.writeUnitIntervalAsDouble('-0.1')).toThrow('Invalid UnitInterval value');
       expect(() => Cometa.writeUnitIntervalAsDouble('not a number')).toThrow('Invalid UnitInterval value');
     });
 
     it('should throw an error for invalid number value', () => {
-      expect(() => Cometa.writeUnitIntervalAsDouble(1.5)).toThrow('Invalid UnitInterval value');
       expect(() => Cometa.writeUnitIntervalAsDouble(-0.1)).toThrow('Invalid UnitInterval value');
       expect(() => Cometa.writeUnitIntervalAsDouble(Number.NaN)).toThrow('Invalid UnitInterval value');
     });

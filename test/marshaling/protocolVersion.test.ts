@@ -17,11 +17,23 @@
 /* IMPORTS *******************************************************************/
 
 import * as Cometa from '../../src';
-import { getModule } from '../../src/module';
+import { MemoryLeakDetector } from '../util/memory';
 
 /* TESTS *********************************************************************/
 
 describe('ProtocolVersion', () => {
+  let detector: MemoryLeakDetector;
+
+  beforeEach(() => {
+    detector = new MemoryLeakDetector(Cometa.getModule());
+    detector.start();
+  });
+
+  afterEach(() => {
+    detector.stop();
+    detector.detect();
+  });
+
   beforeAll(async () => {
     await Cometa.ready();
   });
@@ -73,20 +85,20 @@ describe('ProtocolVersion', () => {
 
     it('should allow reading after dereferencing if ref count > 1', () => {
       const ptr = Cometa.writeProtocolVersion(1, 0);
-      const module = getModule();
-      
+      const module = Cometa.getModule();
+
       // Increment ref count
       module.protocol_version_ref(ptr);
-      
+
       // First deref
       Cometa.derefProtocolVersion(ptr);
-      
+
       // Should still be able to read
       const version = Cometa.readProtocolVersion(ptr);
       expect(version).toEqual({ major: 1, minor: 0 });
-      
+
       // Final deref
       Cometa.derefProtocolVersion(ptr);
     });
   });
-}); 
+});

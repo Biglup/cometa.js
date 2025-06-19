@@ -45,6 +45,7 @@ export const readPlutusData = (ptr: number): PlutusData => {
 
           const alternativePtr = module._malloc(8); // for uint64_t
           const fieldsListPtrPtr = module._malloc(4);
+          let fieldsListPtr = 0;
           try {
             // Read the constructor/alternative number
             assertSuccess(module.constr_plutus_data_get_alternative(constrPtr, alternativePtr));
@@ -54,7 +55,7 @@ export const readPlutusData = (ptr: number): PlutusData => {
 
             // Get the pointer to the fields list (cardano_plutus_list_t*)
             assertSuccess(module.constr_plutus_data_get_data(constrPtr, fieldsListPtrPtr));
-            const fieldsListPtr = module.getValue(fieldsListPtrPtr, 'i32');
+            fieldsListPtr = module.getValue(fieldsListPtrPtr, 'i32');
 
             let fields: PlutusList;
             // To recursively call readPlutusData, we must wrap the specific `plutus_list_t`
@@ -77,7 +78,7 @@ export const readPlutusData = (ptr: number): PlutusData => {
           } finally {
             // Clean up all C objects created within this scope
             module._free(alternativePtr);
-            unrefObject(module.getValue(fieldsListPtrPtr, 'i32'));
+            unrefObject(fieldsListPtr);
             module._free(fieldsListPtrPtr);
             unrefObject(constrPtr);
           }

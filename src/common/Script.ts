@@ -1,5 +1,10 @@
 /* eslint-disable no-use-before-define */
 
+import { CborReader, CborWriter } from '../encoding';
+import { assertSuccess, readBlake2bHashData, readScript, unrefObject, writeScript } from '../marshaling';
+import { getModule } from '../module';
+import { uint8ArrayToHex } from '../cometa';
+
 /** Plutus script type. */
 export enum ScriptType {
   Native = 'native',
@@ -192,3 +197,133 @@ export const isNativeScript = (script: Script): script is NativeScript => script
  * @param script The Script to check.
  */
 export const isPlutusScript = (script: Script): script is PlutusScript => script.__type === ScriptType.Plutus;
+
+/**
+ * Performs a deep equality check on two Script.
+ *
+ * @param a The first Script object.
+ * @param b The second Script object.
+ * @returns True if the objects are deeply equal, false otherwise.
+ */
+export const deepEqualsScript = (a: Script, b: Script): boolean => {
+  const module = getModule();
+  let ptrA = 0;
+  let ptrB = 0;
+
+  try {
+    ptrA = writeScript(a);
+    ptrB = writeScript(b);
+
+    return module.script_equals(ptrA, ptrB);
+  } finally {
+    if (ptrA) {
+      unrefObject(ptrA);
+    }
+    if (ptrB) {
+      unrefObject(ptrB);
+    }
+  }
+};
+
+/**
+ * Computes the hash of a Script object.
+ *
+ * This function calculates the Blake2b hash of the provided Script.
+ *
+ * @param script The Script object to hash.
+ * @returns The hexadecimal string representation of the hash.
+ */
+export const computeScriptHash = (script: Script): string => {
+  const module = getModule();
+  let ptr = 0;
+  let hashPtr = 0;
+
+  try {
+    ptr = writeScript(script);
+    hashPtr = module.script_get_hash(ptr);
+
+    return uint8ArrayToHex(readBlake2bHashData(hashPtr));
+  } finally {
+    unrefObject(ptr);
+    unrefObject(hashPtr);
+  }
+};
+
+/**
+ * Serializes a Script object into its CBOR hexadecimal string representation.
+ *
+ * @param data The Script object to serialize.
+ * @returns A hex-encoded CBOR string.
+ */
+export const scriptToCbor = (data: Script): string => {
+  const module = getModule();
+  let dataPtr = 0;
+
+  const cborWriter = new CborWriter();
+  try {
+    dataPtr = writeScript(data);
+
+    assertSuccess(module.script_to_cbor(dataPtr, cborWriter.ptr), 'Failed to serialize Script to CBOR');
+
+    return cborWriter.encodeHex();
+  } finally {
+    if (dataPtr) {
+      unrefObject(dataPtr);
+    }
+  }
+};
+
+/**
+ * Deserializes a CBOR hexadecimal string into a Script object.
+ *
+ * @param cborHex The hex-encoded CBOR string to deserialize.
+ * @returns The deserialized Script object.
+ */
+export const cborToScript = (cborHex: string): Script => {
+  const module = getModule();
+
+  // Resources that must be cleaned up
+  let cborReader: CborReader | null = null;
+  let scriptOutPtr = 0;
+  let scriptPtr = 0;
+
+  try {
+    // 1. Create the CborReader. It will exist for the entire 'try' block,
+    // preventing premature garbage collection.
+    cborReader = CborReader.fromHex(cborHex);
+    if (!cborReader || !cborReader.ptr) {
+      throw new Error('Failed to create CBOR reader from hex.');
+    }
+
+    // 2. Allocate memory for the output pointer for the script.
+    scriptOutPtr = module._malloc(4);
+
+    // 3. Call the C function. `cborReader` is guaranteed to be alive.
+    assertSuccess(
+      module.script_from_cbor(cborReader.ptr, scriptOutPtr),
+      'Failed to deserialize CBOR to Script'
+    );
+
+    scriptPtr = module.getValue(scriptOutPtr, 'i32');
+    if (!scriptPtr) {
+      throw new Error('script_from_cbor returned a null pointer.');
+    }
+
+    // 4. Read the data from the C object into a JS object.
+    // `readScript` should not free the pointer; this function owns it.
+    return readScript(scriptPtr);
+
+  } finally {
+    // 5. Clean up ALL resources in reverse order of creation.
+
+    // Unreference the script object created by script_from_cbor.
+    if (scriptPtr) {
+      unrefObject(scriptPtr);
+    }
+
+    // Free the memory we allocated for the pointer.
+    if (scriptOutPtr) {
+      module._free(scriptOutPtr);
+    }
+  }
+};

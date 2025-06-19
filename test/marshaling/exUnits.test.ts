@@ -17,10 +17,23 @@
 /* IMPORTS *******************************************************************/
 
 import * as Cometa from '../../src';
+import { MemoryLeakDetector } from '../util/memory';
 
 /* TESTS *********************************************************************/
 
 describe('ExUnits', () => {
+  let detector: MemoryLeakDetector;
+
+  beforeEach(() => {
+    detector = new MemoryLeakDetector(Cometa.getModule());
+    detector.start();
+  });
+
+  afterEach(() => {
+    detector.stop();
+    detector.detect();
+  });
+
   beforeAll(async () => {
     await Cometa.ready();
   });

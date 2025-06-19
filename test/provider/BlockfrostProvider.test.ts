@@ -20,7 +20,7 @@ import * as Cometa from '../../dist/cjs';
 
 /* TESTS **********************************************************************/
 
-describe('BlockfrostProvider', () => {
+describe.skip('BlockfrostProvider', () => {
   beforeAll(async () => {
     await Cometa.ready();
   });

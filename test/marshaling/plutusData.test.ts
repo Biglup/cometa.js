@@ -18,6 +18,7 @@
 /* IMPORTS *******************************************************************/
 
 import * as Cometa from '../../src';
+import { MemoryLeakDetector } from '../util/memory';
 
 /* DEFINITIONS ***************************************************************/
 
@@ -45,6 +46,18 @@ const performRoundTripTest = (originalData: Cometa.PlutusData) => {
 /* TESTS *********************************************************************/
 
 describe('PlutusData Marshalling & Unmarshalling', () => {
+  let detector: MemoryLeakDetector;
+
+  beforeEach(() => {
+    detector = new MemoryLeakDetector(Cometa.getModule());
+    detector.start();
+  });
+
+  afterEach(() => {
+    detector.stop();
+    detector.detect();
+  });
+
   beforeAll(async () => {
     await Cometa.ready();
   });
