@@ -19,7 +19,7 @@
 import { CborReaderState } from './CborReaderState';
 import { CborSimpleValue } from './CborSimpleValue';
 import { CborTag } from './CborTag';
-import { assertSuccess, readBufferData, readI64, writeStringToMemory } from '../marshaling';
+import { assertSuccess, readBufferData, readI64, unrefObject, writeStringToMemory } from '../marshaling';
 import { finalizationRegistry } from '../garbageCollection/finalizationRegistry';
 import { getModule } from '../module';
 
@@ -44,7 +44,7 @@ export class CborReader {
   private constructor(ptr: any) {
     this.ptr = ptr;
     finalizationRegistry.register(this, {
-      freeFunc: getModule().cbor_reader_unref,
+      freeFunc: unrefObject,
       ptr: this.ptr
     });
   }
@@ -643,5 +643,18 @@ export class CborReader {
    */
   public getRefCount(): number {
     return getModule().cbor_reader_refcount(this.ptr);
+  }
+
+  /**
+   * Frees the resources associated with the `CborReader` instance.
+   *
+   * This method is called automatically when the `CborReader` instance is garbage collected,
+   * but can also be called manually to release resources immediately.
+   */
+  public unref(): void {
+    if (this.ptr) {
+      unrefObject(this.ptr);
+      this.ptr = 0;
+    }
   }
 }

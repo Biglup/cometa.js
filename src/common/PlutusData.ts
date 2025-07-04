@@ -128,8 +128,7 @@ export const cborToPlutusData = (cborHex: string): PlutusData => {
 
     return plutusData;
   } finally {
-    if (dataPtr) {
-      unrefObject(dataPtr);
-    }
+    cborReader.unref();
+    unrefObject(dataPtr);
   }
 };

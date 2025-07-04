@@ -23,12 +23,12 @@ import { splitToLowHigh64bit } from './number';
 import { writeBytesToMemory, writeStringToMemory } from './string';
 
 /* DEFINITIONS ****************************************************************/
+
 export const readPlutusData = (ptr: number): PlutusData => {
   const module = getModule();
   const kindPtr = module._malloc(4);
 
   try {
-    // 1. Determine the kind of PlutusData we are dealing with (Integer, List, Map, etc.)
     assertSuccess(module.plutus_data_get_kind(ptr, kindPtr), 'Failed to get PlutusData kind');
     const kind = module.getValue(kindPtr, 'i32');
 
@@ -38,51 +38,45 @@ export const readPlutusData = (ptr: number): PlutusData => {
       //================================================================================
       case 0: {
         const constrPtrPtr = module._malloc(4);
+        let constrPtr = 0;
         try {
-          // Get the pointer to the underlying cardano_constr_plutus_data_t
           assertSuccess(module.plutus_data_to_constr(ptr, constrPtrPtr));
-          const constrPtr = module.getValue(constrPtrPtr, 'i32');
+          constrPtr = module.getValue(constrPtrPtr, 'i32');
 
-          const alternativePtr = module._malloc(8); // for uint64_t
+          const alternativePtr = module._malloc(8);
           const fieldsListPtrPtr = module._malloc(4);
           let fieldsListPtr = 0;
           try {
-            // Read the constructor/alternative number
             assertSuccess(module.constr_plutus_data_get_alternative(constrPtr, alternativePtr));
             const low = module.getValue(alternativePtr, 'i32');
             const high = module.getValue(alternativePtr + 4, 'i32');
             const constructor = (BigInt(high >>> 0) << 32n) | BigInt(low >>> 0);
 
-            // Get the pointer to the fields list (cardano_plutus_list_t*)
             assertSuccess(module.constr_plutus_data_get_data(constrPtr, fieldsListPtrPtr));
             fieldsListPtr = module.getValue(fieldsListPtrPtr, 'i32');
 
-            let fields: PlutusList;
-            // To recursively call readPlutusData, we must wrap the specific `plutus_list_t`
-            // back into a generic `plutus_data_t`.
+            // Wrap the list in a temporary generic object for the recursive call
             const tempListDataPtrPtr = module._malloc(4);
+            let tempListDataPtr = 0;
             try {
               assertSuccess(module.plutus_data_new_list(fieldsListPtr, tempListDataPtrPtr));
-              const tempListDataPtr = module.getValue(tempListDataPtrPtr, 'i32');
-
-              // Recursive call to read the fields list
-              fields = readPlutusData(tempListDataPtr) as PlutusList;
-
-              // Unreference the temporary generic wrapper we just made
-              unrefObject(tempListDataPtr);
+              tempListDataPtr = module.getValue(tempListDataPtrPtr, 'i32');
+              const fields = readPlutusData(tempListDataPtr) as PlutusList;
+              return { constructor, fields };
             } finally {
+              // Clean up the temporary wrapper
+              if (tempListDataPtr) unrefObject(tempListDataPtr);
               module._free(tempListDataPtrPtr);
             }
-
-            return { constructor, fields };
           } finally {
-            // Clean up all C objects created within this scope
+            // Clean up resources from this scope
             module._free(alternativePtr);
-            unrefObject(fieldsListPtr);
+            // THIS IS THE FIX: Clean up the reference to the fields list
+            if (fieldsListPtr) unrefObject(fieldsListPtr);
             module._free(fieldsListPtrPtr);
-            unrefObject(constrPtr);
           }
         } finally {
+          if (constrPtr) unrefObject(constrPtr);
           module._free(constrPtrPtr);
         }
       }
@@ -92,17 +86,16 @@ export const readPlutusData = (ptr: number): PlutusData => {
       //================================================================================
       case 1: {
         const mapPtrPtr = module._malloc(4);
+        let mapPtr = 0;
         try {
-          // Get the pointer to the underlying cardano_plutus_map_t
           assertSuccess(module.plutus_data_to_map(ptr, mapPtrPtr));
-          const mapPtr = module.getValue(mapPtrPtr, 'i32');
+          mapPtr = module.getValue(mapPtrPtr, 'i32');
 
           const keysListPtrPtr = module._malloc(4);
           const valuesListPtrPtr = module._malloc(4);
           let keysListPtr = 0;
           let valuesListPtr = 0;
           try {
-            // Get the keys and values as two separate lists
             assertSuccess(module.plutus_map_get_keys(mapPtr, keysListPtrPtr));
             keysListPtr = module.getValue(keysListPtrPtr, 'i32');
 
@@ -139,14 +132,14 @@ export const readPlutusData = (ptr: number): PlutusData => {
             }
             return { entries };
           } finally {
-            // Clean up the lists of keys and values, and the map itself
+            // THIS IS THE FIX: Clean up the key/value lists
             if (keysListPtr) unrefObject(keysListPtr);
             if (valuesListPtr) unrefObject(valuesListPtr);
             module._free(keysListPtrPtr);
             module._free(valuesListPtrPtr);
-            unrefObject(mapPtr);
           }
         } finally {
+          if (mapPtr) unrefObject(mapPtr);
           module._free(mapPtrPtr);
         }
       }
@@ -156,35 +149,32 @@ export const readPlutusData = (ptr: number): PlutusData => {
       //================================================================================
       case 2: {
         const listPtrPtr = module._malloc(4);
+        let listPtr = 0;
         try {
-          // Get the pointer to the underlying cardano_plutus_list_t
           assertSuccess(module.plutus_data_to_list(ptr, listPtrPtr));
-          const listPtr = module.getValue(listPtrPtr, 'i32');
-          try {
-            const length = module.plutus_list_get_length(listPtr);
-            const items: PlutusData[] = [];
-            for (let i = 0; i < length; i++) {
-              const elementPtrPtr = module._malloc(4);
-              try {
-                // Get the pointer for the element at the current index
-                assertSuccess(module.plutus_list_get(listPtr, i, elementPtrPtr));
-                const elementPtr = module.getValue(elementPtrPtr, 'i32');
+          listPtr = module.getValue(listPtrPtr, 'i32');
 
-                // Recursive call to read the element
-                items.push(readPlutusData(elementPtr));
+          const length = module.plutus_list_get_length(listPtr);
+          const items: PlutusData[] = [];
+          for (let i = 0; i < length; i++) {
+            const elementPtrPtr = module._malloc(4);
+            try {
+              // Get the pointer for the element at the current index
+              assertSuccess(module.plutus_list_get(listPtr, i, elementPtrPtr));
+              const elementPtr = module.getValue(elementPtrPtr, 'i32');
 
-                // Clean up the element data object for this iteration
-                unrefObject(elementPtr);
-              } finally {
-                module._free(elementPtrPtr);
-              }
+              // Recursive call to read the element
+              items.push(readPlutusData(elementPtr));
+
+              // Clean up the element data object for this iteration
+              unrefObject(elementPtr);
+            } finally {
+              module._free(elementPtrPtr);
             }
-            return { items };
-          } finally {
-            // Clean up the list object
-            unrefObject(listPtr);
           }
+          return { items };
         } finally {
+          if (listPtr) unrefObject(listPtr);
           module._free(listPtrPtr);
         }
       }

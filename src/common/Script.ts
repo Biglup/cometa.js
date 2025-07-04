@@ -282,48 +282,29 @@ export const scriptToCbor = (data: Script): string => {
 export const cborToScript = (cborHex: string): Script => {
   const module = getModule();
 
-  // Resources that must be cleaned up
   let cborReader: CborReader | null = null;
   let scriptOutPtr = 0;
   let scriptPtr = 0;
 
   try {
-    // 1. Create the CborReader. It will exist for the entire 'try' block,
-    // preventing premature garbage collection.
     cborReader = CborReader.fromHex(cborHex);
     if (!cborReader || !cborReader.ptr) {
       throw new Error('Failed to create CBOR reader from hex.');
     }
 
-    // 2. Allocate memory for the output pointer for the script.
     scriptOutPtr = module._malloc(4);
 
-    // 3. Call the C function. `cborReader` is guaranteed to be alive.
-    assertSuccess(
-      module.script_from_cbor(cborReader.ptr, scriptOutPtr),
-      'Failed to deserialize CBOR to Script'
-    );
+    assertSuccess(module.script_from_cbor(cborReader.ptr, scriptOutPtr), 'Failed to deserialize CBOR to Script');
 
     scriptPtr = module.getValue(scriptOutPtr, 'i32');
     if (!scriptPtr) {
       throw new Error('script_from_cbor returned a null pointer.');
     }
 
-    // 4. Read the data from the C object into a JS object.
-    // `readScript` should not free the pointer; this function owns it.
     return readScript(scriptPtr);
-
   } finally {
-    // 5. Clean up ALL resources in reverse order of creation.
-
-    // Unreference the script object created by script_from_cbor.
-    if (scriptPtr) {
-      unrefObject(scriptPtr);
-    }
-
-    // Free the memory we allocated for the pointer.
-    if (scriptOutPtr) {
-      module._free(scriptOutPtr);
-    }
+    cborReader?.unref();
+    unrefObject(scriptPtr);
+    module._free(scriptOutPtr);
   }
 };

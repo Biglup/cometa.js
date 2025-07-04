@@ -278,7 +278,7 @@ describe('PlutusData Marshalling & Unmarshalling', () => {
 
     it('can decode a small byte string (less than 64 bytes)', () => {
       const data = Cometa.cborToPlutusData('46010203040506');
-      expect(Cometa.uint8ArrayToHex(data as Uint8Array)).toEqual('010203040506');
+      expect([...(data as Uint8Array)]).toEqual([0x01, 0x02, 0x03, 0x04, 0x05, 0x06]);
     });
 
     it('can encode a big byte string (more than 64 bytes)', () => {
