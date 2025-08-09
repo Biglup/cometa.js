@@ -16,11 +16,17 @@
 
 import { ProtocolParameters, Redeemer, TransactionInput, UTxO } from '../common';
 import { assertSuccess, unrefObject, utf8ByteLen, writeStringToMemory } from '../marshaling';
-import { finalizationRegistry } from '../garbageCollection';
 import { getModule } from '../module';
 import { registerInstance, unregisterInstance } from '../instanceRegistry';
 
 let nextId = 0;
+
+const finalizationRegistry = new FinalizationRegistry(({ ptr, objectId }: { ptr: any; objectId: number }) => {
+  unregisterInstance(objectId);
+  if (ptr) {
+    unrefObject(ptr);
+  }
+});
 
 const createEmscriptenProvider = (networkMagic: number, name: string, objectId: number): number => {
   const m = getModule();
@@ -55,13 +61,8 @@ export abstract class BaseProvider {
     if (!this.providerPtr) throw new Error('create_emscripten_provider failed');
 
     finalizationRegistry.register(this, {
-      freeFunc: ({ objectId, ptr }: { objectId: number; ptr: number }) => {
-        if (ptr) {
-          unrefObject(ptr);
-        }
-        unregisterInstance(objectId);
-      },
-      ptr: { objectId: this.objectId, ptr: this.providerPtr }
+      objectId: this.objectId,
+      ptr: this.providerPtr
     });
   }
 

@@ -34,3 +34,5 @@ export * from './txIn';
 export * from './value';
 export * from './plutusData';
 export * from './script';
+export * from './txOut';
+export * from './utxo';

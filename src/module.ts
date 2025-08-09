@@ -16,10 +16,14 @@
 
 /* IMPORTS *******************************************************************/
 
-import { Address } from './address';
+import { Address, RewardAddress } from './address';
+import { ProtocolParameters, cborToPlutusData } from './common';
+import { blake2bHashFromHex, readBlake2bHashData, unrefObject, writeProtocolParameters } from './marshaling';
 import { ensureModuleHasRandomValue } from './randomValue';
 import { getFromInstanceRegistry } from './instanceRegistry';
-import { writeProtocolParameters } from './marshaling';
+import { readTransactionFromCbor } from './marshaling/transaction';
+import { readUtxoList, writeUtxo, writeUtxoList } from './marshaling/utxo';
+import { uint8ArrayToHex } from './cometa';
 
 /* GLOBALS ********************************************************************/
 
@@ -50,23 +54,123 @@ export const ready = async (): Promise<void> => {
         // eslint-disable-next-line sonarjs/no-empty-collection
         return getFromInstanceRegistry(objectId);
       },
-      marshal_protocol_parameters(params: any) {
-        // This calls your existing `writeProtocolParameters` function
-        // You must make sure `writeProtocolParameters` is available here
+      marshal_protocol_parameters(params: ProtocolParameters) {
         try {
           return writeProtocolParameters(params);
-        } catch (error) {
-          console.error('Error in writeProtocolParameters:', error);
-          return 0; // Return null pointer on error
+        } catch {
+          return 0;
         }
       },
-      marshal_utxo_list(_utxoList: any) {
-        return 10;
-      },
       marshall_address(addressPtr: number) {
-        console.error(`must serialize address: ${addressPtr}`);
-        const addr = new Address(addressPtr, false);
-        return addr.toString();
+        try {
+          const addr = new Address(addressPtr, false);
+          return addr.toString();
+        } catch {
+          return null;
+        }
+      },
+      marshall_utxo_list_to_js(utxoListPtr: number) {
+        if (utxoListPtr === 0) return [];
+        try {
+          return readUtxoList(utxoListPtr);
+        } catch {
+          return null;
+        }
+      },
+      marshall_asset_id(assetIdPtr: number) {
+        try {
+          const hexStringPtr = _Module.asset_id_get_hex(assetIdPtr);
+          return _Module.UTF8ToString(hexStringPtr);
+        } catch {
+          return null;
+        }
+      },
+      marshall_blake2b_hash(hashPtr: number) {
+        try {
+          return uint8ArrayToHex(readBlake2bHashData(hashPtr));
+        } catch {
+          return null;
+        }
+      },
+      marshall_reward_address(rewardAddressPtr: number) {
+        try {
+          const addr = new RewardAddress(rewardAddressPtr, false);
+          return addr.toAddress().toString();
+        } catch {
+          return null;
+        }
+      },
+      marshall_transaction_to_cbor_hex(txPtr: number) {
+        try {
+          return readTransactionFromCbor(txPtr);
+        } catch {
+          return null;
+        }
+      },
+      marshal_utxo_list(jsUtxoArray: any[]) {
+        try {
+          console.error(jsUtxoArray)
+          return writeUtxoList(jsUtxoArray);
+        } catch (error) {
+          console.error(error)
+          return 0;
+        }
+      },
+      marshal_utxo(jsUtxoObj: any) {
+        try {
+          return writeUtxo(jsUtxoObj);
+        } catch {
+          return 0;
+        }
+      },
+      marshal_plutus_data(jsPlutusDataCborHex: string) {
+        try {
+          return cborToPlutusData(jsPlutusDataCborHex);
+        } catch {
+          return 0;
+        }
+      },
+      marshal_blake2b_hash_from_hex(jsHexString: string) {
+        try {
+          return blake2bHashFromHex(jsHexString);
+        } catch {
+          return 0;
+        }
+      },
+      marshal_redeemer_list(_jsRedeemerArray: any[]) {
+        return 0;
+      },
+      marshall_tx_input_set(inputSetPtr: number) {
+        try {
+          const len = _Module.transaction_input_set_get_length(inputSetPtr);
+          const jsArray = [];
+
+          for (let i = 0; i < len; i++) {
+            let inputPtr = 0;
+            let txIdPtr = 0;
+
+            try {
+              inputPtr = _Module.transaction_input_set_get(inputSetPtr, i);
+              txIdPtr = _Module.transaction_input_get_id(inputPtr);
+
+              const txIdHex = readBlake2bHashData(txIdPtr);
+              jsArray.push({
+                index: _Module.transaction_input_get_index(inputPtr),
+                transactionId: uint8ArrayToHex(txIdHex)
+              });
+            } finally {
+              if (txIdPtr !== 0) {
+                unrefObject(txIdPtr);
+              }
+              if (inputPtr !== 0) {
+                unrefObject(inputPtr);
+              }
+            }
+          }
+          return jsArray;
+        } catch {
+          return null;
+        }
       }
     });
 

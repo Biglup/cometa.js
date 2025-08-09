@@ -62,7 +62,6 @@ export class Address {
     }
 
     // Register the instance for garbage collection if managed
-
     if (!managed) return;
 
     finalizationRegistry.register(this, {

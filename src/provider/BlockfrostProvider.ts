@@ -1,5 +1,5 @@
 import { BaseProvider } from './BaseProvider';
-import { CostModel } from '../common';
+import { CostModel, TxOut, Value, cborToPlutusData } from '../common';
 import { NetworkMagic } from '../common/NetworkMagic';
 import { ProtocolParameters } from '../common/ProtocolParameters';
 import { Redeemer } from '../common/Redeemer';
@@ -46,6 +46,38 @@ export const fromBlockfrostLanguageVersion = (x: string): number => {
   throw new Error('fromBlockfrostLanguageVersion: Unreachable!');
 };
 
+const inputFromUtxo = (utxo: any): any => ({
+  index: utxo.output_index,
+  txId: utxo.tx_hash
+});
+
+const outputFromUtxo = (address: string, utxo: any): any => {
+  const value: Value = {
+    // @ts-ignore
+    coins: BigInt(utxo.amount.find(({ unit }) => unit === 'lovelace')!.quantity)
+  };
+
+  const assets: Record<string, bigint> = {};
+  for (const { quantity, unit } of utxo.amount) {
+    if (unit === 'lovelace') continue;
+    assets[unit] = BigInt(quantity);
+  }
+
+  if (assets.size > 0) value.assets = assets;
+
+  const txOut: TxOut = {
+    address,
+    value
+  };
+
+  if (utxo.inline_datum) txOut.datum = cborToPlutusData(utxo.inline_datum);
+  if (utxo.data_hash) txOut.datumHash = utxo.data_hash;
+
+  //if (txOutFromCbor?.scriptReference) txOut.scriptReference = txOutFromCbor.scriptReference;
+
+  return txOut;
+};
+
 export class BlockfrostProvider extends BaseProvider {
   url: string;
   private projectId: string;
@@ -62,7 +94,8 @@ export class BlockfrostProvider extends BaseProvider {
 
   async getParameters(): Promise<ProtocolParameters> {
     const query = 'epochs/latest/parameters';
-    const response = await fetch(`${this.url}${query}`, { // Await the fetch call
+    const response = await fetch(`${this.url}${query}`, {
+      // Await the fetch call
       headers: this.headers()
     });
 
@@ -79,7 +112,8 @@ export class BlockfrostProvider extends BaseProvider {
 
     const data = json; // Renamed to 'data' to avoid confusion with the `json` variable itself being the object.
 
-    if ('message' in data) { // Now `data` is the parsed JSON object
+    if ('message' in data) {
+      // Now `data` is the parsed JSON object
       throw new Error(`getParameters: Blockfrost threw "${data.message}"`);
     }
 
@@ -159,7 +193,6 @@ export class BlockfrostProvider extends BaseProvider {
 
     const results: Set<UTxO> = new Set();
 
-    console.error('getUnspentOutputs: Fetching UTxOs for address:', address);
     for (;;) {
       const pagination = `count=${maxPageCount}&page=${page}`;
       const query = `/addresses/${address}/utxos?${pagination}`;
@@ -177,17 +210,11 @@ export class BlockfrostProvider extends BaseProvider {
         throw new Error(`getUnspentOutputs: Blockfrost threw "${response.message}"`);
       }
 
-      for (const _blockfrostUTxO of response) {
-        /*results.add({
-          address: blockfrostUTxO.address,
-          amount: blockfrostUTxO.amount,
-          block: blockfrostUTxO.block,
-          dataHash: blockfrostUTxO.data_hash,
-          inlineDatum: blockfrostUTxO.inline_datum,
-          outputIndex: blockfrostUTxO.output_index,
-          referenceScriptHash: blockfrostUTxO.reference_script_hash,
-          txHash: blockfrostUTxO.tx_hash
-        });*/
+      for (const blockfrostUTxO of response) {
+        results.add({
+          input: inputFromUtxo(blockfrostUTxO),
+          output: outputFromUtxo(address, blockfrostUTxO)
+        });
       }
 
       if (response.length < maxPageCount) {
@@ -224,7 +251,7 @@ export class BlockfrostProvider extends BaseProvider {
       }
 
       for (const _blockfrostUTxO of response) {
-       /* results.add({
+        /* results.add({
           address: blockfrostUTxO.address,
           amount: blockfrostUTxO.amount,
           block: blockfrostUTxO.block,
@@ -271,7 +298,8 @@ export class BlockfrostProvider extends BaseProvider {
 
     const utxos: Array<UTxO> = [];
 
-    for (const _blockfrostUTxO of response) {/*
+    for (const _blockfrostUTxO of response) {
+      /*
       utxos.push({
         address: blockfrostUTxO.address,
         amount: blockfrostUTxO.amount,
@@ -316,7 +344,7 @@ export class BlockfrostProvider extends BaseProvider {
         if (blockfrostUTxO.output_index !== txIndex) {
           continue;
         }
-/*
+        /*
         results.add({
           address: blockfrostUTxO.address,
           amount: blockfrostUTxO.amount,
@@ -406,13 +434,13 @@ export class BlockfrostProvider extends BaseProvider {
 
   async evaluateTransaction(tx: string, additionalUtxos?: UTxO[]): Promise<Redeemer[]> {
     const additionalUtxoSet = new Set();
-    for (const _utxo of additionalUtxos || []) {/*
+    for (const _utxo of additionalUtxos || []) {
+      /*
       const txIn = {
         index: utxo.outputIndex,
         txId: utxo.txHash
       };*/
-
-     /* const txOut = {
+      /* const txOut = {
         address: utxo.address,
         datum: utxo.inlineDatum,
         datum_hash: utxo.dataHash,
@@ -422,8 +450,7 @@ export class BlockfrostProvider extends BaseProvider {
           coins: BigInt(utxo.amount.find((asset) => asset.unit === 'lovelace')?.quantity || 0)
         }
       };*/
-
-      //additionalUtxoSet.add([txIn, txOut]);
+      // additionalUtxoSet.add([txIn, txOut]);
     }
 
     const payload = {
@@ -469,7 +496,7 @@ export class BlockfrostProvider extends BaseProvider {
     }
 
     for (const _redeemer of result.redeemers) {
-      /*evaledRedeemers.add({
+      /* evaledRedeemers.add({
         dataCbor: '',
         executionUnits: {
           memory: redeemer.execution_units.mem,

@@ -44,7 +44,7 @@ export class CborReader {
   private constructor(ptr: any) {
     this.ptr = ptr;
     finalizationRegistry.register(this, {
-      freeFunc: unrefObject,
+      freeFunc: getModule().cbor_reader_unref,
       ptr: this.ptr
     });
   }

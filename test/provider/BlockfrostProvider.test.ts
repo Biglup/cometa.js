@@ -20,7 +20,7 @@ import * as Cometa from '../../dist/cjs';
 
 /* TESTS **********************************************************************/
 
-describe.skip('BlockfrostProvider', () => {
+describe('BlockfrostProvider', () => {
   beforeAll(async () => {
     await Cometa.ready();
   });
@@ -33,8 +33,8 @@ describe.skip('BlockfrostProvider', () => {
 
     const provi = Cometa.Provider.fromPtr(provider.providerPtr);
     const params = await provi.getUnspentOutputs(
-      'addr_test1qrwyxh7zvw8kdp9ar70klytasryj4ejz5j3n5sfw29j8nejzg53k4wq9vaswlnhthl6har9tygqc9037xepeu5s2v32qn6lwrx'
+      'addr_test1qqt9c69kjqf0wsnlp7hs8xees5l6pm4yxdqa3hknqr0kfe0htmj4e5t8n885zxm4qzpfzwruqx3ey3f5q8kpkr0gt9ms8dcsz6'
     );
-    expect(params).toEqual({});
+    expect(Cometa.readUtxoList(params)).toEqual({});
   });
 });
