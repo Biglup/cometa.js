@@ -18,10 +18,10 @@ import {
 } from '../common';
 import { assertSuccess, unrefObject } from './object';
 import { getModule } from '../module';
+import { readBlake2bHashData } from './blake2b';
 import { readI64, splitToLowHigh64bit } from './number';
 import { uint8ArrayToHex } from '../cometa';
 import { writeStringToMemory } from './string';
-import { readBlake2bHashData } from './blake2b';
 
 const allocPtr = (): number => getModule()._malloc(4);
 const readPtr = (ptr: number): number => getModule().getValue(ptr, 'i32');
@@ -278,10 +278,6 @@ export const writeScript = (script: Script): number => {
 // C -> JS (Reading)
 // =============================================================================
 
-/**
- * Recursively reads a C `cardano_native_script_t` pointer and converts it
- * into a JavaScript `NativeScript` object.
- */
 const readNativeScript = (nativeScriptPtr: number): NativeScript => {
   const m = getModule();
   const typePtr = allocPtr();
@@ -291,23 +287,15 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
 
     switch (kind) {
       case NativeScriptKind.RequireSignature: {
-        let pubkeyScriptPtrPtr = 0;
         let pubkeyScriptPtr = 0;
-        let keyHashPtrPtr = 0;
         let keyHashPtr = 0;
-
+        const pubkeyScriptPtrPtr = allocPtr();
+        const keyHashPtrPtr = allocPtr();
         try {
-          pubkeyScriptPtrPtr = allocPtr();
-          assertSuccess(
-            m.native_script_to_pubkey(nativeScriptPtr, pubkeyScriptPtrPtr),
-            'Failed to convert native script to pubkey script'
-          );
+          assertSuccess(m.native_script_to_pubkey(nativeScriptPtr, pubkeyScriptPtrPtr));
           pubkeyScriptPtr = readPtr(pubkeyScriptPtrPtr);
-
-          keyHashPtrPtr = m._malloc(4);
           assertSuccess(m.script_pubkey_get_key_hash(pubkeyScriptPtr, keyHashPtrPtr));
           keyHashPtr = readPtr(keyHashPtrPtr);
-
           return {
             __type: ScriptType.Native,
             keyHash: uint8ArrayToHex(readBlake2bHashData(keyHashPtr)),
@@ -316,21 +304,21 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
         } finally {
           m._free(keyHashPtrPtr);
           m._free(pubkeyScriptPtrPtr);
-          unrefObject(pubkeyScriptPtr);
-          unrefObject(keyHashPtr);
+          // FIX: unref the intermediate objects
+          if (pubkeyScriptPtr) unrefObject(pubkeyScriptPtr);
+          if (keyHashPtr) unrefObject(keyHashPtr);
         }
       }
       case NativeScriptKind.RequireTimeAfter: {
         let invalidBeforePtr = 0;
-        let invalidBeforePtrPtr = 0;
+        const invalidBeforePtrPtr = allocPtr();
         try {
-          invalidBeforePtrPtr = allocPtr();
           assertSuccess(m.native_script_to_invalid_before(nativeScriptPtr, invalidBeforePtrPtr));
           invalidBeforePtr = readPtr(invalidBeforePtrPtr);
           const slotPtr = allocPtr();
           try {
             if (m.script_invalid_before_get_slot(invalidBeforePtr, slotPtr) !== 0)
-              throw new Error('Failed to get slot from invalid_before');
+              throw new Error('Failed to get slot');
             return {
               __type: ScriptType.Native,
               kind: NativeScriptKind.RequireTimeAfter,
@@ -340,21 +328,20 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
             m._free(slotPtr);
           }
         } finally {
-          unrefObject(invalidBeforePtr);
+          // FIX: unref the intermediate object
+          if (invalidBeforePtr) unrefObject(invalidBeforePtr);
           m._free(invalidBeforePtrPtr);
         }
       }
       case NativeScriptKind.RequireTimeBefore: {
         let invalidAfterPtr = 0;
-        let invalidAfterPtrPtr = 0;
+        const invalidAfterPtrPtr = allocPtr();
         try {
-          invalidAfterPtrPtr = allocPtr();
           assertSuccess(m.native_script_to_invalid_after(nativeScriptPtr, invalidAfterPtrPtr));
           invalidAfterPtr = readPtr(invalidAfterPtrPtr);
           const slotPtr = allocPtr();
           try {
-            if (m.script_invalid_after_get_slot(invalidAfterPtr, slotPtr) !== 0)
-              throw new Error('Failed to get slot from invalid_after');
+            if (m.script_invalid_after_get_slot(invalidAfterPtr, slotPtr) !== 0) throw new Error('Failed to get slot');
             return {
               __type: ScriptType.Native,
               kind: NativeScriptKind.RequireTimeBefore,
@@ -364,21 +351,19 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
             m._free(slotPtr);
           }
         } finally {
-          unrefObject(invalidAfterPtr);
+          // FIX: unref the intermediate object
+          if (invalidAfterPtr) unrefObject(invalidAfterPtr);
           m._free(invalidAfterPtrPtr);
         }
       }
       case NativeScriptKind.RequireAllOf:
       case NativeScriptKind.RequireAnyOf:
       case NativeScriptKind.RequireNOf: {
-        let containerPtrPtr = 0;
-        let listPtrPtr = 0;
         let containerPtr = 0;
         let listPtr = 0;
+        const containerPtrPtr = allocPtr();
+        const listPtrPtr = allocPtr();
         try {
-          containerPtrPtr = allocPtr();
-          listPtrPtr = allocPtr();
-
           if (kind === NativeScriptKind.RequireAllOf) {
             assertSuccess(m.native_script_to_all(nativeScriptPtr, containerPtrPtr));
             containerPtr = readPtr(containerPtrPtr);
@@ -390,26 +375,25 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
             assertSuccess(m.script_any_get_scripts(containerPtr, listPtrPtr));
             listPtr = readPtr(listPtrPtr);
           } else {
+            // RequireNOf
             assertSuccess(m.native_script_to_n_of_k(nativeScriptPtr, containerPtrPtr));
             containerPtr = readPtr(containerPtrPtr);
             assertSuccess(m.script_n_of_k_get_scripts(containerPtr, listPtrPtr));
             listPtr = readPtr(listPtrPtr);
           }
-          if (!listPtr) throw new Error('Failed to get sub-script list from container');
+          if (!listPtr) throw new Error('Failed to get sub-script list');
 
           const length = m.native_script_list_get_length(listPtr);
           const scripts: NativeScript[] = [];
           for (let i = 0; i < length; i++) {
-            let subScriptPtrPtr = 0;
             let subScriptPtr = 0;
-
+            const subScriptPtrPtr = allocPtr();
             try {
-              subScriptPtrPtr = allocPtr();
               assertSuccess(m.native_script_list_get(listPtr, i, subScriptPtrPtr));
               subScriptPtr = readPtr(subScriptPtrPtr);
               scripts.push(readNativeScript(subScriptPtr));
             } finally {
-              unrefObject(subScriptPtr);
+              if (subScriptPtr) unrefObject(subScriptPtr);
               m._free(subScriptPtrPtr);
             }
           }
@@ -418,11 +402,11 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
             const required = m.script_n_of_k_get_required(containerPtr);
             return { __type: ScriptType.Native, kind, required, scripts };
           }
-
           return { __type: ScriptType.Native, kind, scripts };
         } finally {
-          unrefObject(listPtr);
-          unrefObject(containerPtr);
+          // FIX: unref all intermediate objects
+          if (listPtr) unrefObject(listPtr);
+          if (containerPtr) unrefObject(containerPtr);
           m._free(listPtrPtr);
           m._free(containerPtrPtr);
         }
@@ -435,15 +419,11 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
   }
 };
 
-/**
- * Reads a C `cardano_script_t` pointer representing a Plutus script and
- * converts it into a JavaScript `PlutusScript` object.
- */
 const readPlutusScript = (scriptPtr: number, language: PlutusLanguageVersion): PlutusScript => {
   const m = getModule();
-
   let toSpecificScriptFn;
   let toRawBytesFn;
+
   switch (language) {
     case PlutusLanguageVersion.V1:
       toSpecificScriptFn = m.script_to_plutus_v1;
@@ -461,26 +441,17 @@ const readPlutusScript = (scriptPtr: number, language: PlutusLanguageVersion): P
       throw new Error(`Cannot read unknown Plutus language version: ${language}`);
   }
 
-  // 2. Down-cast the generic script pointer to a version-specific one.
-  const specificScriptOutPtr = allocPtr();
   let specificScriptPtr = 0;
+  const specificScriptOutPtr = allocPtr();
   try {
-    assertSuccess(
-      toSpecificScriptFn(scriptPtr, specificScriptOutPtr),
-      `Failed to convert script to Plutus v${language}`
-    );
+    assertSuccess(toSpecificScriptFn(scriptPtr, specificScriptOutPtr));
     specificScriptPtr = readPtr(specificScriptOutPtr);
     if (!specificScriptPtr) throw new Error('C function created a null specific Plutus script pointer.');
-  } finally {
-    m._free(specificScriptOutPtr);
-  }
 
-  // 3. Get the raw bytes from the specific script and build the JS object.
-  try {
-    const byteBufferOutPtr = allocPtr();
     let byteBufferPtr = 0;
+    const byteBufferOutPtr = allocPtr();
     try {
-      assertSuccess(toRawBytesFn(specificScriptPtr, byteBufferOutPtr), 'Failed to get raw bytes from Plutus script');
+      assertSuccess(toRawBytesFn(specificScriptPtr, byteBufferOutPtr));
       byteBufferPtr = readPtr(byteBufferOutPtr);
       if (!byteBufferPtr) throw new Error('C function created a null byte buffer pointer.');
 
@@ -495,43 +466,37 @@ const readPlutusScript = (scriptPtr: number, language: PlutusLanguageVersion): P
       };
     } finally {
       m._free(byteBufferOutPtr);
-      if (byteBufferPtr) {
-        unrefObject(byteBufferPtr);
-      }
+      if (byteBufferPtr) unrefObject(byteBufferPtr);
     }
   } finally {
-    if (specificScriptPtr) {
-      unrefObject(specificScriptPtr);
-    }
+    m._free(specificScriptOutPtr);
+    // FIX: unref the intermediate specific script object
+    if (specificScriptPtr) unrefObject(specificScriptPtr);
   }
 };
 
-/**
- * Marshals a C `cardano_script_t` pointer into a JavaScript `Script` object.
- */
 export const readScript = (ptr: number): Script => {
   const m = getModule();
   const languagePtr = allocPtr();
-
   try {
     if (m.script_get_language(ptr, languagePtr) !== 0) throw new Error('Failed to get script language');
     const language = readPtr(languagePtr);
 
     switch (language) {
       case 0: {
-        const nativeScriptPtrPtr = allocPtr();
+        // Native
         let nativeScriptPtr = 0;
+        const nativeScriptPtrPtr = allocPtr();
         try {
           const result = m.script_to_native(ptr, nativeScriptPtrPtr);
-
           if (result !== 0) {
             throw new Error(`Failed to convert script to native script, result code: ${result}`);
           }
-
           nativeScriptPtr = readPtr(nativeScriptPtrPtr);
           return readNativeScript(nativeScriptPtr);
         } finally {
-          unrefObject(nativeScriptPtr);
+          // FIX: unref the intermediate object
+          if (nativeScriptPtr) unrefObject(nativeScriptPtr);
           m._free(nativeScriptPtrPtr);
         }
       }

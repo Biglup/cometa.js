@@ -168,6 +168,8 @@ export const readUtxoList = (ptr: number): UTxO[] => {
     return [];
   }
 
+  console.error('pppppppp')
+  console.error(ptr)
   const module = getModule();
   const jsArray: UTxO[] = [];
   const len = module.utxo_list_get_length(ptr);

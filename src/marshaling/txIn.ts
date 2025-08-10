@@ -25,21 +25,38 @@ import { uint8ArrayToHex } from '../cometa';
 
 /* DEFINITIONS ****************************************************************/
 
+/**
+ * Reads a pointer to a C `cardano_transaction_input_t` and converts it to a JS object.
+ * This function is now memory-safe.
+ */
 export const readTxIn = (ptr: number): TxIn => {
   if (!ptr) {
     throw new Error('Pointer is null');
   }
 
   const module = getModule();
+  let idPtr = 0; // Will hold the pointer to the hash object
 
-  const idPtr = module.transaction_input_get_id(ptr);
-  const index = Number(module.transaction_input_get_index(ptr));
-  const txId = uint8ArrayToHex(readBlake2bHashData(idPtr));
+  try {
+    // `transaction_input_get_id` returns a new reference that we must clean up.
+    idPtr = module.transaction_input_get_id(ptr);
+    if (idPtr === 0) {
+      throw new Error('Failed to get transaction ID from input.');
+    }
 
-  return {
-    index,
-    txId
-  };
+    const index = Number(module.transaction_input_get_index(ptr));
+    const txId = uint8ArrayToHex(readBlake2bHashData(idPtr, false));
+
+    return {
+      index,
+      txId,
+    };
+  } finally {
+    // FIX: Always release the reference to the hash object before exiting.
+    if (idPtr !== 0) {
+      unrefObject(idPtr);
+    }
+  }
 };
 
 export const writeTxIn = (txIn: TxIn): number => {
@@ -72,26 +89,38 @@ export const writeTxIn = (txIn: TxIn): number => {
 };
 
 export const readInputSet = (inputSetPtr: number): TxIn[] => {
-  const len = getModule().transaction_input_set_get_length(inputSetPtr);
-  const jsArray = [];
+  if (!inputSetPtr) {
+    return [];
+  }
+  const module = getModule();
+  const len = module.transaction_input_set_get_length(inputSetPtr);
+  const jsArray: TxIn[] = [];
 
   for (let i = 0; i < len; i++) {
     let inputPtr = 0;
-    let txIdPtr = 0;
+    const inputPtrPtr = module._malloc(4); // Allocate for the out-parameter
 
     try {
-      inputPtr = getModule().transaction_input_set_get(inputSetPtr, i);
-      txIdPtr = getModule().transaction_input_get_id(inputPtr);
-
-      const txIdHex = readBlake2bHashData(txIdPtr);
-      jsArray.push({
-        index: getModule().transaction_input_get_index(inputPtr),
-        txId: uint8ArrayToHex(txIdHex)
-      });
+      const result = module.transaction_input_set_get(inputSetPtr, i, inputPtrPtr);
+      assertSuccess(result, `Failed to get input at index ${i}`);
+      // Get the actual pointer to the input element.
+      inputPtr = module.getValue(inputPtrPtr, 'i32');
+      // Now we can safely read from the valid inputPtr.
+      const idPtr = module.transaction_input_get_id(inputPtr);
+      try {
+        const index = Number(module.transaction_input_get_index(inputPtr));
+        const txId = uint8ArrayToHex(readBlake2bHashData(idPtr, false));
+        jsArray.push({ index, txId });
+      } finally {
+        // Clean up the new reference to the hash.
+        if (idPtr) unrefObject(idPtr);
+      }
     } finally {
+      // Clean up the new reference to the input element and the temporary pointer.
       if (inputPtr !== 0) {
         unrefObject(inputPtr);
       }
+      module._free(inputPtrPtr);
     }
   }
   return jsArray;
@@ -129,7 +158,9 @@ export const writeInputSet = (txIns: TxIn[]): number => {
     for (const txIn of txIns) {
       let inputPtr = 0;
       try {
+        console.error('sssssssssssssss')
         inputPtr = writeTxIn(txIn); // Now calls the fixed version
+        console.error('bbbbbbbbbbbbbbbbb')
         module.transaction_input_set_add(inputSetPtr, inputPtr);
       } finally {
         if (inputPtr !== 0) {

@@ -54,10 +54,16 @@ describe('BlockfrostProvider', () => {
       projectId: 'preprodeMB9jfka6qXsluxEhPLhKczRdaC5QKab'
     });
 
+    // 77c33469c6f21be375880f294da85fec13df50821f6c6591eab9eff723e68e66
     const provi = Cometa.Provider.fromPtr(provider.providerPtr);
-    const params = await provi.getUnspentOutputs(
-      Cometa.Address.fromString('addr_test1wr64gtafm8rpkndue4ck2nx95u4flhwf643l2qmg9emjajg2ww0nj')
-    );
+    const params = await provi.resolveUnspentOutputs([
+      {
+        index: 0,
+        txId: '77c33469c6f21be375880f294da85fec13df50821f6c6591eab9eff723e68e66'
+      }
+    ]);
+
+    console.log('Resolved UTxOs:', params);
     expect(stringifyWithBigIntsAndBytes(Cometa.readUtxoList(params))).toEqual('');
   });
 });
