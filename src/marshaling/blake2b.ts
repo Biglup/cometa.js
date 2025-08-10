@@ -50,8 +50,9 @@ export const blake2bHashFromHex = (hex: string): number => {
  * Reads the data from a Blake2b hash object and returns it as a Uint8Array.
  *
  * @param bufferPtr A pointer to the Blake2b hash object in WASM memory.
+ * @param freeNativeObject Whether to free the native object after reading the data.
  */
-export const readBlake2bHashData = (bufferPtr: number): Uint8Array => {
+export const readBlake2bHashData = (bufferPtr: number, freeNativeObject = true): Uint8Array => {
   const module = getModule();
   const size = module.blake2b_hash_get_bytes_size(bufferPtr);
   const dataPtr = module.blake2b_hash_get_data(bufferPtr);
@@ -59,6 +60,8 @@ export const readBlake2bHashData = (bufferPtr: number): Uint8Array => {
   try {
     return new Uint8Array(module.HEAPU8.subarray(dataPtr, dataPtr + size));
   } finally {
-    unrefObject(bufferPtr);
+    if (freeNativeObject) {
+      unrefObject(bufferPtr);
+    }
   }
 };

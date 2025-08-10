@@ -50,7 +50,6 @@ export const readValue = (ptr: number): Value => {
       const assetIdHexCStringPtr = module.asset_id_get_hex(assetIdPtr);
 
       const assetIdHex = module.UTF8ToString(assetIdHexCStringPtr);
-      module._free(assetIdHexCStringPtr);
 
       const valueResult = module.asset_id_map_get_value_at(assetsMapPtr, i, amountPtr);
       assertSuccess(valueResult, 'Failed to get asset value from assets map');

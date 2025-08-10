@@ -36,8 +36,6 @@ export const readTxIn = (ptr: number): TxIn => {
   const index = Number(module.transaction_input_get_index(ptr));
   const txId = uint8ArrayToHex(readBlake2bHashData(idPtr));
 
-  unrefObject(idPtr);
-
   return {
     index,
     txId
@@ -47,16 +45,106 @@ export const readTxIn = (ptr: number): TxIn => {
 export const writeTxIn = (txIn: TxIn): number => {
   const module = getModule();
   const txInPtrPtr = module._malloc(4);
+  let hashPtr = 0;
+  let txInPtr = 0;
 
   try {
-    const indexParts = splitToLowHigh64bit(txIn.index);
-    const hashPtr = blake2bHashFromHex(txIn.txId);
+    hashPtr = blake2bHashFromHex(txIn.txId);
 
+    const indexParts = splitToLowHigh64bit(BigInt(txIn.index));
     const result = module.transaction_input_new(hashPtr, indexParts.low, indexParts.high, txInPtrPtr);
     assertSuccess(result, 'Failed to create TxIn from values');
 
-    return module.getValue(txInPtrPtr, 'i32');
+    txInPtr = module.getValue(txInPtrPtr, 'i32');
+
+    const finalPtr = txInPtr;
+    txInPtr = 0;
+    return finalPtr;
+  } catch (error) {
+    if (txInPtr !== 0) unrefObject(txInPtr);
+    throw error;
   } finally {
+    if (hashPtr !== 0) {
+      unrefObject(hashPtr);
+    }
     module._free(txInPtrPtr);
+  }
+};
+
+export const readInputSet = (inputSetPtr: number): TxIn[] => {
+  const len = getModule().transaction_input_set_get_length(inputSetPtr);
+  const jsArray = [];
+
+  for (let i = 0; i < len; i++) {
+    let inputPtr = 0;
+    let txIdPtr = 0;
+
+    try {
+      inputPtr = getModule().transaction_input_set_get(inputSetPtr, i);
+      txIdPtr = getModule().transaction_input_get_id(inputPtr);
+
+      const txIdHex = readBlake2bHashData(txIdPtr);
+      jsArray.push({
+        index: getModule().transaction_input_get_index(inputPtr),
+        txId: uint8ArrayToHex(txIdHex)
+      });
+    } finally {
+      if (inputPtr !== 0) {
+        unrefObject(inputPtr);
+      }
+    }
+  }
+  return jsArray;
+};
+
+/**
+ * Converts a JavaScript array of TxIn objects into a C `cardano_transaction_input_set_t`
+ * and returns its pointer.
+ *
+ * @param {TxIn[]} txIns The JavaScript array of transaction inputs.
+ * @returns {number} A pointer to the C `cardano_transaction_input_set_t`.
+ */
+/**
+ * Converts a JavaScript array of TxIn objects into a C `cardano_transaction_input_set_t`
+ * and returns its pointer.
+ *
+ * @param {TxIn[]} txIns The JavaScript array of transaction inputs.
+ * @returns {number} A pointer to the C `cardano_transaction_input_set_t`.
+ */
+export const writeInputSet = (txIns: TxIn[]): number => {
+  const module = getModule();
+  let inputSetPtr = 0;
+  let inputSetPtrPtr = 0;
+
+  try {
+    inputSetPtrPtr = module._malloc(4);
+    const result = module.transaction_input_set_new(inputSetPtrPtr);
+    if (result !== 0) {
+      throw new Error(`Failed to create transaction input set, error: ${result}`);
+    }
+    inputSetPtr = module.getValue(inputSetPtrPtr, 'i32');
+    module._free(inputSetPtrPtr);
+    inputSetPtrPtr = 0;
+
+    for (const txIn of txIns) {
+      let inputPtr = 0;
+      try {
+        inputPtr = writeTxIn(txIn); // Now calls the fixed version
+        module.transaction_input_set_add(inputSetPtr, inputPtr);
+      } finally {
+        if (inputPtr !== 0) {
+          unrefObject(inputPtr);
+        }
+      }
+    }
+
+    const finalPtr = inputSetPtr;
+    inputSetPtr = 0;
+    return finalPtr;
+  } catch (error) {
+    if (inputSetPtr !== 0) unrefObject(inputSetPtr);
+    throw error;
+  } finally {
+    if (inputSetPtrPtr !== 0) module._free(inputSetPtrPtr);
   }
 };

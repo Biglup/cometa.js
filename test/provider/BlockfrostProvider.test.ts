@@ -20,6 +20,29 @@ import * as Cometa from '../../dist/cjs';
 
 /* TESTS **********************************************************************/
 
+/**
+ * A wrapper around JSON.stringify that handles BigInt values.
+ *
+ * @param {any} value The value to convert to a JSON string.
+ * @returns {string} A JSON string representing the value.
+ */
+const stringifyWithBigIntsAndBytes = (value: any): string => {
+  const replacer = (_key: string, val: any) => {
+    // If the value is a BigInt, convert it to a string
+    if (typeof val === 'bigint') {
+      return val.toString();
+    }
+    // If the value is a Uint8Array, convert it to a hex string
+    if (val instanceof Uint8Array) {
+      return Buffer.from(val).toString('hex');
+    }
+    // Otherwise, return the value unchanged
+    return val;
+  };
+
+  return JSON.stringify(value, replacer, 2);
+};
+
 describe('BlockfrostProvider', () => {
   beforeAll(async () => {
     await Cometa.ready();
@@ -33,8 +56,8 @@ describe('BlockfrostProvider', () => {
 
     const provi = Cometa.Provider.fromPtr(provider.providerPtr);
     const params = await provi.getUnspentOutputs(
-      'addr_test1qqt9c69kjqf0wsnlp7hs8xees5l6pm4yxdqa3hknqr0kfe0htmj4e5t8n885zxm4qzpfzwruqx3ey3f5q8kpkr0gt9ms8dcsz6'
+      Cometa.Address.fromString('addr_test1wr64gtafm8rpkndue4ck2nx95u4flhwf643l2qmg9emjajg2ww0nj')
     );
-    expect(Cometa.readUtxoList(params)).toEqual({});
+    expect(stringifyWithBigIntsAndBytes(Cometa.readUtxoList(params))).toEqual('');
   });
 });

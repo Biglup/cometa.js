@@ -245,7 +245,6 @@ export const computeScriptHash = (script: Script): string => {
     return uint8ArrayToHex(readBlake2bHashData(hashPtr));
   } finally {
     unrefObject(ptr);
-    unrefObject(hashPtr);
   }
 };
 
@@ -303,8 +302,131 @@ export const cborToScript = (cborHex: string): Script => {
 
     return readScript(scriptPtr);
   } finally {
-    cborReader?.unref();
     unrefObject(scriptPtr);
     module._free(scriptOutPtr);
+  }
+};
+
+/**
+ * Converts a json representation of a native script into a NativeScript.
+ *
+ * @param json The JSON representation of a native script. The JSON must conform
+ * to the following format:
+ *
+ * https://github.com/input-output-hk/cardano-node/blob/master/doc/reference/simple-scripts.md
+ */
+export const jsonToNativeScript = (json: any): NativeScript => {
+  let coreScript: NativeScript;
+
+  if (!json.type) {
+    throw new Error("Invalid Native Script. Missing 'type' field.");
+  }
+
+  switch (json.type) {
+    case 'sig': {
+      coreScript = {
+        __type: ScriptType.Native,
+        keyHash: json.keyHash,
+        kind: NativeScriptKind.RequireSignature
+      };
+
+      break;
+    }
+    case 'all': {
+      coreScript = {
+        __type: ScriptType.Native,
+        kind: NativeScriptKind.RequireAllOf,
+        scripts: new Array<NativeScript>()
+      };
+      for (let i = 0; i < json.scripts.length; ++i) {
+        coreScript.scripts.push(jsonToNativeScript(json.scripts[i]));
+      }
+
+      break;
+    }
+    case 'any': {
+      coreScript = {
+        __type: ScriptType.Native,
+        kind: NativeScriptKind.RequireAnyOf,
+        scripts: new Array<NativeScript>()
+      };
+      for (let i = 0; i < json.scripts.length; ++i) {
+        coreScript.scripts.push(jsonToNativeScript(json.scripts[i]));
+      }
+
+      break;
+    }
+    case 'atLeast': {
+      const required = Number.parseInt(json.required);
+      coreScript = {
+        __type: ScriptType.Native,
+        kind: NativeScriptKind.RequireNOf,
+        required,
+        scripts: new Array<NativeScript>()
+      };
+
+      for (let i = 0; i < json.scripts.length; ++i) {
+        coreScript.scripts.push(jsonToNativeScript(json.scripts[i]));
+      }
+
+      break;
+    }
+    case 'before': {
+      coreScript = {
+        __type: ScriptType.Native,
+        kind: NativeScriptKind.RequireTimeBefore,
+        slot: Number.parseInt(json.slot)
+      };
+
+      break;
+    }
+    case 'after': {
+      coreScript = {
+        __type: ScriptType.Native,
+        kind: NativeScriptKind.RequireTimeAfter,
+        slot: Number.parseInt(json.slot)
+      };
+
+      break;
+    }
+    default: {
+      throw new Error(`Native Script value '${json.type}' is not supported.`);
+    }
+  }
+
+  return coreScript;
+};
+
+/**
+ * Converts a NativeScript into its json representation.
+ *
+ * @param script The native script to be converted to JSON following the format described at:
+ *
+ * https://github.com/input-output-hk/cardano-node/blob/master/doc/reference/simple-scripts.md
+ */
+export const nativeScriptToJson = (script: NativeScript): any => {
+  switch (script.kind) {
+    case NativeScriptKind.RequireSignature:
+      return { keyHash: script.keyHash, type: 'sig' };
+    case NativeScriptKind.RequireTimeBefore:
+      return { slot: script.slot, type: 'before' };
+    case NativeScriptKind.RequireTimeAfter:
+      return { slot: script.slot, type: 'after' };
+    case NativeScriptKind.RequireAllOf:
+      return {
+        scripts: script.scripts?.map(nativeScriptToJson) ?? [],
+        type: 'all'
+      };
+    case NativeScriptKind.RequireAnyOf:
+      return {
+        scripts: script.scripts?.map(nativeScriptToJson) ?? [],
+        type: 'any'
+      };
+    case NativeScriptKind.RequireNOf:
+      return {
+        required: script.required,
+        scripts: script.scripts?.map(nativeScriptToJson) ?? [],
+        type: 'atLeast'
+      };
   }
 };

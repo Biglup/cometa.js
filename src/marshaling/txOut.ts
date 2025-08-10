@@ -18,7 +18,7 @@
 
 import { Address } from '../address';
 import { PlutusData, TxOut } from '../common';
-import { unrefObject } from './object';
+import { assertSuccess, unrefObject } from './object';
 import { blake2bHashFromHex, readBlake2bHashData } from './blake2b';
 import { getModule } from '../module';
 import { readPlutusData, writePlutusData } from './plutusData';
@@ -65,7 +65,6 @@ const _readDatum = (datumPtr: number): { inlineDatum?: PlutusData; datumHash?: s
     return {};
   } finally {
     if (typePtr !== 0) module._free(typePtr);
-    if (hashPtr !== 0) unrefObject(hashPtr);
     if (dataPtr !== 0) unrefObject(dataPtr);
   }
 };
@@ -76,26 +75,56 @@ const _readDatum = (datumPtr: number): { inlineDatum?: PlutusData; datumHash?: s
  * @param {{datum?: PlutusData, datumHash?: string}} txOut
  * @returns {number} A pointer to a cardano_datum_t object, or 0 if no datum is present.
  */
-const _writeDatum = (txOut: TxOut) => {
+/**
+ * @private
+ * Writes a JS datum or datumHash to C and returns a cardano_datum_t pointer.
+ * This function correctly handles the C API's out-parameter pattern.
+ *
+ * @param {TxOut} txOut The transaction output containing the datum info.
+ * @returns {number} A pointer to a C `cardano_datum_t` object, or 0 if no datum is present.
+ */
+const _writeDatum = (txOut: TxOut): number => {
+  if (!txOut.datum && !txOut.datumHash) {
+    return 0; // No datum to write.
+  }
+
   const module = getModule();
-  let hashPtr = 0;
   let dataPtr = 0;
+  let hashPtr = 0;
   let datumPtr = 0;
+  let datumPtrPtr = 0; // For the out-parameter
 
   try {
+    datumPtrPtr = module._malloc(4);
+
     if (txOut.datum) {
       dataPtr = writePlutusData(txOut.datum);
-      datumPtr = module.datum_new_inline_data(dataPtr);
+      const result = module.datum_new_inline_data(dataPtr, datumPtrPtr);
+      assertSuccess(result, 'Failed to create inline datum');
     } else if (txOut.datumHash) {
       hashPtr = blake2bHashFromHex(txOut.datumHash);
-      datumPtr = module.datum_new_data_hash(hashPtr);
+      const result = module.datum_new_data_hash(hashPtr, datumPtrPtr);
+      assertSuccess(result, 'Failed to create datum hash');
     }
-    return datumPtr;
+
+    datumPtr = module.getValue(datumPtrPtr, 'i32');
+
+    // Transfer ownership to the caller
+    const finalPtr = datumPtr;
+    datumPtr = 0;
+    return finalPtr;
+  } catch (error) {
+    if (datumPtr !== 0) unrefObject(datumPtr);
+    throw error;
   } finally {
-    if (hashPtr !== 0) unrefObject(hashPtr);
+    // The new datum object now owns dataPtr/hashPtr. We only release our local reference.
     if (dataPtr !== 0) unrefObject(dataPtr);
+    if (hashPtr !== 0) unrefObject(hashPtr);
+    // Always free the temporary out-parameter buffer.
+    if (datumPtrPtr !== 0) module._free(datumPtrPtr);
   }
 };
+
 export const readTxOut = (ptr: number): TxOut => {
   if (!ptr) {
     throw new Error('Pointer is null');
@@ -147,7 +176,7 @@ export const readTxOut = (ptr: number): TxOut => {
 // eslint-disable-next-line complexity,max-statements
 export const writeTxOut = (txOut: TxOut): number => {
   const module = getModule();
-  let addressPtr = 0;
+  let address: Address | null = null;
   let valuePtr = 0;
   let datumPtr = 0;
   let scriptRefPtr = 0;
@@ -155,7 +184,7 @@ export const writeTxOut = (txOut: TxOut): number => {
   let txOutPtrPtr = 0;
 
   try {
-    addressPtr = Address.fromString(txOut.address).ptr;
+    address = Address.fromString(txOut.address);
     valuePtr = writeValue(txOut.value);
     datumPtr = _writeDatum(txOut);
 
@@ -164,34 +193,29 @@ export const writeTxOut = (txOut: TxOut): number => {
     }
 
     txOutPtrPtr = module._malloc(4);
-
-    const result = module.transaction_output_new(addressPtr, 0, 0, txOutPtrPtr);
-
+    const result = module.transaction_output_new(address.ptr, 0, 0, txOutPtrPtr);
     if (result !== 0) {
       throw new Error(`Failed to create transaction output, error code: ${result}`);
     }
-
     txOutPtr = module.getValue(txOutPtrPtr, 'i32');
     module._free(txOutPtrPtr);
     txOutPtrPtr = 0;
-
     module.transaction_output_set_value(txOutPtr, valuePtr);
-
     if (datumPtr !== 0) {
       module.transaction_output_set_datum(txOutPtr, datumPtr);
     }
     if (scriptRefPtr !== 0) {
       module.transaction_output_set_script_ref(txOutPtr, scriptRefPtr);
     }
-
-    return txOutPtr;
+    const finalPtr = txOutPtr;
+    txOutPtr = 0;
+    return finalPtr;
   } catch (error) {
     if (txOutPtr !== 0) {
       unrefObject(txOutPtr);
     }
     throw error;
   } finally {
-    if (addressPtr !== 0) unrefObject(addressPtr);
     if (valuePtr !== 0) unrefObject(valuePtr);
     if (datumPtr !== 0) unrefObject(datumPtr);
     if (scriptRefPtr !== 0) unrefObject(scriptRefPtr);

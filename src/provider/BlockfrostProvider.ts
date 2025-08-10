@@ -1,11 +1,22 @@
 import { BaseProvider } from './BaseProvider';
-import { CostModel, TxOut, Value, cborToPlutusData } from '../common';
+import {
+  CostModel,
+  PlutusLanguageVersion,
+  Script,
+  ScriptType,
+  TxOut,
+  Value,
+  cborToPlutusData,
+  jsonToNativeScript,
+  nativeScriptToJson,
+  plutusDataToCbor
+} from '../common';
 import { NetworkMagic } from '../common/NetworkMagic';
 import { ProtocolParameters } from '../common/ProtocolParameters';
 import { Redeemer } from '../common/Redeemer';
 import { TransactionInput } from '../common/TransactionInput';
 import { UTxO } from '../common/UTxO';
-import { toUnitInterval } from '../marshaling';
+import { readRedeemersFromTx, toUnitInterval } from '../marshaling';
 
 const networkMagicBlockfrostPrefix = (magic: NetworkMagic) => {
   let prefix;
@@ -30,20 +41,80 @@ const networkMagicBlockfrostPrefix = (magic: NetworkMagic) => {
   return prefix;
 };
 
-export const fromBlockfrostLanguageVersion = (x: string): number => {
-  switch (x) {
-    case 'PlutusV1': {
-      return 0;
-    }
-    case 'PlutusV2': {
-      return 1;
-    }
-    case 'PlutusV3': {
-      return 2;
-    }
-    // No default
+/**
+ * Creates a lookup map from an array of redeemers for efficient merging.
+ *
+ * @param {Redeemer[]} redeemers An array of the original redeemers from a transaction.
+ * @returns {Map<string, Redeemer>} A map where the key is a string like "spend:0"
+ * and the value is the original Redeemer object.
+ */
+export const createRedeemerMap = (redeemers: Redeemer[]): Map<string, Redeemer> => {
+  const map = new Map<string, Redeemer>();
+
+  for (const redeemer of redeemers) {
+    const key = `${redeemer.purpose}:${redeemer.index}`;
+    map.set(key, redeemer);
   }
-  throw new Error('fromBlockfrostLanguageVersion: Unreachable!');
+
+  return map;
+};
+
+const plutusVersionToApiString: Record<PlutusLanguageVersion, string> = {
+  [PlutusLanguageVersion.V1]: 'plutus:v1',
+  [PlutusLanguageVersion.V2]: 'plutus:v2',
+  [PlutusLanguageVersion.V3]: 'plutus:v3'
+};
+
+/**
+ * Recreates the logic from the C reference implementation to serialize a UTxO
+ * into a pair of JSON objects (input and output) for the transaction evaluation endpoint.
+ *
+ * @param {UTxO} utxo The UTxO to serialize.
+ * @returns {[object, object]} A tuple containing the JSON for the input and the output.
+ */
+const prepareUtxoForEvaluation = (utxo: UTxO): [object, object] => {
+  const inputJson = {
+    id: utxo.input.txId,
+    index: utxo.input.index
+  };
+
+  const outputJson: any = {
+    address: utxo.output.address,
+    value: {
+      ada: {
+        lovelace: utxo.output.value.coins.toString()
+      },
+      ...Object.fromEntries(
+        Object.entries(utxo.output.value.assets ?? {}).map(([policyId, assets]) => [
+          policyId,
+          Object.fromEntries(Object.entries(assets).map(([assetName, quantity]) => [assetName, quantity.toString()]))
+        ])
+      )
+    }
+  };
+
+  if (utxo.output.datum) {
+    outputJson.datum = plutusDataToCbor(utxo.output.datum);
+  } else if (utxo.output.datumHash) {
+    outputJson.datumHash = utxo.output.datumHash;
+  }
+
+  const scriptRef = utxo.output.scriptReference;
+  if (scriptRef) {
+    if (scriptRef.__type === ScriptType.Plutus) {
+      outputJson.script = {
+        cbor: scriptRef.bytes,
+        language: plutusVersionToApiString[scriptRef.version]
+      };
+    } else if (scriptRef.__type === ScriptType.Native) {
+      outputJson.script = {
+        json: nativeScriptToJson(scriptRef),
+        language: 'native'
+      };
+    }
+  }
+
+  return [inputJson, outputJson];
 };
 
 const inputFromUtxo = (utxo: any): any => ({
@@ -51,19 +122,21 @@ const inputFromUtxo = (utxo: any): any => ({
   txId: utxo.tx_hash
 });
 
-const outputFromUtxo = (address: string, utxo: any): any => {
+const outputFromUtxo = (address: string, utxo: any, script: Script | undefined): TxOut => {
   const value: Value = {
-    // @ts-ignore
-    coins: BigInt(utxo.amount.find(({ unit }) => unit === 'lovelace')!.quantity)
+    assets: {},
+    coins: BigInt(utxo.amount.find(({ unit }: any) => unit === 'lovelace')?.quantity ?? '0')
   };
 
-  const assets: Record<string, bigint> = {};
   for (const { quantity, unit } of utxo.amount) {
     if (unit === 'lovelace') continue;
-    assets[unit] = BigInt(quantity);
+    if (!value.assets) value.assets = {};
+    value.assets[unit] = BigInt(quantity);
   }
 
-  if (assets.size > 0) value.assets = assets;
+  if (Object.keys(value.assets ?? {}).length === 0) {
+    delete value.assets;
+  }
 
   const txOut: TxOut = {
     address,
@@ -72,8 +145,9 @@ const outputFromUtxo = (address: string, utxo: any): any => {
 
   if (utxo.inline_datum) txOut.datum = cborToPlutusData(utxo.inline_datum);
   if (utxo.data_hash) txOut.datumHash = utxo.data_hash;
-
-  //if (txOutFromCbor?.scriptReference) txOut.scriptReference = txOutFromCbor.scriptReference;
+  if (script) {
+    txOut.scriptReference = script;
+  }
 
   return txOut;
 };
@@ -211,9 +285,14 @@ export class BlockfrostProvider extends BaseProvider {
       }
 
       for (const blockfrostUTxO of response) {
+        let scriptReference;
+        if (blockfrostUTxO.reference_script_hash) {
+          scriptReference = await this.getScriptRef(blockfrostUTxO.reference_script_hash);
+        }
+
         results.add({
           input: inputFromUtxo(blockfrostUTxO),
-          output: outputFromUtxo(address, blockfrostUTxO)
+          output: outputFromUtxo(address, blockfrostUTxO, scriptReference)
         });
       }
 
@@ -230,135 +309,112 @@ export class BlockfrostProvider extends BaseProvider {
   async getUnspentOutputsWithAsset(address: string, assetId: string): Promise<UTxO[]> {
     const maxPageCount = 100;
     let page = 1;
-
+    // Improvement: Use a Set for consistency and automatic de-duplication
     const results: Set<UTxO> = new Set();
 
     for (;;) {
       const pagination = `count=${maxPageCount}&page=${page}`;
       const query = `/addresses/${address}/utxos/${assetId}?${pagination}`;
-      const json = await fetch(`${this.url}${query}`, {
-        headers: this.headers()
-      }).then((resp) => resp.json());
+      const response = await fetch(`${this.url}${query}`, {
+        headers: this.headers(),
+      });
 
-      if (!json) {
-        throw new Error('getUnspentOutputsWithAsset: Could not parse response json');
+      if (!response.ok) {
+        throw new Error(`getUnspentOutputsWithAsset: Network request failed with status ${response.status}`);
+      }
+      const json = await response.json();
+
+      if ('message' in json) {
+        throw new Error(`getUnspentOutputsWithAsset: Blockfrost threw "${json.message}"`);
       }
 
-      const response = json;
-
-      if ('message' in response) {
-        throw new Error(`getUnspentOutputsWithAsset: Blockfrost threw "${response.message}"`);
+      for (const blockfrostUTxO of json) {
+        let scriptReference;
+        if (blockfrostUTxO.reference_script_hash) {
+          scriptReference = await this.getScriptRef(blockfrostUTxO.reference_script_hash);
+        }
+        results.add({
+          input: inputFromUtxo(blockfrostUTxO),
+          output: outputFromUtxo(address, blockfrostUTxO, scriptReference),
+        });
       }
 
-      for (const _blockfrostUTxO of response) {
-        /* results.add({
-          address: blockfrostUTxO.address,
-          amount: blockfrostUTxO.amount,
-          block: blockfrostUTxO.block,
-          dataHash: blockfrostUTxO.data_hash,
-          inlineDatum: blockfrostUTxO.inline_datum,
-          outputIndex: blockfrostUTxO.output_index,
-          referenceScriptHash: blockfrostUTxO.reference_script_hash,
-          txHash: blockfrostUTxO.tx_hash
-        });*/
-      }
-
-      if (response.length < maxPageCount) {
+      if (json.length < maxPageCount) {
         break;
       } else {
         page += 1;
       }
     }
-
     return [...results];
   }
 
   async getUnspentOutputByNFT(assetId: string): Promise<UTxO> {
     const query = `/assets/${assetId}/addresses`;
-    const json = await fetch(`${this.url}${query}`, {
+    const response = await fetch(`${this.url}${query}`, {
       headers: this.headers()
-    }).then((resp) => resp.json());
+    });
 
-    if (!json) {
-      throw new Error('getUnspentOutputByNFT: Could not parse response json');
+    if (!response.ok) {
+      throw new Error(`getUnspentOutputByNFT: Failed to fetch asset addresses. Status: ${response.status}`);
+    }
+    const json = await response.json();
+
+    if ('message' in json) {
+      throw new Error(`getUnspentOutputByNFT: Blockfrost threw "${json.message}"`);
     }
 
-    const response = json;
-
-    if ('message' in response) {
-      throw new Error(`getUnspentOutputByNFT: Blockfrost threw "${response.message}"`);
-    }
-    // Ensures a single asset address is returned
-    if (response.length === 0) {
+    if (json.length === 0) {
       throw new Error('getUnspentOutputByNFT: No addresses found holding the asset.');
     }
-    if (response.length > 1) {
+    if (json.length > 1) {
       throw new Error('getUnspentOutputByNFT: Asset must be held by only one address. Multiple found.');
     }
 
-    const utxos: Array<UTxO> = [];
+    const holderAddress = json[0].address;
+    const utxos = await this.getUnspentOutputsWithAsset(holderAddress, assetId);
 
-    for (const _blockfrostUTxO of response) {
-      /*
-      utxos.push({
-        address: blockfrostUTxO.address,
-        amount: blockfrostUTxO.amount,
-        block: blockfrostUTxO.block,
-        dataHash: blockfrostUTxO.data_hash,
-        inlineDatum: blockfrostUTxO.inline_datum,
-        outputIndex: blockfrostUTxO.output_index,
-        referenceScriptHash: blockfrostUTxO.reference_script_hash,
-        txHash: blockfrostUTxO.tx_hash
-      });*/
-    }
-    // Ensures a single UTxO holds the asset
     if (utxos.length !== 1) {
-      throw new Error('getUnspentOutputByNFT: Asset must be present in only one UTxO. Multiple found.');
+      throw new Error('getUnspentOutputByNFT: Asset must be present in only one UTxO.');
     }
 
     return utxos[0]!;
   }
 
   async resolveUnspentOutputs(txIns: TransactionInput[]): Promise<UTxO[]> {
-    const results: Set<UTxO> = new Set();
+    const results: UTxO[] = [];
 
     for (const txIn of txIns) {
       const query = `/txs/${txIn.txId}/utxos`;
-      const json = await fetch(`${this.url}${query}`, {
+      const response = await fetch(`${this.url}${query}`, {
         headers: this.headers()
-      }).then((resp) => resp.json());
+      });
 
-      if (!json) {
-        throw new Error('resolveUnspentOutputs: Could not parse response json');
+      if (!response.ok) {
+        throw new Error(`resolveUnspentOutputs: Failed to fetch tx utxos for ${txIn.txId}. Status: ${response.status}`);
+      }
+      const json = await response.json();
+
+      if ('message' in json) {
+        throw new Error(`resolveUnspentOutputs: Blockfrost threw "${json.message}"`);
       }
 
-      const response = json;
+      const matchingOutput = json.outputs.find((out: any) => out.output_index === txIn.index);
 
-      if ('message' in response) {
-        throw new Error(`resolveUnspentOutputs: Blockfrost threw "${response.message}"`);
-      }
+      if (matchingOutput) {
+        matchingOutput.tx_hash = txIn.txId;
 
-      const txIndex = txIn.index;
-
-      for (const blockfrostUTxO of response.outputs) {
-        if (blockfrostUTxO.output_index !== txIndex) {
-          continue;
+        let scriptReference;
+        if (matchingOutput.reference_script_hash) {
+          scriptReference = await this.getScriptRef(matchingOutput.reference_script_hash);
         }
-        /*
-        results.add({
-          address: blockfrostUTxO.address,
-          amount: blockfrostUTxO.amount,
-          block: blockfrostUTxO.block,
-          dataHash: txIn.txId,
-          inlineDatum: blockfrostUTxO.inline_datum,
-          outputIndex: blockfrostUTxO.output_index,
-          referenceScriptHash: blockfrostUTxO.reference_script_hash,
-          txHash: blockfrostUTxO.tx_hash
-        });*/
+
+        results.push({
+          input: inputFromUtxo(matchingOutput),
+          output: outputFromUtxo(matchingOutput.address, matchingOutput, scriptReference)
+        });
       }
     }
-
-    return [...results];
+    return results;
   }
 
   async resolveDatum(datumHash: string): Promise<string> {
@@ -432,37 +488,19 @@ export class BlockfrostProvider extends BaseProvider {
     return (await response.json()) as string;
   }
 
-  async evaluateTransaction(tx: string, additionalUtxos?: UTxO[]): Promise<Redeemer[]> {
-    const additionalUtxoSet = new Set();
-    for (const _utxo of additionalUtxos || []) {
-      /*
-      const txIn = {
-        index: utxo.outputIndex,
-        txId: utxo.txHash
-      };*/
-      /* const txOut = {
-        address: utxo.address,
-        datum: utxo.inlineDatum,
-        datum_hash: utxo.dataHash,
-        script: utxo.scriptReference,
-        value: {
-          assets: utxo.amount.filter((asset) => asset.unit !== 'lovelace'),
-          coins: BigInt(utxo.amount.find((asset) => asset.unit === 'lovelace')?.quantity || 0)
-        }
-      };*/
-      // additionalUtxoSet.add([txIn, txOut]);
-    }
+  async evaluateTransaction(tx: string, additionalUtxos: UTxO[] = []): Promise<Redeemer[]> {
+    const originalRedeemers = readRedeemersFromTx(tx);
+    const originalRedeemerMap = createRedeemerMap(originalRedeemers);
 
     const payload = {
-      additionalUtxoset: [...additionalUtxoSet],
+      additionalUtxo: additionalUtxos.flatMap(prepareUtxoForEvaluation),
       cbor: tx
     };
 
-    const query = '/utils/txs/evaluate/utxos';
+    const query = '/utils/txs/evaluate';
     const response = await fetch(`${this.url}${query}`, {
       body: JSON.stringify(payload, (_, value) => (typeof value === 'bigint' ? value.toString() : value)),
       headers: {
-        Accept: 'application/json',
         'Content-Type': 'application/json',
         ...this.headers()
       },
@@ -471,9 +509,7 @@ export class BlockfrostProvider extends BaseProvider {
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(
-        `evaluateTransaction: failed to evaluate transaction with additional UTxO set in Blockfrost endpoint.\nError ${error}`
-      );
+      throw new Error(`evaluateTransaction: failed to evaluate transaction. Error: ${error}`);
     }
 
     const json = await response.json();
@@ -481,32 +517,116 @@ export class BlockfrostProvider extends BaseProvider {
       throw new Error(`evaluateTransaction: Blockfrost threw "${json.message}"`);
     }
 
-    const evaledRedeemers: Set<Redeemer> = new Set();
-
     if (!('EvaluationResult' in json.result)) {
-      throw new Error('evaluateTransaction: Blockfrost endpoint returned evaluation failure.');
-    }
-    const result = json.result.EvaluationResult;
-    if (!result) {
-      throw new Error('evaluateTransaction: Blockfrost endpoint returned no evaluation result.');
+      throw new Error(
+        `evaluateTransaction: Blockfrost endpoint returned evaluation failure: ${JSON.stringify(json.result)}`
+      );
     }
 
-    if (!result.redeemers) {
-      throw new Error('evaluateTransaction: Blockfrost endpoint returned no redeemers.');
-    }
+    const resultMap = json.result.EvaluationResult;
+    const mergedRedeemers: Redeemer[] = [];
 
-    for (const _redeemer of result.redeemers) {
-      /* evaledRedeemers.add({
-        dataCbor: '',
+    for (const key in resultMap) {
+      const originalRedeemer = originalRedeemerMap.get(key);
+      if (!originalRedeemer) {
+        continue;
+      }
+
+      const exUnits = resultMap[key];
+
+      mergedRedeemers.push({
+        ...originalRedeemer,
         executionUnits: {
-          memory: redeemer.execution_units.mem,
-          steps: redeemer.execution_units.step
-        },
-        index: redeemer.index, // TOOD: Add
-        purpose: redeemer.purpose
-      });*/
+          memory: Number(exUnits.memory),
+          steps: Number(exUnits.steps)
+        }
+      });
     }
 
-    return [...evaledRedeemers];
+    return mergedRedeemers;
+  }
+
+  /**
+   * Fetches a script from the blockchain provider by its hash.
+   * Handles both Plutus and native (timelock) scripts.
+   * @param scriptHash The hex-encoded hash of the script.
+   * @returns A Promise that resolves to a Script object.
+   */
+  // eslint-disable-next-line max-statements
+  private async getScriptRef(scriptHash: string): Promise<Script> {
+    const typeQuery = `/scripts/${scriptHash}`;
+    const typeJsonResponse = await fetch(`${this.url}${typeQuery}`, {
+      headers: this.headers()
+    });
+
+    if (!typeJsonResponse.ok) {
+      throw new Error(
+        `getScriptRef: Failed to fetch script type for ${scriptHash}. Status: ${typeJsonResponse.status}`
+      );
+    }
+
+    const typeJson = await typeJsonResponse.json();
+
+    if (!typeJson || typeof typeJson.type !== 'string') {
+      throw new Error('getScriptRef: Could not parse script type from response');
+    }
+
+    if ('message' in typeJson) {
+      throw new Error(`getScriptRef: Blockfrost threw "${typeJson.message}"`);
+    }
+
+    const type: string = typeJson.type;
+
+    if (type === 'timelock') {
+      const jsonQuery = `/scripts/${scriptHash}/json`;
+      const scriptJsonResponse = await fetch(`${this.url}${jsonQuery}`, {
+        headers: this.headers()
+      });
+
+      if (!scriptJsonResponse.ok) {
+        throw new Error(`getScriptRef: Failed to fetch timelock JSON. Status: ${scriptJsonResponse.status}`);
+      }
+
+      const scriptJson = await scriptJsonResponse.json();
+
+      if (!scriptJson?.json) {
+        throw new Error('getScriptRef: Invalid JSON response for timelock script');
+      }
+
+      return jsonToNativeScript(scriptJson.json);
+    }
+
+    const plutusVersionMap: Record<string, PlutusLanguageVersion> = {
+      plutusV1: PlutusLanguageVersion.V1,
+      plutusV2: PlutusLanguageVersion.V2,
+      plutusV3: PlutusLanguageVersion.V3
+    };
+
+    const version = plutusVersionMap[type];
+
+    if (!version) {
+      throw new Error(`Unsupported script type "${type}" for script hash ${scriptHash}`);
+    }
+
+    const cborQuery = `/scripts/${scriptHash}/cbor`;
+    const cborJsonResponse = await fetch(`${this.url}${cborQuery}`, {
+      headers: this.headers()
+    });
+
+    if (!cborJsonResponse.ok) {
+      throw new Error(`getScriptRef: Failed to fetch Plutus CBOR. Status: ${cborJsonResponse.status}`);
+    }
+
+    const cborJson = await cborJsonResponse.json();
+
+    if (!cborJson?.cbor) {
+      throw new Error('getScriptRef: Invalid CBOR response for Plutus script');
+    }
+
+    return {
+      __type: ScriptType.Plutus,
+      bytes: cborJson.cbor,
+      version
+    };
   }
 }

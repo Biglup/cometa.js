@@ -113,13 +113,13 @@ export const writeUnitInterval = (value: UnitInterval): number => {
  */
 export function derefUnitInterval(ptr: number): void {
   if (ptr === 0) {
-    throw new Error('Pointer is null');
+    return;
   }
 
   const module = getModule();
   const ptrPtr = module._malloc(4);
   try {
-    module.setValue(ptrPtr, ptr, '*');
+    module.setValue(ptrPtr, ptr, 'i32');
     module.unit_interval_unref(ptrPtr);
   } finally {
     module._free(ptrPtr);
@@ -143,11 +143,13 @@ export const readIntervalComponents = (ptr: number): UnitInterval => {
 };
 
 export const toUnitInterval = (value: string | number): UnitInterval => {
-  const ptr = writeUnitIntervalAsDouble(value);
-
-  const result = readIntervalComponents(ptr);
-
-  derefUnitInterval(ptr);
-
-  return result;
+  let ptr = 0;
+  try {
+    ptr = writeUnitIntervalAsDouble(value);
+    return readIntervalComponents(ptr);
+  } finally {
+    if (ptr !== 0) {
+      derefUnitInterval(ptr);
+    }
+  }
 };

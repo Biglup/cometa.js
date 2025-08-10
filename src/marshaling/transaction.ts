@@ -1,7 +1,7 @@
 import { CborReader, CborWriter } from '../encoding';
 import { getModule } from '../module';
 
-export const readTransactionFromCbor = (transactionPtr: number): string => {
+export const writeTransactionToCbor = (transactionPtr: number): string => {
   const module = getModule();
 
   if (!transactionPtr) {
@@ -19,7 +19,7 @@ export const readTransactionFromCbor = (transactionPtr: number): string => {
   return cborWriter.encodeHex();
 };
 
-export const writeTransactionToCbor = (transactionCbor: string): number => {
+export const readTransactionFromCbor = (transactionCbor: string): number => {
   const module = getModule();
 
   const cborReader = CborReader.fromHex(transactionCbor);
@@ -29,7 +29,8 @@ export const writeTransactionToCbor = (transactionCbor: string): number => {
     const result = module.transaction_from_cbor(cborReader.ptr, txPtrPtr);
 
     if (result !== 0) {
-      throw new Error('Failed to marshal transaction to CBOR.');
+      const error = cborReader.getLastError();
+      throw new Error(`Failed to unmarshal transaction from CBOR: ${error}`);
     }
 
     return module.getValue(txPtrPtr, 'i32');

@@ -308,11 +308,9 @@ export const readProtocolParameters = (ptr: number): ProtocolParameters => {
     const maxEpoch = module.protocol_parameters_get_max_epoch(ptr);
     const nOpt = module.protocol_parameters_get_n_opt(ptr);
 
-
     let obj = module.protocol_parameters_get_pool_pledge_influence(ptr);
     const poolPledgeInfluence = readIntervalComponents(obj);
     derefUnitInterval(obj);
-
 
     obj = module.protocol_parameters_get_treasury_growth_rate(ptr);
     const treasuryGrowthRate = readIntervalComponents(obj);
@@ -332,8 +330,6 @@ export const readProtocolParameters = (ptr: number): ProtocolParameters => {
       extraEntropy = Buffer.from(readBufferData(obj)).toString('hex');
 
       if (extraEntropy.length === 0) extraEntropy = null;
-
-      unrefObject(obj);
     }
 
     obj = module.protocol_parameters_get_protocol_version(ptr);

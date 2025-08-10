@@ -34,7 +34,7 @@ export class CborWriter {
    * The internal pointer to the native CBOR writer instance.
    * This pointer is managed internally and should not be modified directly.
    */
-  public readonly ptr: number;
+  public ptr: number;
 
   /**
    * Creates a new instance of the `CborWriter` class.

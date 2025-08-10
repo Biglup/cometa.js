@@ -36,3 +36,5 @@ export * from './plutusData';
 export * from './script';
 export * from './txOut';
 export * from './utxo';
+export * from './redeemer';
+export * from './bridgeCallbacks';

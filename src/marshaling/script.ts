@@ -52,6 +52,8 @@ const writeNativeScript = (script: NativeScript): number => {
         const outKeyHashPtr = allocPtr();
         let strPtr = 0;
         let keyHashPtr = 0;
+        let scriptPubKeyPtr = 0;
+        const scriptPubKeyPtrPtr = allocPtr();
         try {
           strPtr = writeStringToMemory(script.keyHash);
           assertSuccess(
@@ -59,30 +61,25 @@ const writeNativeScript = (script: NativeScript): number => {
             'Failed to create key hash from hex.'
           );
           keyHashPtr = readPtr(outKeyHashPtr);
-          const scriptPubKeyPtrPtr = allocPtr();
 
           assertSuccess(m.script_pubkey_new(keyHashPtr, scriptPubKeyPtrPtr));
-          const scriptPubKeyPtr = readPtr(scriptPubKeyPtrPtr);
+          scriptPubKeyPtr = readPtr(scriptPubKeyPtrPtr);
 
-          try {
-            assertSuccess(
-              m.native_script_new_pubkey(scriptPubKeyPtr, outPtr),
-              'Failed to create native_script from pubkey script'
-            );
+          assertSuccess(
+            m.native_script_new_pubkey(scriptPubKeyPtr, outPtr),
+            'Failed to create native_script from pubkey script'
+          );
 
-            nativeScriptPtr = readPtr(outPtr);
-          } finally {
-            unrefObject(scriptPubKeyPtr);
-            m._free(scriptPubKeyPtrPtr);
-          }
+          nativeScriptPtr = readPtr(outPtr);
         } finally {
           m._free(strPtr);
           m._free(outKeyHashPtr);
           unrefObject(keyHashPtr);
+          unrefObject(scriptPubKeyPtr);
+          m._free(scriptPubKeyPtrPtr);
         }
         break;
       }
-
       case NativeScriptKind.RequireTimeAfter: {
         let scriptInvalidBeforePtrPtr = 0;
         let scriptInvalidBeforePtr = 0;
@@ -522,27 +519,27 @@ export const readScript = (ptr: number): Script => {
 
     switch (language) {
       case 0: {
-        // CARDANO_SCRIPT_LANGUAGE_NATIVE
         const nativeScriptPtrPtr = allocPtr();
-        const result = m.script_to_native(ptr, nativeScriptPtrPtr);
-
-        if (result !== 0) {
-          m._free(nativeScriptPtrPtr);
-          throw new Error(`Failed to convert script to native script, result code: ${result}`);
-        }
-
-        const nativeScriptPtr = readPtr(nativeScriptPtrPtr);
+        let nativeScriptPtr = 0;
         try {
+          const result = m.script_to_native(ptr, nativeScriptPtrPtr);
+
+          if (result !== 0) {
+            throw new Error(`Failed to convert script to native script, result code: ${result}`);
+          }
+
+          nativeScriptPtr = readPtr(nativeScriptPtrPtr);
           return readNativeScript(nativeScriptPtr);
         } finally {
           unrefObject(nativeScriptPtr);
+          m._free(nativeScriptPtrPtr);
         }
       }
-      case 1: // CARDANO_SCRIPT_LANGUAGE_PLUTUS_V1
+      case 1:
         return readPlutusScript(ptr, PlutusLanguageVersion.V1);
-      case 2: // CARDANO_SCRIPT_LANGUAGE_PLUTUS_V2
+      case 2:
         return readPlutusScript(ptr, PlutusLanguageVersion.V2);
-      case 3: // CARDANO_SCRIPT_LANGUAGE_PLUTUS_V3
+      case 3:
         return readPlutusScript(ptr, PlutusLanguageVersion.V3);
       default:
         throw new Error(`Unsupported script language enum: ${language}`);

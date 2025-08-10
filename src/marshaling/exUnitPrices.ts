@@ -64,21 +64,31 @@ export const readExUnitPrices = (ptr: number): ExUnitsPrices => {
   const memPricePtrPtr = module._malloc(4);
   const stepPricePtrPtr = module._malloc(4);
 
+  let memPricePtr = 0;
+  let stepPricePtr = 0;
+
   try {
     // Read memory price
     const memResult = module.ex_unit_prices_get_memory_prices(ptr, memPricePtrPtr);
     assertSuccess(memResult, 'Failed to read memory price');
-    const memPricePtr = module.getValue(memPricePtrPtr, 'i32');
+    memPricePtr = module.getValue(memPricePtrPtr, 'i32');
     const memory = readIntervalComponents(memPricePtr);
 
     // Read step price
     const stepResult = module.ex_unit_prices_get_steps_prices(ptr, stepPricePtrPtr);
     assertSuccess(stepResult, 'Failed to read step price');
-    const stepPricePtr = module.getValue(stepPricePtrPtr, 'i32');
+    stepPricePtr = module.getValue(stepPricePtrPtr, 'i32');
     const steps = readIntervalComponents(stepPricePtr);
 
     return { memory, steps };
   } finally {
+    if (memPricePtr !== 0) {
+      derefUnitInterval(memPricePtr);
+    }
+    if (stepPricePtr !== 0) {
+      derefUnitInterval(stepPricePtr);
+    }
+
     module._free(memPricePtrPtr);
     module._free(stepPricePtrPtr);
   }
