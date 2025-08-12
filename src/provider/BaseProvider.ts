@@ -67,13 +67,14 @@ export abstract class BaseProvider {
   }
 
   /* ------- methods subclasses should override -------------- */
+  abstract getRewardsBalance(rewardAccount: string): Promise<bigint>;
   abstract getParameters(): Promise<ProtocolParameters>;
   abstract getUnspentOutputs(address: string): Promise<UTxO[]>;
   abstract getUnspentOutputsWithAsset(address: string, assetId: string): Promise<UTxO[]>;
-  abstract getUnspentOutputByNFT(assetId: string): Promise<UTxO>;
+  abstract getUnspentOutputByNft(assetId: string): Promise<UTxO>;
   abstract resolveUnspentOutputs(txIns: TransactionInput[]): Promise<UTxO[]>;
   abstract resolveDatum(datumHash: string): Promise<string>;
-  abstract awaitTransactionConfirmation(txId: string, timeout?: number): Promise<boolean>;
-  abstract postTransactionToChain(tx: string): Promise<string>;
+  abstract confirmTransaction(txId: string, timeout?: number): Promise<boolean>;
+  abstract submitTransaction(tx: string): Promise<string>;
   abstract evaluateTransaction(tx: string, additionalUtxos?: UTxO[]): Promise<Redeemer[]>;
 }

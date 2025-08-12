@@ -261,6 +261,47 @@ export class BlockfrostProvider extends BaseProvider {
     };
   }
 
+  /**
+   * Retrieves the staking rewards for a given reward address.
+   *
+   * @param {string} address The Bech32-encoded stake address (e.g., stake_test1...).
+   * @returns {Promise<bigint>} A promise that resolves to the amount of withdrawable
+   * rewards in Lovelace. Returns 0n if the account is not found (404).
+   */
+  async getRewardsBalance(address: string): Promise<bigint> {
+    const query = `accounts/${address}`;
+
+    const response = await fetch(`${this.url}${query}`, {
+      headers: this.headers()
+    });
+
+    if (response.status === 404) {
+      return 0n;
+    }
+
+    if (!response.ok) {
+      throw new Error(`getRewardsBalance: Network request failed with status ${response.status}`);
+    }
+
+    const json = await response.json();
+
+    if (!json) {
+      throw new Error('getRewardsBalance: Could not parse response json');
+    }
+
+    if ('message' in json) {
+      throw new Error(`getRewardsBalance: Blockfrost threw "${json.message}"`);
+    }
+
+    if (typeof json.withdrawable_amount !== 'string') {
+      throw new TypeError(
+        'getRewardsBalance: Invalid response format, "withdrawable_amount" not found or not a string.'
+      );
+    }
+
+    return BigInt(json.withdrawable_amount);
+  }
+
   async getUnspentOutputs(address: string): Promise<UTxO[]> {
     const maxPageCount = 100;
     let page = 1;
@@ -316,7 +357,7 @@ export class BlockfrostProvider extends BaseProvider {
       const pagination = `count=${maxPageCount}&page=${page}`;
       const query = `/addresses/${address}/utxos/${assetId}?${pagination}`;
       const response = await fetch(`${this.url}${query}`, {
-        headers: this.headers(),
+        headers: this.headers()
       });
 
       if (!response.ok) {
@@ -335,7 +376,7 @@ export class BlockfrostProvider extends BaseProvider {
         }
         results.add({
           input: inputFromUtxo(blockfrostUTxO),
-          output: outputFromUtxo(address, blockfrostUTxO, scriptReference),
+          output: outputFromUtxo(address, blockfrostUTxO, scriptReference)
         });
       }
 
@@ -348,7 +389,7 @@ export class BlockfrostProvider extends BaseProvider {
     return [...results];
   }
 
-  async getUnspentOutputByNFT(assetId: string): Promise<UTxO> {
+  async getUnspentOutputByNft(assetId: string): Promise<UTxO> {
     const query = `/assets/${assetId}/addresses`;
     const response = await fetch(`${this.url}${query}`, {
       headers: this.headers()
@@ -436,7 +477,7 @@ export class BlockfrostProvider extends BaseProvider {
     return response.cbor;
   }
 
-  async awaitTransactionConfirmation(txId: string, timeout?: number): Promise<boolean> {
+  async confirmTransaction(txId: string, timeout?: number): Promise<boolean> {
     const averageBlockTime = 20_000;
 
     const query = `/txs/${txId}/metadata/cbor`;
@@ -469,7 +510,7 @@ export class BlockfrostProvider extends BaseProvider {
     return false;
   }
 
-  async postTransactionToChain(tx: string): Promise<string> {
+  async submitTransaction(tx: string): Promise<string> {
     const query = '/tx/submit';
     const response = await fetch(`${this.url}${query}`, {
       body: Buffer.from(tx, 'hex'),
@@ -492,6 +533,8 @@ export class BlockfrostProvider extends BaseProvider {
     const originalRedeemers = readRedeemersFromTx(tx);
     const originalRedeemerMap = createRedeemerMap(originalRedeemers);
 
+    console.error(tx);
+
     const payload = {
       additionalUtxo: additionalUtxos.flatMap(prepareUtxoForEvaluation),
       cbor: tx
@@ -501,7 +544,7 @@ export class BlockfrostProvider extends BaseProvider {
     const response = await fetch(`${this.url}${query}`, {
       body: JSON.stringify(payload, (_, value) => (typeof value === 'bigint' ? value.toString() : value)),
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/cbor',
         ...this.headers()
       },
       method: 'POST'
@@ -517,6 +560,7 @@ export class BlockfrostProvider extends BaseProvider {
       throw new Error(`evaluateTransaction: Blockfrost threw "${json.message}"`);
     }
 
+    console.error(json);
     if (!('EvaluationResult' in json.result)) {
       throw new Error(
         `evaluateTransaction: Blockfrost endpoint returned evaluation failure: ${JSON.stringify(json.result)}`

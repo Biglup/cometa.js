@@ -1,8 +1,17 @@
-import { Address } from '../address';
+import { Address, RewardAddress } from '../address';
 import { TxIn, UTxO } from '../common';
-import { assertSuccess, unrefObject, writeInputSet, writeStringToMemory, writeUtxoList } from '../marshaling';
+import {
+  assertSuccess,
+  blake2bHashFromHex,
+  readBlake2bHashData,
+  unrefObject,
+  writeAssetId,
+  writeInputSet,
+  writeUtxoList
+} from '../marshaling';
 import { finalizationRegistry } from '../garbageCollection';
 import { getModule } from '../module';
+import { readTransactionFromCbor } from '../marshaling/transaction';
 
 // Helpers for interacting with pointers
 const allocPtr = (): number => getModule()._malloc(4);
@@ -73,6 +82,30 @@ export class Provider {
     }
   }
 
+  async getRewardsBalance(bech32: string): Promise<bigint> {
+    const m = getModule();
+    // Allocate 8 bytes on the heap to store the C uint64_t result
+    const rewardsOutPtr = m._malloc(8);
+
+    try {
+      const address = RewardAddress.fromAddress(Address.fromString(bech32));
+      // Call the asynchronous C++ bridge function
+      m.provider_get_rewards_available(this.ptr, address.ptr, rewardsOutPtr);
+      const rc = await m.Asyncify.whenDone();
+      assertSuccess(rc, this.lastError);
+
+      // Manually read the 64-bit integer from memory as two 32-bit halves
+      const low = m.HEAPU32[rewardsOutPtr >> 2];
+      const high = m.HEAPU32[(rewardsOutPtr >> 2) + 1];
+
+      // Combine the halves into a JavaScript bigint
+      return (BigInt(high) << 32n) | BigInt(low);
+    } finally {
+      // Always free the memory allocated for the result
+      m._free(rewardsOutPtr);
+    }
+  }
+
   /** Fetch all UTXOs at a Cardano address. */
   async getUnspentOutputs(address: Address): Promise<number> {
     const m = getModule();
@@ -94,16 +127,42 @@ export class Provider {
   async getUnspentOutputsWithAsset(address: Address, assetId: string): Promise<number> {
     const m = getModule();
     const outPtr = allocPtr();
-    const assetIdStrPtr = writeStringToMemory(assetId);
+    let assetIdPtr = 0;
 
     try {
-      m.provider_get_unspent_outputs_with_asset(this.ptr, address.ptr, assetIdStrPtr, outPtr);
+      assetIdPtr = writeAssetId(assetId);
+
+      m.provider_get_unspent_outputs_with_asset(this.ptr, address.ptr, assetIdPtr, outPtr);
+
       const rc = await m.Asyncify.whenDone();
       assertSuccess(rc, this.lastError);
       return readPtr(outPtr);
     } finally {
+      if (assetIdPtr !== 0) {
+        unrefObject(assetIdPtr);
+      }
       m._free(outPtr);
-      m._free(assetIdStrPtr);
+    }
+  }
+
+  async getUnspentOutputByNft(assetId: string): Promise<number> {
+    const m = getModule();
+    const outPtr = allocPtr();
+    let assetIdPtr = 0;
+
+    try {
+      assetIdPtr = writeAssetId(assetId);
+
+      m.provider_get_unspent_output_by_nft(this.ptr, assetIdPtr, outPtr);
+
+      const rc = await m.Asyncify.whenDone();
+      assertSuccess(rc, this.lastError);
+      return readPtr(outPtr);
+    } finally {
+      if (assetIdPtr !== 0) {
+        unrefObject(assetIdPtr);
+      }
+      m._free(outPtr);
     }
   }
 
@@ -124,19 +183,35 @@ export class Provider {
     }
   }
 
-  /** Wait for a transaction to be confirmed on the blockchain. */
-  async awaitTransactionConfirmation(txId: string): Promise<boolean> {
+  async resolveDatum(datumHash: string): Promise<number> {
     const m = getModule();
-    const txIdStrPtr = writeStringToMemory(txId);
+    const outPtr = allocPtr();
+    let datumPtr = 0;
+    try {
+      datumPtr = blake2bHashFromHex(datumHash);
+      m.provider_resolve_datum(this.ptr, datumPtr, outPtr);
+      const rc = await m.Asyncify.whenDone();
+      assertSuccess(rc, this.lastError);
+      return readPtr(outPtr);
+    } finally {
+      unrefObject(datumPtr);
+      m._free(outPtr);
+    }
+  }
+
+  /** Wait for a transaction to be confirmed on the blockchain. */
+  async confirmTransaction(txId: string): Promise<boolean> {
+    const m = getModule();
+    const txIdStrPtr = blake2bHashFromHex(txId);
     const outPtr = m._malloc(1); // bool is 1 byte
 
     try {
-      m.provider_confirm_transaction(this.ptr, txIdStrPtr, 90000, outPtr); // 90s timeout
+      m.provider_confirm_transaction(this.ptr, txIdStrPtr, 90000, 0, outPtr); // 90s timeout
       const rc = await m.Asyncify.whenDone();
       assertSuccess(rc, this.lastError);
       return m.getValue(outPtr, 'i8') === 1;
     } finally {
-      m._free(txIdStrPtr);
+      unrefObject(txIdStrPtr);
       m._free(outPtr);
     }
   }
@@ -144,7 +219,7 @@ export class Provider {
   /** Submit a signed transaction CBOR to the network. */
   async submitTransaction(txCbor: string): Promise<string> {
     const m = getModule();
-    const txCborPtr = writeStringToMemory(txCbor);
+    const txCborPtr = readTransactionFromCbor(txCbor);
     const outPtr = allocPtr();
 
     try {
@@ -153,21 +228,20 @@ export class Provider {
       assertSuccess(rc, this.lastError);
 
       const txIdStrPtr = readPtr(outPtr);
-      const txId = m.UTF8ToString(txIdStrPtr);
+      const txId = readBlake2bHashData(txIdStrPtr);
 
       m._free(txIdStrPtr);
 
-      return txId;
+      return Buffer.from(txId).toString('hex');
     } finally {
-      m._free(txCborPtr);
-      m._free(outPtr);
+      unrefObject(txCborPtr);
     }
   }
 
   /** Evaluate the execution units for a transaction. */
   async evaluateTransaction(txCbor: string, additionalUtxos: UTxO[]): Promise<number> {
     const m = getModule();
-    const txCborPtr = writeStringToMemory(txCbor);
+    const txCborPtr = readTransactionFromCbor(txCbor);
     const outPtr = allocPtr();
     let additionalUtxosPtr = 0;
     try {
@@ -178,7 +252,7 @@ export class Provider {
       return readPtr(outPtr);
     } finally {
       unrefObject(additionalUtxosPtr);
-      m._free(txCborPtr);
+      unrefObject(txCborPtr);
       m._free(outPtr);
     }
   }

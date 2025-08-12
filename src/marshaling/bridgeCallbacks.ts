@@ -9,6 +9,7 @@ import { uint8ArrayToHex } from '../cometa';
 import { writeProtocolParameters } from './protocolParameters';
 import { writeRedeemerList } from './redeemer';
 import { writeTransactionToCbor } from './transaction';
+import { writePlutusData } from './plutusData';
 
 export const bridgeCallbacks = {
   get_provider_from_registry(objectId: number) {
@@ -18,7 +19,8 @@ export const bridgeCallbacks = {
     return blake2bHashFromHex(jsHexString);
   },
   marshal_plutus_data(jsPlutusDataCborHex: string) {
-    return cborToPlutusData(jsPlutusDataCborHex);
+    const plutusData = cborToPlutusData(jsPlutusDataCborHex);
+    return writePlutusData(plutusData);
   },
   marshal_protocol_parameters(params: ProtocolParameters) {
     return writeProtocolParameters(params);
@@ -42,6 +44,7 @@ export const bridgeCallbacks = {
     return _Module.UTF8ToString(hexStringPtr);
   },
   marshall_blake2b_hash(hashPtr: number) {
+    console.error('asdasdsa')
     return uint8ArrayToHex(readBlake2bHashData(hashPtr, false));
   },
   marshall_reward_address(rewardAddressPtr: number) {

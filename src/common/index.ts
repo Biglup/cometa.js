@@ -34,3 +34,4 @@ export * from './PlutusData';
 export * from './TxIn';
 export * from './TxOut';
 export * from './Value';
+export * from './Datum';

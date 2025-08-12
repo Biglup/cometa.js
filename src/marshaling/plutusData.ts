@@ -1,6 +1,14 @@
 /* eslint-disable no-use-before-define */
 
-import { ConstrPlutusData, PlutusData, PlutusList, PlutusMap } from '../common';
+import { CborReader, CborWriter } from '../encoding';
+import {
+  ConstrPlutusData,
+  PlutusData,
+  PlutusList,
+  PlutusMap,
+  isPlutusDataWithCborCache,
+  isPlutusDataList, isPlutusDataMap, isPlutusDataConstr
+} from '../common';
 import { assertSuccess, unrefObject } from './object';
 import { getModule } from '../module';
 import { splitToLowHigh64bit } from './number';
@@ -93,6 +101,25 @@ const writePlutusList = (data: PlutusList): number => {
 
 export const writePlutusData = (data: PlutusData): number => {
   const module = getModule();
+
+  if (isPlutusDataWithCborCache(data) && data.cbor) {
+    const cborReader = CborReader.fromHex(data.cbor);
+    let dataPtr = 0;
+    const dataPtrPtr = module._malloc(4);
+    try {
+      assertSuccess(module.plutus_data_from_cbor(cborReader.ptr, dataPtrPtr));
+      dataPtr = module.getValue(dataPtrPtr, 'i32');
+      const finalPtr = dataPtr;
+      dataPtr = 0; // Transfer ownership
+      return finalPtr;
+    } catch (error) {
+      if (dataPtr !== 0) unrefObject(dataPtr);
+      throw error;
+    } finally {
+      module._free(dataPtrPtr);
+    }
+  }
+
   let specificDataPtr = 0;
   let genericDataPtr = 0;
 
@@ -167,9 +194,12 @@ const readConstrPlutusData = (constrPtr: number): ConstrPlutusData => {
     const low = module.getValue(alternativePtr, 'i32');
     const high = module.getValue(alternativePtr + 4, 'i32');
     const constructor = (BigInt(high >>> 0) << 32n) | BigInt(low >>> 0);
+
     assertSuccess(module.constr_plutus_data_get_data(constrPtr, fieldsListPtrPtr));
     fieldsListPtr = module.getValue(fieldsListPtrPtr, 'i32');
-    const fields = readPlutusList(fieldsListPtr); // Directly read the specific list type
+
+    const fields = readPlutusList(fieldsListPtr);
+
     return { constructor, fields };
   } finally {
     module._free(alternativePtr);
@@ -232,15 +262,13 @@ const readPlutusList = (listPtr: number): PlutusList => {
   const module = getModule();
   const length = module.plutus_list_get_length(listPtr);
   const items: PlutusData[] = [];
-
   for (let i = 0; i < length; i++) {
     let elementPtr = 0;
     const elementPtrPtr = module._malloc(4);
     try {
       assertSuccess(module.plutus_list_get(listPtr, i, elementPtrPtr));
       elementPtr = module.getValue(elementPtrPtr, 'i32');
-      // eslint-disable-next-line no-use-before-define
-      items.push(readPlutusData(elementPtr));
+      items.push(readPlutusData(elementPtr)); // This is a correct recursive call
     } finally {
       if (elementPtr) unrefObject(elementPtr);
       module._free(elementPtrPtr);
@@ -259,24 +287,32 @@ export const readPlutusData = (ptr: number): PlutusData => {
     assertSuccess(module.plutus_data_get_kind(ptr, kindPtr), 'Failed to get PlutusData kind');
     const kind = module.getValue(kindPtr, 'i32');
 
+    let parsedData: PlutusData;
     let specificDataPtr = 0;
     const specificDataPtrPtr = module._malloc(4);
     try {
+      // 1. Determine the kind and parse the specific data structure
       switch (kind) {
         case 0: {
+          // ConstrPlutusData
           assertSuccess(module.plutus_data_to_constr(ptr, specificDataPtrPtr));
           specificDataPtr = module.getValue(specificDataPtrPtr, 'i32');
-          return readConstrPlutusData(specificDataPtr);
+          parsedData = readConstrPlutusData(specificDataPtr);
+          break;
         }
         case 1: {
+          // PlutusMap
           assertSuccess(module.plutus_data_to_map(ptr, specificDataPtrPtr));
           specificDataPtr = module.getValue(specificDataPtrPtr, 'i32');
-          return readPlutusMap(specificDataPtr);
+          parsedData = readPlutusMap(specificDataPtr);
+          break;
         }
         case 2: {
+          // PlutusList
           assertSuccess(module.plutus_data_to_list(ptr, specificDataPtrPtr));
           specificDataPtr = module.getValue(specificDataPtrPtr, 'i32');
-          return readPlutusList(specificDataPtr);
+          parsedData = readPlutusList(specificDataPtr);
+          break;
         }
         case 3: {
           // Integer
@@ -286,10 +322,11 @@ export const readPlutusData = (ptr: number): PlutusData => {
           const strPtr = module._malloc(strSize);
           try {
             assertSuccess(module.bigint_to_string(specificDataPtr, strPtr, strSize, 10));
-            return BigInt(module.UTF8ToString(strPtr));
+            parsedData = BigInt(module.UTF8ToString(strPtr));
           } finally {
             module._free(strPtr);
           }
+          break;
         }
         case 4: {
           // Bytes
@@ -297,7 +334,8 @@ export const readPlutusData = (ptr: number): PlutusData => {
           specificDataPtr = module.getValue(specificDataPtrPtr, 'i32');
           const size = module.buffer_get_size(specificDataPtr);
           const dataPtr = module.buffer_get_data(specificDataPtr);
-          return new Uint8Array(module.HEAPU8.subarray(dataPtr, dataPtr + size));
+          parsedData = new Uint8Array(module.HEAPU8.subarray(dataPtr, dataPtr + size));
+          break;
         }
         default:
           throw new Error(`Unknown PlutusData kind: ${kind}`);
@@ -306,6 +344,14 @@ export const readPlutusData = (ptr: number): PlutusData => {
       if (specificDataPtr) unrefObject(specificDataPtr);
       module._free(specificDataPtrPtr);
     }
+
+    if (isPlutusDataList(parsedData) || isPlutusDataMap(parsedData) || isPlutusDataConstr(parsedData)) {
+      const cborWriter = new CborWriter();
+      assertSuccess(getModule().plutus_data_to_cbor(ptr, cborWriter.ptr));
+      parsedData.cbor = cborWriter.encodeHex();
+    }
+
+    return parsedData;
   } finally {
     module._free(kindPtr);
   }

@@ -38,3 +38,5 @@ export * from './txOut';
 export * from './utxo';
 export * from './redeemer';
 export * from './bridgeCallbacks';
+export * from './assetId';
+export * from './datum';
