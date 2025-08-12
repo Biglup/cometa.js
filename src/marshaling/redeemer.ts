@@ -120,7 +120,7 @@ export const writeRedeemer = (redeemer: Redeemer): number => {
 
     redeemerPtrPtr = module._malloc(4);
     const indexParts = splitToLowHigh64bit(BigInt(redeemer.index));
-    const result = module._redeemer_new(
+    const result = module.redeemer_new(
       _mapPurposeToTag(redeemer.purpose),
       indexParts.low,
       indexParts.high,

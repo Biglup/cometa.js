@@ -72,25 +72,32 @@ const plutusVersionToApiString: Record<PlutusLanguageVersion, string> = {
  * @param {UTxO} utxo The UTxO to serialize.
  * @returns {[object, object]} A tuple containing the JSON for the input and the output.
  */
-const prepareUtxoForEvaluation = (utxo: UTxO): [object, object] => {
+export const prepareUtxoForEvaluation = (utxo: UTxO): [object, object] => {
   const inputJson = {
     id: utxo.input.txId,
     index: utxo.input.index
   };
 
+  const valuePayload: any = {
+    ada: {
+      lovelace: Number(utxo.output.value.coins) // Send as a number
+    }
+  };
+
+  for (const assetId in utxo.output.value.assets ?? {}) {
+    const policyId = assetId.slice(0, 56);
+    const assetName = assetId.slice(56);
+    const quantity = utxo.output.value.assets?.[assetId];
+
+    if (!valuePayload[policyId]) {
+      valuePayload[policyId] = {};
+    }
+    valuePayload[policyId][assetName] = Number(quantity); // Send as a number
+  }
+
   const outputJson: any = {
     address: utxo.output.address,
-    value: {
-      ada: {
-        lovelace: utxo.output.value.coins.toString()
-      },
-      ...Object.fromEntries(
-        Object.entries(utxo.output.value.assets ?? {}).map(([policyId, assets]) => [
-          policyId,
-          Object.fromEntries(Object.entries(assets).map(([assetName, quantity]) => [assetName, quantity.toString()]))
-        ])
-      )
-    }
+    value: valuePayload // Use the correctly built value payload
   };
 
   if (utxo.output.datum) {
@@ -533,18 +540,16 @@ export class BlockfrostProvider extends BaseProvider {
     const originalRedeemers = readRedeemersFromTx(tx);
     const originalRedeemerMap = createRedeemerMap(originalRedeemers);
 
-    console.error(tx);
-
     const payload = {
-      additionalUtxo: additionalUtxos.flatMap(prepareUtxoForEvaluation),
+      additionalUtxo: additionalUtxos.length > 0 ? additionalUtxos.flatMap(prepareUtxoForEvaluation) : undefined,
       cbor: tx
     };
 
-    const query = '/utils/txs/evaluate';
+    const query = '/utils/txs/evaluate/utxos';
     const response = await fetch(`${this.url}${query}`, {
       body: JSON.stringify(payload, (_, value) => (typeof value === 'bigint' ? value.toString() : value)),
       headers: {
-        'Content-Type': 'application/cbor',
+        'Content-Type': 'application/json',
         ...this.headers()
       },
       method: 'POST'
@@ -560,7 +565,10 @@ export class BlockfrostProvider extends BaseProvider {
       throw new Error(`evaluateTransaction: Blockfrost threw "${json.message}"`);
     }
 
-    console.error(json);
+    if ('fault' in json) {
+      throw new Error(`evaluateTransaction: Blockfrost threw: ${json.fault.string}`);
+    }
+
     if (!('EvaluationResult' in json.result)) {
       throw new Error(
         `evaluateTransaction: Blockfrost endpoint returned evaluation failure: ${JSON.stringify(json.result)}`
