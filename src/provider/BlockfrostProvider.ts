@@ -1,24 +1,50 @@
+/**
+ * Copyright 2024 Biglup Labs.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* IMPORTS ********************************************************************/
+
 import { BaseProvider } from './BaseProvider';
 import {
   CostModel,
+  NetworkMagic,
   PlutusLanguageVersion,
+  ProtocolParameters,
+  Redeemer,
   Script,
   ScriptType,
+  TxIn,
   TxOut,
+  UTxO,
   Value,
   cborToPlutusData,
   jsonToNativeScript,
   nativeScriptToJson,
   plutusDataToCbor
 } from '../common';
-import { NetworkMagic } from '../common/NetworkMagic';
-import { ProtocolParameters } from '../common/ProtocolParameters';
-import { Redeemer } from '../common/Redeemer';
-import { TransactionInput } from '../common/TransactionInput';
-import { UTxO } from '../common/UTxO';
 import { readRedeemersFromTx, toUnitInterval } from '../marshaling';
 
-const networkMagicBlockfrostPrefix = (magic: NetworkMagic) => {
+/* DEFINITIONS ****************************************************************/
+
+/**
+ * Converts the network magic to a Blockfrost prefix.
+ *
+ * @param {NetworkMagic} magic The network magic number.
+ * @returns {string} The Blockfrost prefix for the network.
+ */
+const networkMagicBlockfrostPrefix = (magic: NetworkMagic): string => {
   let prefix;
   switch (magic) {
     case NetworkMagic.PREPROD:
@@ -48,7 +74,7 @@ const networkMagicBlockfrostPrefix = (magic: NetworkMagic) => {
  * @returns {Map<string, Redeemer>} A map where the key is a string like "spend:0"
  * and the value is the original Redeemer object.
  */
-export const createRedeemerMap = (redeemers: Redeemer[]): Map<string, Redeemer> => {
+const createRedeemerMap = (redeemers: Redeemer[]): Map<string, Redeemer> => {
   const map = new Map<string, Redeemer>();
 
   for (const redeemer of redeemers) {
@@ -59,6 +85,9 @@ export const createRedeemerMap = (redeemers: Redeemer[]): Map<string, Redeemer> 
   return map;
 };
 
+/**
+ * Maps Plutus language versions to their API string representations.
+ */
 const plutusVersionToApiString: Record<PlutusLanguageVersion, string> = {
   [PlutusLanguageVersion.V1]: 'plutus:v1',
   [PlutusLanguageVersion.V2]: 'plutus:v2',
@@ -66,8 +95,8 @@ const plutusVersionToApiString: Record<PlutusLanguageVersion, string> = {
 };
 
 /**
- * Recreates the logic from the C reference implementation to serialize a UTxO
- * into a pair of JSON objects (input and output) for the transaction evaluation endpoint.
+ * Serialize a UTxO into a pair of JSON objects (input and output) for the transaction
+ * evaluation endpoint.
  *
  * @param {UTxO} utxo The UTxO to serialize.
  * @returns {[object, object]} A tuple containing the JSON for the input and the output.
@@ -80,7 +109,7 @@ export const prepareUtxoForEvaluation = (utxo: UTxO): [object, object] => {
 
   const valuePayload: any = {
     ada: {
-      lovelace: Number(utxo.output.value.coins) // Send as a number
+      lovelace: Number(utxo.output.value.coins)
     }
   };
 
@@ -92,12 +121,12 @@ export const prepareUtxoForEvaluation = (utxo: UTxO): [object, object] => {
     if (!valuePayload[policyId]) {
       valuePayload[policyId] = {};
     }
-    valuePayload[policyId][assetName] = Number(quantity); // Send as a number
+    valuePayload[policyId][assetName] = Number(quantity);
   }
 
   const outputJson: any = {
     address: utxo.output.address,
-    value: valuePayload // Use the correctly built value payload
+    value: valuePayload
   };
 
   if (utxo.output.datum) {
@@ -124,11 +153,21 @@ export const prepareUtxoForEvaluation = (utxo: UTxO): [object, object] => {
   return [inputJson, outputJson];
 };
 
+/**
+ * Converts a Blockfrost UTxO object to a transaction input format.
+ * @param utxo The Blockfrost UTxO object.
+ */
 const inputFromUtxo = (utxo: any): any => ({
   index: utxo.output_index,
   txId: utxo.tx_hash
 });
 
+/**
+ * Converts a Blockfrost UTxO object to a transaction output format.
+ * @param address The address to which the output belongs.
+ * @param utxo The Blockfrost UTxO object.
+ * @param script Optional script reference for the output.
+ */
 const outputFromUtxo = (address: string, utxo: any, script: Script | undefined): TxOut => {
   const value: Value = {
     assets: {},
@@ -159,42 +198,61 @@ const outputFromUtxo = (address: string, utxo: any, script: Script | undefined):
   return txOut;
 };
 
+/**
+ * BlockfrostProvider is a provider for interacting with the Blockfrost API.
+ *
+ * It extends the BaseProvider class and implements methods to fetch protocol parameters,
+ * unspent outputs, resolve datums, confirm transactions, and submit transactions.
+ */
 export class BlockfrostProvider extends BaseProvider {
   url: string;
   private projectId: string;
 
+  /**
+   * Creates an instance of BlockfrostProvider.
+   *
+   * @param {NetworkMagic} network The network magic number (e.g., MAINNET, PREPROD).
+   * @param {string} projectId The Blockfrost project ID.
+   */
   constructor({ network, projectId }: { network: NetworkMagic; projectId: string }) {
     super(network, 'Blockfrost JS');
     this.url = `https://${networkMagicBlockfrostPrefix(network)}.blockfrost.io/api/v0/`;
     this.projectId = projectId;
   }
 
+  /**
+   * Returns the headers required for Blockfrost API requests.
+   *
+   * @returns {Object} An object containing the project ID header.
+   */
   headers() {
     return { project_id: this.projectId };
   }
 
+  /**
+   * Retrieves the protocol parameters from the Blockfrost API.
+   *
+   * @returns {Promise<ProtocolParameters>} A promise that resolves to the protocol parameters.
+   */
   async getParameters(): Promise<ProtocolParameters> {
     const query = 'epochs/latest/parameters';
     const response = await fetch(`${this.url}${query}`, {
-      // Await the fetch call
       headers: this.headers()
     });
 
-    // Check for network errors before parsing JSON
     if (!response.ok) {
       throw new Error(`getParameters: Network request failed with status ${response.status}`);
     }
 
-    const json = await response.json(); // Await the JSON parsing
+    const json = await response.json();
 
     if (!json) {
       throw new Error('getParameters: Could not parse response json');
     }
 
-    const data = json; // Renamed to 'data' to avoid confusion with the `json` variable itself being the object.
+    const data = json;
 
     if ('message' in data) {
-      // Now `data` is the parsed JSON object
       throw new Error(`getParameters: Blockfrost threw "${data.message}"`);
     }
 
@@ -309,6 +367,12 @@ export class BlockfrostProvider extends BaseProvider {
     return BigInt(json.withdrawable_amount);
   }
 
+  /**
+   * Retrieves all unspent outputs (UTxOs) for a given address.
+   *
+   * @param {string} address The Bech32-encoded payment address.
+   * @returns {Promise<UTxO[]>} A promise that resolves to an array of UTxOs for the address.
+   */
   async getUnspentOutputs(address: string): Promise<UTxO[]> {
     const maxPageCount = 100;
     let page = 1;
@@ -354,10 +418,16 @@ export class BlockfrostProvider extends BaseProvider {
     return [...results];
   }
 
+  /**
+   * Retrieves all unspent outputs (UTxOs) for a given address that contain a specific asset.
+   *
+   * @param {string} address The Bech32-encoded payment address.
+   * @param {string} assetId The asset identifier (policyId + asset name in hex).
+   * @returns {Promise<UTxO[]>} A promise that resolves to an array of UTxOs containing the asset.
+   */
   async getUnspentOutputsWithAsset(address: string, assetId: string): Promise<UTxO[]> {
     const maxPageCount = 100;
     let page = 1;
-    // Improvement: Use a Set for consistency and automatic de-duplication
     const results: Set<UTxO> = new Set();
 
     for (;;) {
@@ -396,6 +466,12 @@ export class BlockfrostProvider extends BaseProvider {
     return [...results];
   }
 
+  /**
+   * Retrieves the unspent output (UTxO) that holds a specific NFT asset.
+   *
+   * @param {string} assetId The asset identifier of the NFT (policyId + asset name in hex).
+   * @returns {Promise<UTxO>} A promise that resolves to the UTxO containing the NFT.
+   */
   async getUnspentOutputByNft(assetId: string): Promise<UTxO> {
     const query = `/assets/${assetId}/addresses`;
     const response = await fetch(`${this.url}${query}`, {
@@ -425,10 +501,17 @@ export class BlockfrostProvider extends BaseProvider {
       throw new Error('getUnspentOutputByNFT: Asset must be present in only one UTxO.');
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return utxos[0]!;
   }
 
-  async resolveUnspentOutputs(txIns: TransactionInput[]): Promise<UTxO[]> {
+  /**
+   * Resolves unspent outputs (UTxOs) for a list of transaction inputs.
+   *
+   * @param {TxIn[]} txIns An array of transaction inputs to resolve.
+   * @returns {Promise<UTxO[]>} A promise that resolves to an array of UTxOs.
+   */
+  async resolveUnspentOutputs(txIns: TxIn[]): Promise<UTxO[]> {
     const results: UTxO[] = [];
 
     for (const txIn of txIns) {
@@ -465,6 +548,12 @@ export class BlockfrostProvider extends BaseProvider {
     return results;
   }
 
+  /**
+   * Resolves a datum by its hash.
+   *
+   * @param {string} datumHash The hex-encoded hash of the datum.
+   * @returns {Promise<string>} A promise that resolves to the CBOR-encoded datum.
+   */
   async resolveDatum(datumHash: string): Promise<string> {
     const query = `/scripts/datum/${datumHash}/cbor`;
     const json = await fetch(`${this.url}${query}`, {
@@ -484,6 +573,13 @@ export class BlockfrostProvider extends BaseProvider {
     return response.cbor;
   }
 
+  /**
+   * Confirms a transaction by its ID.
+   *
+   * @param {string} txId The transaction ID to confirm.
+   * @param {number} [timeout] Optional timeout in milliseconds. If omitted, uses a default.
+   * @returns {Promise<boolean>} A promise that resolves to true if the transaction is confirmed, otherwise false.
+   */
   async confirmTransaction(txId: string, timeout?: number): Promise<boolean> {
     const averageBlockTime = 20_000;
 
@@ -517,6 +613,12 @@ export class BlockfrostProvider extends BaseProvider {
     return false;
   }
 
+  /**
+   * Submits a signed transaction to the Blockfrost API.
+   *
+   * @param {string} tx The hex-encoded transaction payload.
+   * @returns {Promise<string>} A promise that resolves to the submitted transaction ID (hash).
+   */
   async submitTransaction(tx: string): Promise<string> {
     const query = '/tx/submit';
     const response = await fetch(`${this.url}${query}`, {
@@ -536,6 +638,13 @@ export class BlockfrostProvider extends BaseProvider {
     return (await response.json()) as string;
   }
 
+  /**
+   * Evaluates a transaction by its CBOR representation.
+   *
+   * @param {string} tx The hex-encoded CBOR of the transaction to evaluate.
+   * @param {UTxO[]} [additionalUtxos] Optional additional UTxOs to include in the evaluation.
+   * @returns {Promise<Redeemer[]>} A promise that resolves to an array of Redeemer objects with execution units.
+   */
   async evaluateTransaction(tx: string, additionalUtxos: UTxO[] = []): Promise<Redeemer[]> {
     const originalRedeemers = readRedeemersFromTx(tx);
     const originalRedeemerMap = createRedeemerMap(originalRedeemers);

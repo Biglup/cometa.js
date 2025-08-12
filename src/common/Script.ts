@@ -1,9 +1,28 @@
 /* eslint-disable no-use-before-define */
+/**
+ * Copyright 2025 Biglup Labs.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* IMPORTS **************************************************************/
 
 import { CborReader, CborWriter } from '../encoding';
 import { assertSuccess, readBlake2bHashData, readScript, unrefObject, writeScript } from '../marshaling';
 import { getModule } from '../module';
 import { uint8ArrayToHex } from '../cometa';
+
+/* DEFINITIONS **********************************************************/
 
 /** Plutus script type. */
 export enum ScriptType {

@@ -40,3 +40,4 @@ export * from './redeemer';
 export * from './bridgeCallbacks';
 export * from './assetId';
 export * from './datum';
+export * from './transaction';

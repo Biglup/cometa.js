@@ -20,7 +20,6 @@ export * from './ExUnits';
 export * from './NetworkMagic';
 export * from './ProtocolParameters';
 export * from './Redeemer';
-export * from './TransactionInput';
 export * from './UTxO';
 export * from './ProtocolVersion';
 export * from './CostModel';

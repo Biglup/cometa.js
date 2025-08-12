@@ -18,4 +18,3 @@
 
 export * from './BaseProvider';
 export * from './BlockfrostProvider';
-export * from './Provider';

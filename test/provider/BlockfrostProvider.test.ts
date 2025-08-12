@@ -17,6 +17,7 @@
 /* IMPORTS ********************************************************************/
 
 import * as Cometa from '../../dist/cjs';
+import { Provider } from '../util/Provider';
 
 /* TESTS **********************************************************************/
 
@@ -55,7 +56,7 @@ describe('BlockfrostProvider', () => {
     });
 
     // 77c33469c6f21be375880f294da85fec13df50821f6c6591eab9eff723e68e66
-    const provi = Cometa.Provider.fromPtr(provider.providerPtr);
+    const provi = Provider.fromPtr(provider.providerPtr);
     const txId = await provi.submitTransaction(
       '84a400d901028182582019fe2a8817d1860cbbd714df6fce2f163b3a249f9592517bd08a4ee80eb73a58010182a300581d70d1f8737aebb2c1da4255e4d28cf0bd5c109b15a55755f63bebaaa856011a001e8480028201d81843d87980a200583900dc435fc2638f6684bd1f9f6f917d80c92ae642a4a33a412e516479e64245236ab8056760efceebbff57e8cab220182be3e36439e520a645401821b000000021c55199aa2581cd1f8737aebb2c1da4255e4d28cf0bd5c109b15a55755f63bebaaa856a154506c75747573426572727952617370626572727901581ceb7e6282971727598462d39d7627bfa6fbbbf56496cb91b76840affba14e426572727952617370626572727901021a0002a14d031a05eb4c7da100d901028182582007473467683e6a30a13d471a68641f311a14e2b37a38ea592e5d6efc2b446bce5840e9b4d1e37743b967f483db51f4e7f150c097a26f1cd2fcd25d13a28ef81a6242b1ac5567315e28e0baf5432aef5ee258de4becb5f0075b990c58a1fba52be30bf5f6'
     );
