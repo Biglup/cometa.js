@@ -1,6 +1,26 @@
+/**
+ * Copyright 2025 Biglup Labs.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* IMPORTS *******************************************************************/
+
 import { assertSuccess, unrefObject } from './object';
 import { getModule } from '../module';
 import { hexToUint8Array } from '../cometa';
+
+/* DEFINITIONS ****************************************************************/
 
 /**
  * Creates a Blake2b hash object from a byte array.
@@ -50,8 +70,9 @@ export const blake2bHashFromHex = (hex: string): number => {
  * Reads the data from a Blake2b hash object and returns it as a Uint8Array.
  *
  * @param bufferPtr A pointer to the Blake2b hash object in WASM memory.
+ * @param freeNativeObject Whether to free the native object after reading the data.
  */
-export const readBlake2bHashData = (bufferPtr: number): Uint8Array => {
+export const readBlake2bHashData = (bufferPtr: number, freeNativeObject = true): Uint8Array => {
   const module = getModule();
   const size = module.blake2b_hash_get_bytes_size(bufferPtr);
   const dataPtr = module.blake2b_hash_get_data(bufferPtr);
@@ -59,6 +80,8 @@ export const readBlake2bHashData = (bufferPtr: number): Uint8Array => {
   try {
     return new Uint8Array(module.HEAPU8.subarray(dataPtr, dataPtr + size));
   } finally {
-    unrefObject(bufferPtr);
+    if (freeNativeObject) {
+      unrefObject(bufferPtr);
+    }
   }
 };

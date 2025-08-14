@@ -51,10 +51,18 @@ export class Address {
    * - {@link Address.fromBech32} to create an instance from a Bech32-encoded string.
    *
    * @param ptr The memory address of the native Address object.
+   * @param managed Whether the instance should be managed by the finalization registry for garbage collection.
    * @private
    */
-  public constructor(ptr: number) {
+  public constructor(ptr: number, managed = true) {
     this.ptr = ptr;
+
+    if (!this.ptr) {
+      throw new Error('Address pointer is null or undefined.');
+    }
+
+    // Register the instance for garbage collection if managed
+    if (!managed) return;
 
     finalizationRegistry.register(this, {
       freeFunc: getModule().address_unref,

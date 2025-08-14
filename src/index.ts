@@ -23,3 +23,6 @@ export * from './encoding';
 export * from './garbageCollection';
 export * from './crypto';
 export * from './marshaling';
+export * from './provider';
+export * from './common';
+export * from './instanceRegistry';

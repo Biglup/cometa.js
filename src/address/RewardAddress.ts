@@ -49,10 +49,13 @@ export class RewardAddress {
    * - {@link RewardAddress.fromBech32}: Creates a reward address from a Bech32 string.
    *
    * @param ptr The memory address of the reward address WASM object.
-   * @private
+   * @param managed Whether the instance should be managed by the finalization registry for garbage collection.
    */
-  public constructor(ptr: number) {
+  public constructor(ptr: number, managed = true) {
     this.ptr = ptr;
+
+    // Register the instance for garbage collection if managed
+    if (!managed) return;
 
     finalizationRegistry.register(this, {
       freeFunc: getModule().reward_address_unref,

@@ -16,6 +16,7 @@
 
 /* IMPORTS *******************************************************************/
 
+import { bridgeCallbacks } from './marshaling';
 import { ensureModuleHasRandomValue } from './randomValue';
 
 /* GLOBALS ********************************************************************/
@@ -42,6 +43,8 @@ export const ready = async (): Promise<void> => {
   const ModuleFactory = (await import('../libcardano-c/cardano_c.js')).default;
 
   return new Promise<void>((resolve, reject) => {
+    Object.assign(globalThis, bridgeCallbacks);
+
     const moduleInstance = ModuleFactory({
       onAbort: (err: unknown) => {
         reject(err);

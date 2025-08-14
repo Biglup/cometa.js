@@ -16,7 +16,7 @@
 
 /* IMPORTS ********************************************************************/
 
-import { getErrorString } from './string';
+import { getErrorString, writeStringToMemory } from './string';
 import { getModule } from '../module';
 
 /* DEFINITIONS ****************************************************************/
@@ -57,9 +57,9 @@ export const unrefObject = (ptr: number): void => {
  * @throws {Error} If the `result` code is non-zero. The thrown error includes the `lastError`
  * string to aid in diagnosing the issue.
  */
-export const assertSuccess = (result: number, lastError: string): void => {
+export const assertSuccess = (result: number, lastError?: string): void => {
   if (result !== 0) {
-    if (lastError === '') {
+    if (!lastError || lastError === '') {
       throw new Error(`${result}`);
     }
 
@@ -92,4 +92,22 @@ export const readBufferData = (bufferPtr: number): Uint8Array => {
   } finally {
     unrefObject(bufferPtr);
   }
+};
+
+/**
+ * Converts a hexadecimal string into a buffer object in the WASM runtime.
+ *
+ * @param hex - A hexadecimal string to be converted into a buffer object.
+ */
+export const hexToBufferObject = (hex: string): number => {
+  const module = getModule();
+  const string = writeStringToMemory(hex);
+  const bufferPtr = module.buffer_from_hex(string, hex.length);
+
+  module._free(string);
+  if (!bufferPtr) {
+    throw new Error('Failed to create buffer object from hex string');
+  }
+
+  return bufferPtr;
 };

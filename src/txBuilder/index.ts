@@ -16,4 +16,4 @@
 
 /* EXPORTS ********************************************************************/
 
-export { ProtocolVersion } from './ProtocolVersion';
+export const PLACEHOLDER = '0';

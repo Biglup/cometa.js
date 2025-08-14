@@ -48,6 +48,42 @@ export const writeStringToMemory = (str: string): number => {
 };
 
 /**
+ * Writes a byte array to a specified memory location in the WASM heap.
+ *
+ * @param bytes - The byte array to write.
+ * @returns The pointer (address) to the start of the allocated memory containing the byte array.
+ * @throws {Error} Throws an error if memory allocation fails or if writing fails.
+ */
+export const writeBytesToMemory = (bytes: Uint8Array): number => {
+  const module = getModule();
+  const ptr = module._malloc(bytes.length);
+  if (!ptr) {
+    throw new Error('Memory allocation failed.');
+  }
+
+  try {
+    module.HEAPU8.set(bytes, ptr);
+  } catch (error) {
+    module._free(ptr);
+    throw new Error(`Failed to write bytes to memory: ${error}`);
+  }
+
+  return ptr;
+};
+
+/**
+ * Calculates the number of bytes required to store a UTF-8-encoded copy of
+ * the given string **including** a trailing NUL (`\0`) terminator.
+ *
+ * @param str - The JavaScript string to measure.
+ * @returns The byte length (`Uint8`) that must be allocated in the WASM heap
+ *          before calling {@link writeStringToMemory} or a similar routine.
+ *          Always `≥ 1` because the terminating NUL is counted even for the
+ *          empty string.
+ */
+export const utf8ByteLen = (str: string): number => new TextEncoder().encode(str).length + 1;
+
+/**
  * Retrieves the human-readable string representation of a given error code.
  *
  * This function uses the WASM module to convert an error code into a descriptive string.

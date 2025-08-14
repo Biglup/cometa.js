@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+/* DEFINITIONS ****************************************************************/
+
 /**
  * Defines the network identifiers used within the Cardano ecosystem.
  *
