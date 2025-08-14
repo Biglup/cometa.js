@@ -1,16 +1,42 @@
+/**
+ * Copyright 2025 Biglup Labs.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* IMPORTS *******************************************************************/
+
 import { Address, RewardAddress } from '../address';
 import { ProtocolParameters, UTxO, cborToPlutusData } from '../common';
 import { blake2bHashFromHex, readBlake2bHashData } from './blake2b';
 import { getFromInstanceRegistry } from '../instanceRegistry';
-import { getModule } from '../module';
+import { readAssetId } from './assetId';
 import { readInputSet } from './txIn';
 import { readUtxoList, writeUtxo, writeUtxoList } from './utxo';
 import { uint8ArrayToHex } from '../cometa';
+import { writePlutusData } from './plutusData';
 import { writeProtocolParameters } from './protocolParameters';
 import { writeRedeemerList } from './redeemer';
 import { writeTransactionToCbor } from './transaction';
-import { writePlutusData } from './plutusData';
 
+/* DEFINITIONS ****************************************************************/
+
+/**
+ * Bridge callbacks for marshaling various Cardano data types.
+ *
+ * These functions are used to convert between JavaScript representations
+ * and their corresponding WASM memory representations.
+ */
 export const bridgeCallbacks = {
   get_provider_from_registry(objectId: number) {
     return getFromInstanceRegistry(objectId);
@@ -39,12 +65,9 @@ export const bridgeCallbacks = {
     return addr.toString();
   },
   marshall_asset_id(assetIdPtr: number) {
-    const _Module = getModule();
-    const hexStringPtr = _Module.asset_id_get_hex(assetIdPtr);
-    return _Module.UTF8ToString(hexStringPtr);
+    return readAssetId(assetIdPtr);
   },
   marshall_blake2b_hash(hashPtr: number) {
-    console.error('asdasdsa')
     return uint8ArrayToHex(readBlake2bHashData(hashPtr, false));
   },
   marshall_reward_address(rewardAddressPtr: number) {

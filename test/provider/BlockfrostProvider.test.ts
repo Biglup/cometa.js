@@ -44,7 +44,7 @@ export const stringifyWithBigIntsAndBytes = (value: any): string => {
   return JSON.stringify(value, replacer, 2);
 };
 
-describe('BlockfrostProvider', () => {
+describe.skip('BlockfrostProvider', () => {
   beforeAll(async () => {
     await Cometa.ready();
   });

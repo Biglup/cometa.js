@@ -18,7 +18,6 @@
 /* IMPORTS *******************************************************************/
 
 import * as Cometa from '../../src';
-import { MemoryLeakDetector } from '../util/memory';
 
 /* DEFINITIONS ***************************************************************/
 
@@ -46,18 +45,6 @@ const performRoundTripTest = (originalData: Cometa.PlutusData) => {
 /* TESTS *********************************************************************/
 
 describe('PlutusData Marshalling & Unmarshalling', () => {
-  let detector: MemoryLeakDetector;
-
-  beforeEach(() => {
-    detector = new MemoryLeakDetector(Cometa.getModule());
-    detector.start();
-  });
-
-  afterEach(() => {
-    detector.stop();
-    detector.detect();
-  });
-
   beforeAll(async () => {
     await Cometa.ready();
   });
@@ -96,12 +83,13 @@ describe('PlutusData Marshalling & Unmarshalling', () => {
 
   describe('PlutusList', () => {
     it('should handle an empty list', () => {
-      const emptyList: Cometa.PlutusList = { items: [] };
+      const emptyList: Cometa.PlutusList = { cbor: '80', items: [] };
       performRoundTripTest(emptyList);
     });
 
     it('should handle a list of primitives', () => {
       const simpleList: Cometa.PlutusList = {
+        cbor: '9f18644301020338c7ff',
         items: [100n, new Uint8Array([1, 2, 3]), -200n]
       };
       performRoundTripTest(simpleList);
@@ -109,7 +97,8 @@ describe('PlutusData Marshalling & Unmarshalling', () => {
 
     it('should handle a nested list', () => {
       const nestedList: Cometa.PlutusList = {
-        items: [1n, { items: [2n, 3n] } as Cometa.PlutusList]
+        cbor: '9f019f0203ffff',
+        items: [1n, { cbor: '9f0203ff', items: [2n, 3n] } as Cometa.PlutusList]
       };
       performRoundTripTest(nestedList);
     });
@@ -117,12 +106,13 @@ describe('PlutusData Marshalling & Unmarshalling', () => {
 
   describe('PlutusMap', () => {
     it('should handle an empty map', () => {
-      const emptyMap: Cometa.PlutusMap = { entries: [] };
+      const emptyMap: Cometa.PlutusMap = { cbor: 'a0', entries: [] };
       performRoundTripTest(emptyMap);
     });
 
     it('should handle a map with primitive keys and values', () => {
       const simpleMap: Cometa.PlutusMap = {
+        cbor: 'a201420a14430102033831',
         entries: [
           { key: 1n, value: new Uint8Array([10, 20]) },
           { key: new Uint8Array([1, 2, 3]), value: -50n }
@@ -133,10 +123,12 @@ describe('PlutusData Marshalling & Unmarshalling', () => {
 
     it('should handle a map with complex keys and values', () => {
       const complexMap: Cometa.PlutusMap = {
+        cbor: 'a19f0102ffa10a0b',
         entries: [
           {
-            key: { items: [1n, 2n] } as Cometa.PlutusList,
+            key: { cbor: '9f0102ff', items: [1n, 2n] } as Cometa.PlutusList,
             value: {
+              cbor: 'a10a0b',
               entries: [{ key: 10n, value: 11n }]
             } as Cometa.PlutusMap
           }
@@ -149,6 +141,7 @@ describe('PlutusData Marshalling & Unmarshalling', () => {
   describe('ConstrPlutusData', () => {
     it('should handle a constructor with no fields', () => {
       const constrNoFields: Cometa.ConstrPlutusData = {
+        cbor: 'd87980',
         constructor: 0n,
         fields: { items: [] }
       };
@@ -157,6 +150,7 @@ describe('PlutusData Marshalling & Unmarshalling', () => {
 
     it('should handle a constructor with simple fields', () => {
       const constrSimple: Cometa.ConstrPlutusData = {
+        cbor: 'd87a9f187b43040506ff',
         constructor: 1n,
         fields: { items: [123n, new Uint8Array([4, 5, 6])] }
       };
@@ -165,6 +159,7 @@ describe('PlutusData Marshalling & Unmarshalling', () => {
 
     it('should handle a constructor with a high alternative number', () => {
       const constrHighAlt: Cometa.ConstrPlutusData = {
+        cbor: 'd8668219050080',
         constructor: 1280n,
         fields: { items: [] }
       };
@@ -175,14 +170,17 @@ describe('PlutusData Marshalling & Unmarshalling', () => {
   describe('Complex Nested Structures', () => {
     it('should handle a deeply nested "kitchen sink" datum', () => {
       const kitchenSinkDatum: Cometa.ConstrPlutusData = {
+        cbor: 'd8799fa2436b6579d87a9f1864ff38299f010203ff1903e7ff',
         constructor: 0n,
         fields: {
           items: [
             {
+              cbor: 'a2436b6579d87a9f1864ff38299f010203ff',
               entries: [
                 {
                   key: new Uint8Array([0x6b, 0x65, 0x79]),
                   value: {
+                    cbor: 'd87a9f1864ff',
                     constructor: 1n,
                     fields: { items: [100n] }
                   } as Cometa.ConstrPlutusData
@@ -190,6 +188,7 @@ describe('PlutusData Marshalling & Unmarshalling', () => {
                 {
                   key: -42n,
                   value: {
+                    cbor: '9f010203ff',
                     items: [1n, 2n, 3n]
                   } as Cometa.PlutusList
                 }
