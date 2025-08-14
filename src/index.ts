@@ -26,3 +26,4 @@ export * from './marshaling';
 export * from './provider';
 export * from './common';
 export * from './instanceRegistry';
+export * from './txBuilder';

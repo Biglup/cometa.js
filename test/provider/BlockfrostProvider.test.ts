@@ -16,12 +16,11 @@
 
 /* IMPORTS ********************************************************************/
 
-import * as Cometa from '../../dist/cjs';
-import { Provider } from '../util/Provider';
+import * as Cometa from '../../src';
 
 /* TESTS **********************************************************************/
 
-describe.skip('BlockfrostProvider', () => {
+describe('BlockfrostProvider', () => {
   beforeAll(async () => {
     await Cometa.ready();
   });
@@ -32,12 +31,13 @@ describe.skip('BlockfrostProvider', () => {
       projectId: ''
     });
 
-    const provi = Provider.fromPtr(provider.providerPtr);
-    expect(provi.name()).toBe('ss');
-    const utxos = await provi.getUnspentOutputs(
-      'addr_test1qq6arzxkm7zt9n9nxun07p6aj845eymdmkurz46g5gtx6qu0hgrdvrt3ahq80nz7hju0lqsn0tauu6xlnqn3jzfnydyq00jt6v'
-    );
+    const address =
+      'addr_test1qq6arzxkm7zt9n9nxun07p6aj845eymdmkurz46g5gtx6qu0hgrdvrt3ahq80nz7hju0lqsn0tauu6xlnqn3jzfnydyq00jt6v';
+    const pparams = await provider.getParameters();
+    const utxos = await provider.getUnspentOutputs(address);
+    const txBuilder = Cometa.TransactionBuilder.create(pparams, provider);
+    const unsignedTx = await txBuilder.setChangeAddress(address).setUtxos(utxos).sendLovelace(address, 1000000).build();
 
-    expect(utxos).toBe([]);
+    expect(unsignedTx).toBe('');
   });
 });
