@@ -104,7 +104,6 @@ describe('ExUnits', () => {
       const ptr = Cometa.writeExUnits(units);
       try {
         const readUnits = Cometa.readExUnits(ptr);
-        console.log(readUnits);
         expect(readUnits).toEqual(units);
       } finally {
         Cometa.derefExUnits(ptr);

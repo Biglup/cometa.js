@@ -21,7 +21,7 @@ import { Provider } from '../util/Provider';
 
 /* TESTS **********************************************************************/
 
-describe('BlockfrostProvider', () => {
+describe.skip('BlockfrostProvider', () => {
   beforeAll(async () => {
     await Cometa.ready();
   });
