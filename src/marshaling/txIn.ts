@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Biglup Labs.
+ * Copyright 2025 Biglup Labs.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,8 +26,11 @@ import { uint8ArrayToHex } from '../cometa';
 /* DEFINITIONS ****************************************************************/
 
 /**
- * Reads a pointer to a C `cardano_transaction_input_t` and converts it to a JS object.
- * This function is now memory-safe.
+ * Reads a transaction input object from WASM memory and converts it into a JavaScript object.
+ *
+ * @param {number} ptr - A pointer to the `cardano_transaction_input_t` object in WASM memory.
+ * @returns {TxIn} A JavaScript object representing the transaction input, containing the transaction ID and index.
+ * @throws {Error} Throws an error if the pointer is null or if reading the input's data fails.
  */
 export const readTxIn = (ptr: number): TxIn => {
   if (!ptr) {
@@ -35,10 +38,9 @@ export const readTxIn = (ptr: number): TxIn => {
   }
 
   const module = getModule();
-  let idPtr = 0; // Will hold the pointer to the hash object
+  let idPtr = 0;
 
   try {
-    // `transaction_input_get_id` returns a new reference that we must clean up.
     idPtr = module.transaction_input_get_id(ptr);
     if (idPtr === 0) {
       throw new Error('Failed to get transaction ID from input.');
@@ -49,16 +51,24 @@ export const readTxIn = (ptr: number): TxIn => {
 
     return {
       index,
-      txId,
+      txId
     };
   } finally {
-    // FIX: Always release the reference to the hash object before exiting.
     if (idPtr !== 0) {
       unrefObject(idPtr);
     }
   }
 };
 
+/**
+ * Creates a transaction input object in WASM memory from a JavaScript object.
+ *
+ * @param {TxIn} txIn - The JavaScript object representing the transaction input.
+ * @param {string} txIn.txId - The hexadecimal string of the transaction ID.
+ * @param {number} txIn.index - The index of the output in the referenced transaction.
+ * @returns {number} A pointer to the created `cardano_transaction_input_t` object in WASM memory. The caller is responsible for freeing this object.
+ * @throws {Error} Throws an error if the creation of the native object fails.
+ */
 export const writeTxIn = (txIn: TxIn): number => {
   const module = getModule();
   const txInPtrPtr = module._malloc(4);
@@ -88,6 +98,13 @@ export const writeTxIn = (txIn: TxIn): number => {
   }
 };
 
+/**
+ * Reads a list of transaction inputs from WASM memory and converts it into a JavaScript array.
+ *
+ * @param {number} inputSetPtr - A pointer to the `cardano_transaction_input_list_t` object in WASM memory.
+ * @returns {TxIn[]} A JavaScript array of `TxIn` objects. Returns an empty array if the input pointer is null.
+ * @throws {Error} Throws if reading an individual input from the list fails.
+ */
 export const readInputSet = (inputSetPtr: number): TxIn[] => {
   if (!inputSetPtr) {
     return [];
@@ -98,25 +115,21 @@ export const readInputSet = (inputSetPtr: number): TxIn[] => {
 
   for (let i = 0; i < len; i++) {
     let inputPtr = 0;
-    const inputPtrPtr = module._malloc(4); // Allocate for the out-parameter
+    const inputPtrPtr = module._malloc(4);
 
     try {
       const result = module.transaction_input_set_get(inputSetPtr, i, inputPtrPtr);
       assertSuccess(result, `Failed to get input at index ${i}`);
-      // Get the actual pointer to the input element.
       inputPtr = module.getValue(inputPtrPtr, 'i32');
-      // Now we can safely read from the valid inputPtr.
       const idPtr = module.transaction_input_get_id(inputPtr);
       try {
         const index = Number(module.transaction_input_get_index(inputPtr));
         const txId = uint8ArrayToHex(readBlake2bHashData(idPtr, false));
         jsArray.push({ index, txId });
       } finally {
-        // Clean up the new reference to the hash.
         if (idPtr) unrefObject(idPtr);
       }
     } finally {
-      // Clean up the new reference to the input element and the temporary pointer.
       if (inputPtr !== 0) {
         unrefObject(inputPtr);
       }
@@ -158,9 +171,7 @@ export const writeInputSet = (txIns: TxIn[]): number => {
     for (const txIn of txIns) {
       let inputPtr = 0;
       try {
-        console.error('sssssssssssssss')
-        inputPtr = writeTxIn(txIn); // Now calls the fixed version
-        console.error('bbbbbbbbbbbbbbbbb')
+        inputPtr = writeTxIn(txIn);
         module.transaction_input_set_add(inputSetPtr, inputPtr);
       } finally {
         if (inputPtr !== 0) {

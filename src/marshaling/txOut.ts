@@ -26,17 +26,20 @@ import { readScript, writeScript } from './script';
 import { readValue, writeValue } from './value';
 import { uint8ArrayToHex } from '../cometa';
 
-/* DEFINITIONS ****************************************************************/
+/* CONSTANTS ******************************************************************/
 
 const DATUM_TYPE_DATA_HASH = 0;
 const DATUM_TYPE_INLINE_DATA = 1;
 
+/* DEFINITIONS ****************************************************************/
+
 /**
  * @private
- * Reads a C datum pointer and returns its JS representation.
- * Manages its own memory.
- * @param {number} datumPtr - Pointer to a cardano_datum_t object.
- * @returns {{inlineDatum?: PlutusData, datumHash?: string}}
+ * Internal helper to read a Datum from its WASM pointer.
+ * It determines if the datum is inline or a hash and returns the appropriate JS representation.
+ *
+ * @param {number} datumPtr - Pointer to the native Datum object. Returns an empty object if the pointer is null.
+ * @returns {{ inlineDatum?: PlutusData; datumHash?: string }} An object containing either the inlineDatum or datumHash.
  */
 const _readDatum = (datumPtr: number): { inlineDatum?: PlutusData; datumHash?: string } => {
   if (datumPtr === 0) {
@@ -71,28 +74,22 @@ const _readDatum = (datumPtr: number): { inlineDatum?: PlutusData; datumHash?: s
 
 /**
  * @private
- * Writes a JS datum or datumHash to C and returns a cardano_datum_t pointer.
- * @param {{datum?: PlutusData, datumHash?: string}} txOut
- * @returns {number} A pointer to a cardano_datum_t object, or 0 if no datum is present.
- */
-/**
- * @private
- * Writes a JS datum or datumHash to C and returns a cardano_datum_t pointer.
- * This function correctly handles the C API's out-parameter pattern.
+ * Internal helper to create a native Datum object from a TxOut's datum properties.
  *
- * @param {TxOut} txOut The transaction output containing the datum info.
- * @returns {number} A pointer to a C `cardano_datum_t` object, or 0 if no datum is present.
+ * @param {TxOut} txOut - The JavaScript TxOut object containing datum information.
+ * @returns {number} A pointer to the created native Datum object, or 0 if no datum was present.
+ * @throws {Error} Throws if the creation of the native datum object fails.
  */
 const _writeDatum = (txOut: TxOut): number => {
   if (!txOut.datum && !txOut.datumHash) {
-    return 0; // No datum to write.
+    return 0;
   }
 
   const module = getModule();
   let dataPtr = 0;
   let hashPtr = 0;
   let datumPtr = 0;
-  let datumPtrPtr = 0; // For the out-parameter
+  let datumPtrPtr = 0;
 
   try {
     datumPtrPtr = module._malloc(4);
@@ -109,7 +106,6 @@ const _writeDatum = (txOut: TxOut): number => {
 
     datumPtr = module.getValue(datumPtrPtr, 'i32');
 
-    // Transfer ownership to the caller
     const finalPtr = datumPtr;
     datumPtr = 0;
     return finalPtr;
@@ -117,14 +113,19 @@ const _writeDatum = (txOut: TxOut): number => {
     if (datumPtr !== 0) unrefObject(datumPtr);
     throw error;
   } finally {
-    // The new datum object now owns dataPtr/hashPtr. We only release our local reference.
     if (dataPtr !== 0) unrefObject(dataPtr);
     if (hashPtr !== 0) unrefObject(hashPtr);
-    // Always free the temporary out-parameter buffer.
     if (datumPtrPtr !== 0) module._free(datumPtrPtr);
   }
 };
 
+/**
+ * Reads a transaction output from a WASM memory pointer and converts it into a JavaScript object.
+ *
+ * @param {number} ptr - A pointer to the `cardano_transaction_output_t` object in WASM memory.
+ * @returns {TxOut} The JavaScript representation of the transaction output.
+ * @throws {Error} Throws an error if the input pointer is null.
+ */
 export const readTxOut = (ptr: number): TxOut => {
   if (!ptr) {
     throw new Error('Pointer is null');
@@ -167,11 +168,19 @@ export const readTxOut = (ptr: number): TxOut => {
 };
 
 /**
- * Converts a JavaScript TxOut object into a C cardano_transaction_output_t
- * object in WASM memory and returns a pointer to it.
+ * Creates a transaction output object in WASM memory from a JavaScript object.
  *
- * @param {TxOut} txOut The JavaScript transaction output object.
- * @returns {number} A pointer to the C object. The caller is responsible for freeing this object.
+ * This function handles the serialization of the address, value, datum, and script reference
+ * into a single native transaction output object.
+ *
+ * @param {TxOut} txOut - The JavaScript object representing the transaction output.
+ * @param {string} txOut.address - The bech32 or base58 encoded destination address.
+ * @param {Value} txOut.value - The value (coins and multi-assets) contained in the output.
+ * @param {PlutusData} [txOut.datum] - Optional inline datum attached to the output.
+ * @param {string} [txOut.datumHash] - Optional datum hash attached to the output.
+ * @param {Script} [txOut.scriptReference] - Optional script reference attached to the output.
+ * @returns {number} A pointer to the created `cardano_transaction_output_t` object. The caller is responsible for freeing this object.
+ * @throws {Error} Throws an error if any part of the creation fails (e.g., invalid address format).
  */
 // eslint-disable-next-line complexity,max-statements
 export const writeTxOut = (txOut: TxOut): number => {

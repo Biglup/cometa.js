@@ -70,10 +70,13 @@ export const readValue = (ptr: number): Value => {
   }
   unrefObject(assetsMapPtr);
 
-  return {
-    assets,
-    coins
-  };
+  const result: Value = { coins };
+
+  if (Object.keys(assets).length > 0) {
+    result.assets = assets;
+  }
+
+  return result;
 };
 
 export const writeValue = (value: Value): number => {

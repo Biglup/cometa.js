@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Biglup Labs.
+ * Copyright 2025 Biglup Labs.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -168,8 +168,6 @@ export const readUtxoList = (ptr: number): UTxO[] => {
     return [];
   }
 
-  console.error('pppppppp')
-  console.error(ptr)
   const module = getModule();
   const jsArray: UTxO[] = [];
   const len = module.utxo_list_get_length(ptr);
