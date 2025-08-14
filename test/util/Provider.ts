@@ -80,7 +80,7 @@ export class Provider {
   }
 
   /** Get the human-readable name of the provider. */
-  get name(): string {
+  public name(): string {
     return Cometa.getModule().UTF8ToString(Cometa.getModule().provider_get_name(this.ptr));
   }
 
@@ -95,16 +95,19 @@ export class Provider {
   }
 
   /** Fetch the latest protocol parameters. */
-  public async getParameters(): Promise<number> {
+  public async getParameters(): Promise<Cometa.ProtocolParameters> {
     const m = Cometa.getModule();
     const outPtr = allocPtr();
-
+    let ptr = 0;
     try {
       m.provider_get_parameters(this.ptr, outPtr);
       const rc = await m.Asyncify.whenDone();
       Cometa.assertSuccess(rc, this.lastError);
-      return readPtr(outPtr);
+
+      ptr = readPtr(outPtr);
+      return Cometa.readProtocolParameters(ptr);
     } finally {
+      Cometa.unrefObject(ptr);
       m._free(outPtr);
     }
   }
@@ -112,51 +115,50 @@ export class Provider {
   /** Fetch the current staking rewards balance for a reward account. */
   async getRewardsBalance(bech32: string): Promise<bigint> {
     const m = Cometa.getModule();
-    // Allocate 8 bytes on the heap to store the C uint64_t result
     const rewardsOutPtr = m._malloc(8);
 
     try {
       const address = Cometa.RewardAddress.fromAddress(Cometa.Address.fromString(bech32));
-      // Call the asynchronous C++ bridge function
       m.provider_get_rewards_available(this.ptr, address.ptr, rewardsOutPtr);
       const rc = await m.Asyncify.whenDone();
       Cometa.assertSuccess(rc, this.lastError);
 
-      // Manually read the 64-bit integer from memory as two 32-bit halves
       const low = m.HEAPU32[rewardsOutPtr >> 2];
       const high = m.HEAPU32[(rewardsOutPtr >> 2) + 1];
 
-      // Combine the halves into a JavaScript bigint
       return (BigInt(high) << 32n) | BigInt(low);
     } finally {
-      // Always free the memory allocated for the result
       m._free(rewardsOutPtr);
     }
   }
 
   /** Fetch all UTXOs at a Cardano address. */
-  async getUnspentOutputs(address: Cometa.Address): Promise<number> {
+  async getUnspentOutputs(address: Cometa.Address | string): Promise<Cometa.UTxO[]> {
+    if (typeof address === 'string') {
+      address = Cometa.Address.fromString(address);
+    }
     const m = Cometa.getModule();
     const outPtr = allocPtr();
-
+    let ptr = 0;
     try {
-      // The Address object's pointer is passed to the async C function
       m.provider_get_unspent_outputs(this.ptr, address.ptr, outPtr);
       const rc = await m.Asyncify.whenDone();
       Cometa.assertSuccess(rc, this.lastError);
-      return readPtr(outPtr);
+      ptr = readPtr(outPtr);
+
+      return Cometa.readUtxoList(ptr);
     } finally {
-      // Ensure the out pointer is always freed.
+      Cometa.unrefObject(ptr);
       m._free(outPtr);
     }
   }
 
   /** Fetch all UTXOs at an address that contain a specific asset. */
-  async getUnspentOutputsWithAsset(address: Cometa.Address, assetId: string): Promise<number> {
+  async getUnspentOutputsWithAsset(address: Cometa.Address, assetId: string): Promise<Cometa.UTxO[]> {
     const m = Cometa.getModule();
     const outPtr = allocPtr();
     let assetIdPtr = 0;
-
+    let ptr = 0;
     try {
       assetIdPtr = Cometa.writeAssetId(assetId);
 
@@ -164,21 +166,22 @@ export class Provider {
 
       const rc = await m.Asyncify.whenDone();
       Cometa.assertSuccess(rc, this.lastError);
-      return readPtr(outPtr);
+
+      ptr = readPtr(outPtr);
+      return Cometa.readUtxoList(ptr);
     } finally {
-      if (assetIdPtr !== 0) {
-        Cometa.unrefObject(assetIdPtr);
-      }
+      Cometa.unrefObject(ptr);
+      Cometa.unrefObject(assetIdPtr);
       m._free(outPtr);
     }
   }
 
   /** Find the (single) UTXO that holds a given NFT. */
-  async getUnspentOutputByNft(assetId: string): Promise<number> {
+  async getUnspentOutputByNft(assetId: string): Promise<Cometa.UTxO> {
     const m = Cometa.getModule();
     const outPtr = allocPtr();
     let assetIdPtr = 0;
-
+    let ptr = 0;
     try {
       assetIdPtr = Cometa.writeAssetId(assetId);
 
@@ -186,44 +189,50 @@ export class Provider {
 
       const rc = await m.Asyncify.whenDone();
       Cometa.assertSuccess(rc, this.lastError);
-      return readPtr(outPtr);
+      ptr = readPtr(outPtr);
+      return Cometa.readUtxo(ptr);
     } finally {
-      if (assetIdPtr !== 0) {
-        Cometa.unrefObject(assetIdPtr);
-      }
+      Cometa.unrefObject(ptr);
+      Cometa.unrefObject(assetIdPtr);
       m._free(outPtr);
     }
   }
 
   /** Resolve a set of transaction inputs to their corresponding UTXOs. */
-  async resolveUnspentOutputs(txIns: Cometa.TxIn[]): Promise<number> {
+  async resolveUnspentOutputs(txIns: Cometa.TxIn[]): Promise<Cometa.UTxO[]> {
     const m = Cometa.getModule();
     const outPtr = allocPtr();
     let txInsPtr = 0;
+    let ptr = 0;
     try {
       txInsPtr = Cometa.writeInputSet(txIns);
       m.provider_resolve_unspent_outputs(this.ptr, txInsPtr, outPtr);
       const rc = await m.Asyncify.whenDone();
       Cometa.assertSuccess(rc, this.lastError);
-      return readPtr(outPtr);
+      ptr = readPtr(outPtr);
+      return Cometa.readUtxoList(ptr);
     } finally {
+      Cometa.unrefObject(ptr);
       Cometa.unrefObject(txInsPtr);
       m._free(outPtr);
     }
   }
 
   /** Resolve a datum by its hash. */
-  async resolveDatum(datumHash: string): Promise<number> {
+  async resolveDatum(datumHash: string): Promise<Cometa.PlutusData> {
     const m = Cometa.getModule();
     const outPtr = allocPtr();
     let datumPtr = 0;
+    let ptr = 0;
     try {
       datumPtr = Cometa.blake2bHashFromHex(datumHash);
       m.provider_resolve_datum(this.ptr, datumPtr, outPtr);
       const rc = await m.Asyncify.whenDone();
       Cometa.assertSuccess(rc, this.lastError);
-      return readPtr(outPtr);
+      ptr = readPtr(outPtr);
+      return Cometa.readPlutusData(ptr);
     } finally {
+      Cometa.unrefObject(ptr);
       Cometa.unrefObject(datumPtr);
       m._free(outPtr);
     }
@@ -269,18 +278,21 @@ export class Provider {
   }
 
   /** Evaluate the execution units for a transaction. */
-  async evaluateTransaction(txCbor: string, additionalUtxos: Cometa.UTxO[]): Promise<number> {
+  async evaluateTransaction(txCbor: string, additionalUtxos: Cometa.UTxO[]): Promise<Cometa.Redeemer[]> {
     const m = Cometa.getModule();
     const txCborPtr = Cometa.readTransactionFromCbor(txCbor);
     const outPtr = allocPtr();
     let additionalUtxosPtr = 0;
+    let ptr = 0;
     try {
       additionalUtxosPtr = Cometa.writeUtxoList(additionalUtxos);
       m.provider_evaluate_transaction(this.ptr, txCborPtr, additionalUtxosPtr, outPtr);
       const rc = await m.Asyncify.whenDone();
       Cometa.assertSuccess(rc, this.lastError);
-      return readPtr(outPtr);
+      ptr = readPtr(outPtr);
+      return Cometa.readRedeemerList(ptr);
     } finally {
+      Cometa.unrefObject(ptr);
       Cometa.unrefObject(additionalUtxosPtr);
       Cometa.unrefObject(txCborPtr);
       m._free(outPtr);
