@@ -16,12 +16,12 @@
 
 /* EXPORTS ********************************************************************/
 
-export * from './Crc32';
-export * from './Pbkdf2HmacSha512';
-export * from './Emip003';
-export * from './Blake2b';
 export * from './Bip32PrivateKey';
 export * from './Bip32PublicKey';
+export * from './Blake2b';
+export * from './Crc32';
 export * from './Ed25519PrivateKey';
 export * from './Ed25519PublicKey';
 export * from './Ed25519Signature';
+export * from './Emip003';
+export * from './Pbkdf2HmacSha512';

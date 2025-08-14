@@ -111,7 +111,7 @@ export const writeUnitInterval = (value: UnitInterval): number => {
  * @param ptr - The pointer to the UnitInterval in WASM memory.
  * @throws {Error} If the pointer is null or if dereferencing fails.
  */
-export function derefUnitInterval(ptr: number): void {
+export const derefUnitInterval = (ptr: number): void => {
   if (ptr === 0) {
     return;
   }
@@ -124,8 +124,13 @@ export function derefUnitInterval(ptr: number): void {
   } finally {
     module._free(ptrPtr);
   }
-}
+};
 
+/**
+ * Reads the numerator and denominator of a UnitInterval from a pointer in WASM memory.
+ * @param ptr - The pointer to the UnitInterval in WASM memory.
+ * @returns An object containing the numerator and denominator of the UnitInterval.
+ */
 export const readIntervalComponents = (ptr: number): UnitInterval => {
   if (!ptr) {
     throw new Error('Pointer is null');
@@ -142,6 +147,10 @@ export const readIntervalComponents = (ptr: number): UnitInterval => {
   };
 };
 
+/**
+ * Converts a string or number to a UnitInterval object.
+ * @param value - The string or number representation of the UnitInterval value (must be between 0 and 1).
+ */
 export const toUnitInterval = (value: string | number): UnitInterval => {
   let ptr = 0;
   try {

@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Biglup Labs.
+ * Copyright 2025 Biglup Labs.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-/* EXPORTS ********************************************************************/
+/* DEFINITIONS ****************************************************************/
 
-export * from './address';
-export * from './cometa';
-export * from './common';
-export * from './crypto';
-export * from './encoding';
-export * from './garbageCollection';
-export * from './instanceRegistry';
-export * from './marshaling';
-export * from './module';
-export * from './provider';
-export * from './txBuilder';
+/**
+ * An anchor is a pair of:
+ *
+ * - a URL to a JSON payload of metadata.
+ * - a hash of the contents of the metadata URL.
+ *
+ * The on-chain rules will not check either the URL or the hash. Client applications should,
+ * however, perform the usual sanity checks when fetching content from the provided URL.
+ */
+export interface Anchor {
+  dataHash: string;
+  url: string;
+}

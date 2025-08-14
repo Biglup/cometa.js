@@ -16,11 +16,11 @@
 
 /* EXPORTS ********************************************************************/
 
+export * from './Base58';
+export * from './Bech32';
 export * from './CborMajorType';
 export * from './CborReader';
 export * from './CborReaderState';
+export * from './CborSimpleValue';
 export * from './CborTag';
 export * from './CborWriter';
-export * from './CborSimpleValue';
-export * from './Base58';
-export * from './Bech32';

@@ -17,7 +17,7 @@
 /* IMPORTS ******************************************************************/
 
 import { CostModel } from './CostModel';
-import { DelegateRepresentativeThresholds } from './DelegateRepresentativeThresholds';
+import { DRepThresholds } from './DRepThresholds';
 import { ExUnits } from './ExUnits';
 import { ExUnitsPrices } from './ExUnitsPrices';
 import { PoolVotingThresholds } from './PoolVotingThresholds';
@@ -56,7 +56,7 @@ export interface ProtocolParameters {
   collateralPercent: number;
   maxCollateralInputs: number;
   poolVotingThresholds: PoolVotingThresholds;
-  drepVotingThresholds: DelegateRepresentativeThresholds;
+  drepVotingThresholds: DRepThresholds;
   minCommitteeSize: number;
   committeeTermLimit: number;
   governanceActionValidityPeriod: number;
@@ -65,3 +65,9 @@ export interface ProtocolParameters {
   drepInactivityPeriod: number;
   refScriptCostPerByte: UnitInterval;
 }
+
+/**
+ * Type representing an update to the protocol parameters.
+ * This allows for partial updates to the existing protocol parameters.
+ */
+export type ProtocolParametersUpdate = Partial<ProtocolParameters>;

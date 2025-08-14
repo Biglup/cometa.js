@@ -38,7 +38,7 @@ describe('DRepVotingThresholds', () => {
     await Cometa.ready();
   });
 
-  const testThresholds: Cometa.DelegateRepresentativeThresholds = {
+  const testThresholds: Cometa.DRepThresholds = {
     committeeNoConfidence: { denominator: 4, numerator: 1 },
     committeeNormal: { denominator: 3, numerator: 1 },
     hardForkInitiation: { denominator: 5, numerator: 1 },
@@ -62,7 +62,7 @@ describe('DRepVotingThresholds', () => {
   });
 
   it('should handle zero values', () => {
-    const zeroThresholds: Cometa.DelegateRepresentativeThresholds = {
+    const zeroThresholds: Cometa.DRepThresholds = {
       committeeNoConfidence: { denominator: 1, numerator: 0 },
       committeeNormal: { denominator: 1, numerator: 0 },
       hardForkInitiation: { denominator: 1, numerator: 0 },
@@ -85,7 +85,7 @@ describe('DRepVotingThresholds', () => {
   });
 
   it('should handle maximum values', () => {
-    const maxThresholds: Cometa.DelegateRepresentativeThresholds = {
+    const maxThresholds: Cometa.DRepThresholds = {
       committeeNoConfidence: { denominator: 1, numerator: 1 },
       committeeNormal: { denominator: 1, numerator: 1 },
       hardForkInitiation: { denominator: 1, numerator: 1 },
@@ -108,7 +108,7 @@ describe('DRepVotingThresholds', () => {
   });
 
   it('should handle decimal values', () => {
-    const decimalThresholds: Cometa.DelegateRepresentativeThresholds = {
+    const decimalThresholds: Cometa.DRepThresholds = {
       committeeNoConfidence: { denominator: 10, numerator: 3 },
       committeeNormal: { denominator: 10, numerator: 2 },
       hardForkInitiation: { denominator: 10, numerator: 4 },
@@ -131,7 +131,7 @@ describe('DRepVotingThresholds', () => {
   });
 
   it('should handle large denominator values', () => {
-    const largeDenominatorThresholds: Cometa.DelegateRepresentativeThresholds = {
+    const largeDenominatorThresholds: Cometa.DRepThresholds = {
       committeeNoConfidence: { denominator: 1000, numerator: 3 },
       committeeNormal: { denominator: 1000, numerator: 2 },
       hardForkInitiation: { denominator: 1000, numerator: 4 },

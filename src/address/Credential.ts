@@ -14,7 +14,11 @@
  * limitations under the License.
  */
 
+/* IMPORTS ********************************************************************/
+
 import { CredentialType } from './CredentialType';
+
+/* DEFINITIONS ****************************************************************/
 
 /**
  * Represents a credential used in Cardano addresses.

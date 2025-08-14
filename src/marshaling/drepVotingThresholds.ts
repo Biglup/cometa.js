@@ -16,7 +16,7 @@
 
 /* IMPORTS *******************************************************************/
 
-import { DelegateRepresentativeThresholds } from '../common/DelegateRepresentativeThresholds';
+import { DRepThresholds } from '../common/DRepThresholds';
 import { assertSuccess } from './object';
 import { derefUnitInterval, readIntervalComponents, writeUnitInterval } from './unitInterval';
 import { getModule } from '../module';
@@ -30,7 +30,7 @@ import { getModule } from '../module';
  * @returns A pointer to the created DRep voting thresholds in WASM memory.
  * @throws {Error} If the thresholds are invalid or creation fails.
  */
-export const writeDRepVotingThresholds = (thresholds: DelegateRepresentativeThresholds): number => {
+export const writeDRepVotingThresholds = (thresholds: DRepThresholds): number => {
   const module = getModule();
   const thresholdsPtrPtr = module._malloc(4);
 
@@ -89,7 +89,7 @@ export const writeDRepVotingThresholds = (thresholds: DelegateRepresentativeThre
  * @returns The DelegateRepresentativeThresholds object.
  * @throws {Error} If the pointer is null or reading fails.
  */
-export const readDRepVotingThresholds = (ptr: number): DelegateRepresentativeThresholds => {
+export const readDRepVotingThresholds = (ptr: number): DRepThresholds => {
   if (!ptr) {
     throw new Error('Pointer is null');
   }

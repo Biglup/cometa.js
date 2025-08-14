@@ -23,7 +23,7 @@ import { UnitInterval } from './UnitInterval';
 /**
  * Interface representing the thresholds for delegate representatives in various governance actions.
  */
-export interface DelegateRepresentativeThresholds {
+export interface DRepThresholds {
   motionNoConfidence: UnitInterval;
   committeeNormal: UnitInterval;
   committeeNoConfidence: UnitInterval;

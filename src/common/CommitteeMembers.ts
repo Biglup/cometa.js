@@ -14,15 +14,26 @@
  * limitations under the License.
  */
 
-export * from './Address';
-export * from './AddressType';
-export * from './BaseAddress';
-export * from './ByronAddress';
-export * from './ByronAddressType';
-export * from './Credential';
-export * from './CredentialType';
-export * from './EnterpriseAddress';
-export * from './NetworkId';
-export * from './PointerAddress';
-export * from './RewardAddress';
-export * from './StakePointer';
+/* IMPORTS ******************************************************************/
+
+import { Credential } from '../address';
+
+/* DEFINITIONS **************************************************************/
+
+/**
+ * Represents a single committee member and their term expiration epoch.
+ */
+export type CommitteeMember = {
+  coldCredential: Credential;
+  epoch: bigint;
+};
+
+/**
+ * Represents a list of committee members and their term expiration epochs.
+ */
+export type CommitteeMembers = CommitteeMember[];
+
+/**
+ * Represents a set of on-chain credentials.
+ */
+export type CredentialSet = Credential[];

@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Biglup Labs.
+ * Copyright 2025 Biglup Labs.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,5 @@
 
 /* EXPORTS ********************************************************************/
 
-export * from './address';
-export * from './cometa';
-export * from './common';
-export * from './crypto';
-export * from './encoding';
-export * from './garbageCollection';
-export * from './instanceRegistry';
-export * from './marshaling';
-export * from './module';
-export * from './provider';
-export * from './txBuilder';
+export * from './CoinSelector';
+export * from './EmscriptenCoinSelector';
