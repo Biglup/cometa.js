@@ -26,6 +26,10 @@ import { unrefObject } from './object';
 
 /* DEFINITIONS ****************************************************************/
 
+/**
+ * Maps a RedeemerPurpose to a corresponding tag number.
+ * @param purpose The RedeemerPurpose to map.
+ */
 const _mapPurposeToTag = (purpose: RedeemerPurpose): number => {
   switch (purpose) {
     case RedeemerPurpose.spend:
@@ -45,6 +49,10 @@ const _mapPurposeToTag = (purpose: RedeemerPurpose): number => {
   }
 };
 
+/**
+ * Maps a tag number to a RedeemerPurpose.
+ * @param tag The tag number to map.
+ */
 const _mapTagToPurpose = (tag: number): RedeemerPurpose => {
   switch (tag) {
     case 0:

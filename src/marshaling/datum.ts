@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Biglup Labs.
+ * Copyright 2025 Biglup Labs.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,18 @@ import { getModule } from '../module';
 import { readPlutusData, writePlutusData } from './plutusData';
 import { uint8ArrayToHex } from '../cometa';
 
+/* DEFINITIONS ****************************************************************/
+
+/**
+ * Reads a Datum object from WASM memory and converts it into a JavaScript object.
+ *
+ * This function inspects the type of the native Datum object. If it's a `DataHash`,
+ * it reads the Blake2b hash. If it's `InlineData`, it reads the full PlutusData structure.
+ *
+ * @param {number} datumPtr - A pointer to the Datum object in WASM memory.
+ * @returns {Datum} A JavaScript object representing the datum, containing either a `datumHash` or an `inlineDatum` property.
+ * @throws {Error} Throws an error if reading the datum or its constituent parts fails.
+ */
 export const readDatum = (datumPtr: number): Datum => {
   const module = getModule();
   let typePtr = 0;
@@ -50,6 +62,17 @@ export const readDatum = (datumPtr: number): Datum => {
   }
 };
 
+/**
+ * Creates a Datum object in WASM memory from a JavaScript Datum object.
+ *
+ * The function creates either an inline datum (from a PlutusData object) or a
+ * datum hash (from a Blake2b hash) based on the properties of the input object.
+ * It properly handles the creation and memory management of all underlying objects.
+ *
+ * @param {Datum} datum - The JavaScript object representing the datum. It should contain either an `inlineDatum` or a `datumHash` property.
+ * @returns {number} A pointer to the created Datum object in WASM memory, or 0 if the input datum is empty.
+ * @throws {Error} Throws an error if the creation of the native Datum object fails.
+ */
 export const writeDatum = (datum: Datum): number => {
   if (!datum.inlineDatum && !datum.datumHash) {
     return 0;
@@ -59,7 +82,7 @@ export const writeDatum = (datum: Datum): number => {
   let dataPtr = 0;
   let hashPtr = 0;
   let datumPtr = 0;
-  let datumPtrPtr = 0; // For the out-parameter
+  let datumPtrPtr = 0;
 
   try {
     datumPtrPtr = module._malloc(4);
@@ -84,7 +107,6 @@ export const writeDatum = (datum: Datum): number => {
     if (datumPtr !== 0) unrefObject(datumPtr);
     throw error;
   } finally {
-    // The new datum object now owns dataPtr/hashPtr. We only release our local reference.
     if (dataPtr !== 0) unrefObject(dataPtr);
     if (hashPtr !== 0) unrefObject(hashPtr);
     // Always free the temporary out-parameter buffer.

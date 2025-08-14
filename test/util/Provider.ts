@@ -45,7 +45,6 @@ export class Provider {
    * Creates a new Provider instance.
    * @param ptr The pointer to the C `cardano_provider_t` object.
    */
-
   private constructor(ptr: number) {
     this.ptr = ptr;
     Cometa.finalizationRegistry.register(this, {

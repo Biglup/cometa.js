@@ -1,4 +1,21 @@
 /* eslint-disable no-use-before-define */
+/**
+ * Copyright 2025 Biglup Labs.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* IMPORTS *******************************************************************/
 
 import { CborReader, CborWriter } from '../encoding';
 import {
@@ -6,26 +23,33 @@ import {
   PlutusData,
   PlutusList,
   PlutusMap,
-  isPlutusDataWithCborCache,
-  isPlutusDataList, isPlutusDataMap, isPlutusDataConstr
+  isPlutusDataConstr,
+  isPlutusDataList,
+  isPlutusDataMap,
+  isPlutusDataWithCborCache
 } from '../common';
 import { assertSuccess, unrefObject } from './object';
 import { getModule } from '../module';
 import { splitToLowHigh64bit } from './number';
 import { writeBytesToMemory, writeStringToMemory } from './string';
 
-// =============================================================================
-// Writer (JS -> C) Implementations
-// =============================================================================
+/* DEFINITIONS ****************************************************************/
+
+/**
+ * @private
+ * Internal helper to write a `ConstrPlutusData` object to WASM memory.
+ * This is called by the main `writePlutusData` dispatcher.
+ *
+ * @param {ConstrPlutusData} data - The constructed Plutus data object.
+ * @returns {number} A pointer to the created `ConstrPlutusData` object in WASM memory.
+ */
 const writeConstrPlutusData = (data: ConstrPlutusData): number => {
   const module = getModule();
   let fieldsListPtr = 0;
   let constrPtr = 0;
   try {
-    // Recursively call the main dispatcher to create the list as a generic PlutusData object
     fieldsListPtr = writePlutusData(data.fields);
 
-    // Downcast it to the specific list type the constructor needs
     const specificListPtrPtr = module._malloc(4);
     let specificListPtr = 0;
     try {
@@ -37,7 +61,7 @@ const writeConstrPlutusData = (data: ConstrPlutusData): number => {
         const constrParts = splitToLowHigh64bit(data.constructor);
         assertSuccess(module.constr_plutus_data_new(constrParts.low, constrParts.high, specificListPtr, constrPtrPtr));
         constrPtr = module.getValue(constrPtrPtr, 'i32');
-        return constrPtr; // Return the final specific constructor object
+        return constrPtr;
       } finally {
         module._free(constrPtrPtr);
       }
@@ -46,12 +70,18 @@ const writeConstrPlutusData = (data: ConstrPlutusData): number => {
       module._free(specificListPtrPtr);
     }
   } finally {
-    // The new constrPtr owns the list, so we only unref our local reference to the list wrapper.
     if (fieldsListPtr) unrefObject(fieldsListPtr);
-    // Note: `constrPtr` is returned, so its ownership is transferred. No unref here.
   }
 };
 
+/**
+ * @private
+ * Internal helper to write a `PlutusMap` object to WASM memory.
+ * This is called by the main `writePlutusData` dispatcher.
+ *
+ * @param {PlutusMap} data - The Plutus map object.
+ * @returns {number} A pointer to the created `PlutusMap` object in WASM memory.
+ */
 const writePlutusMap = (data: PlutusMap): number => {
   const module = getModule();
   let mapPtr = 0;
@@ -77,6 +107,14 @@ const writePlutusMap = (data: PlutusMap): number => {
   }
 };
 
+/**
+ * @private
+ * Internal helper to write a `PlutusList` object to WASM memory.
+ * This is called by the main `writePlutusData` dispatcher.
+ *
+ * @param {PlutusList} data - The Plutus list object.
+ * @returns {number} A pointer to the created `PlutusList` object in WASM memory.
+ */
 const writePlutusList = (data: PlutusList): number => {
   const module = getModule();
   let listPtr = 0;
@@ -99,6 +137,19 @@ const writePlutusList = (data: PlutusList): number => {
   }
 };
 
+/**
+ * Creates a PlutusData object in WASM memory from a JavaScript representation.
+ *
+ * This is the main dispatcher function for writing `PlutusData`. It intelligently
+ * determines the type of the input data (e.g., bigint for Integer, Uint8Array for Bytes,
+ * or structured objects for Map, List, Constr) and calls the appropriate
+ * serialization logic. It also handles a fast-path for objects with a cached CBOR representation.
+ *
+ * @param {PlutusData} data - The JavaScript representation of the Plutus data.
+ * @returns {number} A pointer to the created `PlutusData` object in WASM memory.
+ * @throws {Error} Throws an error if the data type is unknown or if serialization fails.
+ */
+// eslint-disable-next-line sonarjs/cognitive-complexity,complexity,max-statements
 export const writePlutusData = (data: PlutusData): number => {
   const module = getModule();
 
@@ -180,10 +231,14 @@ export const writePlutusData = (data: PlutusData): number => {
   }
 };
 
-// =============================================================================
-// Reader (C -> JS) Implementations
-// =============================================================================
-
+/**
+ * @private
+ * Internal helper to read a `ConstrPlutusData` object from WASM memory.
+ * This is called by the main `readPlutusData` dispatcher.
+ *
+ * @param {number} constrPtr - A pointer to a `ConstrPlutusData` object.
+ * @returns {ConstrPlutusData} The JavaScript representation of the constructed data.
+ */
 const readConstrPlutusData = (constrPtr: number): ConstrPlutusData => {
   const module = getModule();
   let fieldsListPtr = 0;
@@ -208,6 +263,15 @@ const readConstrPlutusData = (constrPtr: number): ConstrPlutusData => {
   }
 };
 
+/**
+ * @private
+ * Internal helper to read a `PlutusMap` object from WASM memory.
+ * This is called by the main `readPlutusData` dispatcher.
+ *
+ * @param {number} mapPtr - A pointer to a `PlutusMap` object.
+ * @returns {PlutusMap} The JavaScript representation of the Plutus map.
+ */
+// eslint-disable-next-line max-statements
 const readPlutusMap = (mapPtr: number): PlutusMap => {
   const module = getModule();
   let keysListPtr = 0;
@@ -258,6 +322,14 @@ const readPlutusMap = (mapPtr: number): PlutusMap => {
   }
 };
 
+/**
+ * @private
+ * Internal helper to read a `PlutusList` object from WASM memory.
+ * This is called by the main `readPlutusData` dispatcher.
+ *
+ * @param {number} listPtr - A pointer to a `PlutusList` object.
+ * @returns {PlutusList} The JavaScript representation of the Plutus list.
+ */
 const readPlutusList = (listPtr: number): PlutusList => {
   const module = getModule();
   const length = module.plutus_list_get_length(listPtr);
@@ -278,8 +350,18 @@ const readPlutusList = (listPtr: number): PlutusList => {
 };
 
 /**
- * Main dispatcher for reading PlutusData. Determines the kind and calls the appropriate helper.
+ * Reads a PlutusData object from WASM memory and converts it into its JavaScript representation.
+ *
+ * This is the main dispatcher function for reading `PlutusData`. It determines the
+ * kind of the data at the given pointer (e.g., Map, List, Integer, etc.) and then
+ * calls the appropriate deserialization logic to reconstruct the JavaScript object or primitive.
+ * For structured types (List, Map, Constr), it also enriches the returned object with its CBOR hex string.
+ *
+ * @param {number} ptr - A pointer to the `PlutusData` object in WASM memory.
+ * @returns {PlutusData} The JavaScript representation of the Plutus data.
+ * @throws {Error} Throws an error if the data kind is unknown or if deserialization fails.
  */
+// eslint-disable-next-line max-statements
 export const readPlutusData = (ptr: number): PlutusData => {
   const module = getModule();
   const kindPtr = module._malloc(4);

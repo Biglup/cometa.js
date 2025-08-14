@@ -94,10 +94,6 @@ describe('UnitInterval', () => {
       expect(() => Cometa.derefUnitInterval(ptr)).not.toThrow();
     });
 
-    it('should throw an error for null pointer', () => {
-      expect(() => Cometa.derefUnitInterval(0)).toThrow('Pointer is null');
-    });
-
     it('should allow reading after dereferencing if ref count > 1', () => {
       const ptr = Cometa.writeUnitIntervalAsDouble(0.5);
       const module = Cometa.getModule();

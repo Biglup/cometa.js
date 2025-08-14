@@ -94,6 +94,11 @@ export const readBufferData = (bufferPtr: number): Uint8Array => {
   }
 };
 
+/**
+ * Converts a hexadecimal string into a buffer object in the WASM runtime.
+ *
+ * @param hex - A hexadecimal string to be converted into a buffer object.
+ */
 export const hexToBufferObject = (hex: string): number => {
   const module = getModule();
   const string = writeStringToMemory(hex);
@@ -106,4 +111,3 @@ export const hexToBufferObject = (hex: string): number => {
 
   return bufferPtr;
 };
-

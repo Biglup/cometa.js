@@ -1,6 +1,33 @@
+/**
+ * Copyright 2025 Biglup Labs.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* IMPORTS *******************************************************************/
+
 import { CborReader, CborWriter } from '../encoding';
 import { getModule } from '../module';
 
+/* DEFINITIONS ****************************************************************/
+
+/**
+ * Serializes a native transaction object into its CBOR representation as a hex string.
+ *
+ * @param {number} transactionPtr - A pointer to the transaction object in WASM memory.
+ * @returns {string} The CBOR representation of the transaction, encoded as a hexadecimal string.
+ * @throws {Error} Throws an error if the input pointer is null or if the serialization fails.
+ */
 export const writeTransactionToCbor = (transactionPtr: number): string => {
   const module = getModule();
 
@@ -19,6 +46,13 @@ export const writeTransactionToCbor = (transactionPtr: number): string => {
   return cborWriter.encodeHex();
 };
 
+/**
+ * Deserializes a transaction from its CBOR hex string representation into a native object in WASM memory.
+ *
+ * @param {string} transactionCbor - The CBOR representation of the transaction, encoded as a hexadecimal string.
+ * @returns {number} A pointer to the newly created transaction object in WASM memory. The caller is responsible for freeing this object.
+ * @throws {Error} Throws an error if the deserialization fails, including a descriptive message from the CBOR parser.
+ */
 export const readTransactionFromCbor = (transactionCbor: string): number => {
   const module = getModule();
 

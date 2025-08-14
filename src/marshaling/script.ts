@@ -1,10 +1,21 @@
 /* eslint-disable complexity, max-statements, sonarjs/cognitive-complexity, max-depth */
-
 /**
- * This file contains the marshaling logic to convert JavaScript/TypeScript
- * Script objects into their corresponding C-side object representations,
- * and vice-versa.
+ * Copyright 2025 Biglup Labs.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
+/* IMPORTS *******************************************************************/
 
 import {
   NativeScript,
@@ -23,12 +34,18 @@ import { readI64, splitToLowHigh64bit } from './number';
 import { uint8ArrayToHex } from '../cometa';
 import { writeStringToMemory } from './string';
 
-const allocPtr = (): number => getModule()._malloc(4);
-const readPtr = (ptr: number): number => getModule().getValue(ptr, 'i32');
+/* DEFINITIONS ****************************************************************/
 
-// =============================================================================
-// JS -> C (Writing)
-// =============================================================================
+/**
+ * Allocates a pointer in WASM memory for a 32-bit integer.
+ */
+const allocPtr = (): number => getModule()._malloc(4);
+
+/**
+ * Reads a 32-bit integer pointer from WASM memory.
+ * @param ptr - The pointer to read from.
+ */
+const readPtr = (ptr: number): number => getModule().getValue(ptr, 'i32');
 
 /**
  * Recursively writes a JavaScript NativeScript object to WASM memory and
@@ -182,6 +199,8 @@ const writeNativeScript = (script: NativeScript): number => {
 /**
  * Writes a JavaScript PlutusScript object to WASM memory and returns a
  * pointer to a generic `cardano_script_t`.
+ *
+ * @param script The JavaScript PlutusScript object to write.
  */
 const writePlutusScript = (script: PlutusScript): number => {
   const m = getModule();
@@ -246,6 +265,8 @@ const writePlutusScript = (script: PlutusScript): number => {
 /**
  * Marshals a JavaScript `Script` object into a C `cardano_script_t` object
  * in WASM memory and returns a handle (pointer) to it.
+ *
+ * @param script The JavaScript Script object to write.
  */
 export const writeScript = (script: Script): number => {
   const m = getModule();
@@ -266,7 +287,6 @@ export const writeScript = (script: Script): number => {
       return readPtr(outPtr);
     } finally {
       m._free(outPtr);
-      // Clean up the native script pointer, as the generic script now owns it.
       unrefObject(nativeScriptPtr);
     }
   }
@@ -274,10 +294,10 @@ export const writeScript = (script: Script): number => {
   throw new Error('Unsupported script type');
 };
 
-// =============================================================================
-// C -> JS (Reading)
-// =============================================================================
-
+/**
+ * Reads a C `cardano_native_script_t` pointer and converts it into a
+ * @param nativeScriptPtr A pointer to the C `cardano_native_script_t` object.
+ */
 const readNativeScript = (nativeScriptPtr: number): NativeScript => {
   const m = getModule();
   const typePtr = allocPtr();
@@ -304,7 +324,6 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
         } finally {
           m._free(keyHashPtrPtr);
           m._free(pubkeyScriptPtrPtr);
-          // FIX: unref the intermediate objects
           if (pubkeyScriptPtr) unrefObject(pubkeyScriptPtr);
           if (keyHashPtr) unrefObject(keyHashPtr);
         }
@@ -328,7 +347,6 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
             m._free(slotPtr);
           }
         } finally {
-          // FIX: unref the intermediate object
           if (invalidBeforePtr) unrefObject(invalidBeforePtr);
           m._free(invalidBeforePtrPtr);
         }
@@ -351,7 +369,6 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
             m._free(slotPtr);
           }
         } finally {
-          // FIX: unref the intermediate object
           if (invalidAfterPtr) unrefObject(invalidAfterPtr);
           m._free(invalidAfterPtrPtr);
         }
@@ -375,7 +392,6 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
             assertSuccess(m.script_any_get_scripts(containerPtr, listPtrPtr));
             listPtr = readPtr(listPtrPtr);
           } else {
-            // RequireNOf
             assertSuccess(m.native_script_to_n_of_k(nativeScriptPtr, containerPtrPtr));
             containerPtr = readPtr(containerPtrPtr);
             assertSuccess(m.script_n_of_k_get_scripts(containerPtr, listPtrPtr));
@@ -404,7 +420,6 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
           }
           return { __type: ScriptType.Native, kind, scripts };
         } finally {
-          // FIX: unref all intermediate objects
           if (listPtr) unrefObject(listPtr);
           if (containerPtr) unrefObject(containerPtr);
           m._free(listPtrPtr);
@@ -419,6 +434,13 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
   }
 };
 
+/**
+ * Reads a C `cardano_plutus_script_t` pointer and converts it into a
+ * @param scriptPtr A pointer to the C `cardano_plutus_script_t` object.
+ * @param language The Plutus language version of the script.
+ *
+ * @return A PlutusScript object containing the script bytes and version.
+ */
 const readPlutusScript = (scriptPtr: number, language: PlutusLanguageVersion): PlutusScript => {
   const m = getModule();
   let toSpecificScriptFn;
@@ -470,11 +492,17 @@ const readPlutusScript = (scriptPtr: number, language: PlutusLanguageVersion): P
     }
   } finally {
     m._free(specificScriptOutPtr);
-    // FIX: unref the intermediate specific script object
     if (specificScriptPtr) unrefObject(specificScriptPtr);
   }
 };
 
+/**
+ * Reads a C `cardano_script_t` pointer and converts it into a
+ * JavaScript Script object.
+ * @param ptr A pointer to the C `cardano_script_t` object.
+ *
+ * @return A Script object containing the script data.
+ */
 export const readScript = (ptr: number): Script => {
   const m = getModule();
   const languagePtr = allocPtr();
@@ -484,7 +512,6 @@ export const readScript = (ptr: number): Script => {
 
     switch (language) {
       case 0: {
-        // Native
         let nativeScriptPtr = 0;
         const nativeScriptPtrPtr = allocPtr();
         try {
@@ -495,7 +522,6 @@ export const readScript = (ptr: number): Script => {
           nativeScriptPtr = readPtr(nativeScriptPtrPtr);
           return readNativeScript(nativeScriptPtr);
         } finally {
-          // FIX: unref the intermediate object
           if (nativeScriptPtr) unrefObject(nativeScriptPtr);
           m._free(nativeScriptPtrPtr);
         }

@@ -55,7 +55,7 @@ describe('CostModel', () => {
     it('should throw an error for invalid language', () => {
       const costModel: Cometa.CostModel = {
         costs: [1, 2, 3],
-        language: 'InvalidLanguage' as unknown as Cometa.CostModelLanguage
+        language: 'InvalidLanguage'
       };
 
       expect(() => Cometa.writeCostModel(costModel)).toThrow('Invalid language: InvalidLanguage');
