@@ -18,17 +18,25 @@
 
 import {
   Address,
+  Anchor,
   BaseProvider,
+  Datum,
   NetworkId,
+  PlutusData,
   ProtocolParameters,
+  RewardAddress,
   TxOut,
   UTxO,
+  Value,
   getModule,
   unrefObject,
+  writeDatum,
+  writePlutusData,
   writeProtocolParameters,
   writeTransactionToCbor,
   writeTxOut,
-  writeUtxo
+  writeUtxo,
+  writeValue
 } from '../';
 import { finalizationRegistry } from '../garbageCollection';
 import { splitToLowHigh64bit, writeStringToMemory, writeUtxoList } from '../marshaling';
@@ -275,6 +283,39 @@ export class TransactionBuilder {
   }
 
   /**
+   * Adds a transaction output to send a value (lovelace and/or other assets) to an address.
+   *
+   * @param {string | Address} address - The recipient's address as a bech32 string or an Address object.
+   * @param {Value} value - The value object, containing the coins and/or other assets to send.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   */
+  public sendValue(address: string | Address, value: Value): TransactionBuilder {
+    const module = getModule();
+    let valuePtr = 0;
+
+    try {
+      valuePtr = writeValue(value);
+
+      if (typeof address === 'string') {
+        const addressPtr = writeStringToMemory(address);
+        try {
+          module.tx_builder_send_value_ex(this.ptr, addressPtr, address.length, valuePtr);
+        } finally {
+          module._free(addressPtr);
+        }
+      } else {
+        module.tx_builder_send_value(this.ptr, address.ptr, valuePtr);
+      }
+    } finally {
+      if (valuePtr !== 0) {
+        unrefObject(valuePtr);
+      }
+    }
+
+    return this;
+  }
+
+  /**
    * Adds a transaction output to send a specific amount of lovelace to an address.
    *
    * @param {string | Address} address - The recipient's address as a bech32 string or an Address object.
@@ -300,6 +341,137 @@ export class TransactionBuilder {
   }
 
   /**
+   * Adds a transaction output to lock a specific amount of lovelace at a script address.
+   *
+   * This is used to send funds to a smart contract, where the funds are locked
+   * until the script conditions are met. A datum must be provided to be attached
+   * to the script output.
+   *
+   * @param {string | Address} scriptAddress - The recipient script address as a bech32 string or an Address object.
+   * @param {number | bigint} amount - The amount of lovelace to lock.
+   * @param {Datum} datum - The datum to attach to the output, which will be available to the script.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   */
+  public lockLovelace(scriptAddress: string | Address, amount: number | bigint, datum?: Datum): TransactionBuilder {
+    const module = getModule();
+    const lovelaceAmount = BigInt(amount);
+    const parts = splitToLowHigh64bit(lovelaceAmount);
+    let datumPtr = 0;
+
+    try {
+      datumPtr = datum ? writeDatum(datum) : 0;
+
+      if (typeof scriptAddress === 'string') {
+        const addressPtr = writeStringToMemory(scriptAddress);
+        try {
+          module.tx_builder_lock_lovelace_ex(
+            this.ptr,
+            addressPtr,
+            scriptAddress.length,
+            parts.low,
+            parts.high,
+            datumPtr
+          );
+        } finally {
+          module._free(addressPtr);
+        }
+      } else {
+        module.tx_builder_lock_lovelace(this.ptr, scriptAddress.ptr, parts.low, parts.high, datumPtr);
+      }
+    } finally {
+      if (datumPtr !== 0) {
+        unrefObject(datumPtr);
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Adds a transaction output to lock a value (lovelace and/or other assets) at a script address.
+   *
+   * This is used to send funds to a smart contract, where they are locked
+   * until the script conditions are met. A datum must be provided with the output.
+   *
+   * @param {string | Address} scriptAddress - The recipient script address as a bech32 string or an Address object.
+   * @param {Value} value - The value object, containing the coins and/or other assets to lock.
+   * @param {Datum} datum - The datum to attach to the output, which will be available to the script.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   */
+  public lockValue(scriptAddress: string | Address, value: Value, datum: Datum): TransactionBuilder {
+    const module = getModule();
+    let valuePtr = 0;
+    let datumPtr = 0;
+
+    try {
+      valuePtr = writeValue(value);
+      datumPtr = datum ? writeDatum(datum) : 0;
+
+      if (typeof scriptAddress === 'string') {
+        const addressPtr = writeStringToMemory(scriptAddress);
+        try {
+          module.tx_builder_lock_value_ex(this.ptr, addressPtr, scriptAddress.length, valuePtr, datumPtr);
+        } finally {
+          module._free(addressPtr);
+        }
+      } else {
+        module.tx_builder_lock_value(this.ptr, scriptAddress.ptr, valuePtr, datumPtr);
+      }
+    } finally {
+      if (valuePtr !== 0) {
+        unrefObject(valuePtr);
+      }
+      if (datumPtr !== 0) {
+        unrefObject(datumPtr);
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Adds an input to the transaction to be spent.
+   *
+   * Optionally, a redeemer and datum can be provided. These are typically required
+   * when spending a UTxO that is locked at a Plutus script address.
+   *
+   * @param {UTxO} utxo The Unspent Transaction Output (UTxO) to be spent.
+   * @param {PlutusData} [redeemer] Optional. The redeemer to use for unlocking the script.
+   * @param {PlutusData} [datum] Optional. The datum that was locking the script output.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   */
+  public addInput(utxo: UTxO, redeemer?: PlutusData, datum?: PlutusData): TransactionBuilder {
+    const module = getModule();
+    let utxoPtr = 0;
+    let redeemerPtr = 0;
+    let datumPtr = 0;
+
+    try {
+      utxoPtr = writeUtxo(utxo);
+      if (redeemer) {
+        redeemerPtr = writePlutusData(redeemer);
+      }
+      if (datum) {
+        datumPtr = writePlutusData(datum);
+      }
+
+      module.tx_builder_add_input(this.ptr, utxoPtr, redeemerPtr, datumPtr);
+    } finally {
+      if (utxoPtr !== 0) {
+        unrefObject(utxoPtr);
+      }
+      if (redeemerPtr !== 0) {
+        unrefObject(redeemerPtr);
+      }
+      if (datumPtr !== 0) {
+        unrefObject(datumPtr);
+      }
+    }
+
+    return this;
+  }
+
+  /**
    * Adds a transaction output to send a specific value to an address.
    *
    * @param {TxOut} output - The transaction output to add.
@@ -316,6 +488,88 @@ export class TransactionBuilder {
   }
 
   /**
+   * Attaches metadata to the transaction under a specific label (tag).
+   *
+   * @param {number | bigint} tag - A unique integer label for this piece of metadata.
+   * @param {object | string } metadata - The metadata content. Can be a plain object,
+   * or a pre-serialized JSON string.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   */
+  public setMetadata(tag: number | bigint, metadata: object | string): TransactionBuilder {
+    const module = getModule();
+    const metadataTag = BigInt(tag);
+
+    const metadataJson = typeof metadata === 'string' ? metadata : JSON.stringify(metadata);
+    const jsonPtr = writeStringToMemory(metadataJson);
+
+    try {
+      module.tx_builder_set_metadata_ex(this.ptr, metadataTag, jsonPtr, metadataJson.length);
+    } finally {
+      module._free(jsonPtr);
+    }
+
+    return this;
+  }
+
+  /**
+   * Adds a token minting or burning operation to the transaction using a concatenated Asset ID.
+   *
+   * @param {string} assetIdHex - The hex-encoded Asset ID (concatenation of the policy ID and asset name).
+   * @param {number | bigint} amount - The quantity to mint (positive integer) or burn (negative integer).
+   * @param {PlutusData} [redeemer] - Optional. The redeemer required if the minting policy is a Plutus script.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   */
+  public mintToken(assetIdHex: string, amount: number | bigint, redeemer?: PlutusData): TransactionBuilder {
+    const module = getModule();
+    const mintAmount = BigInt(amount);
+    const parts = splitToLowHigh64bit(mintAmount);
+    let assetIdPtr = 0;
+    let redeemerPtr = 0;
+
+    try {
+      assetIdPtr = writeStringToMemory(assetIdHex);
+
+      if (redeemer) {
+        redeemerPtr = writePlutusData(redeemer);
+      }
+
+      module.tx_builder_mint_token_with_id_ex(
+        this.ptr,
+        assetIdPtr,
+        assetIdHex.length,
+        parts.low,
+        parts.high,
+        redeemerPtr
+      );
+    } finally {
+      if (assetIdPtr !== 0) {
+        module._free(assetIdPtr);
+      }
+      if (redeemerPtr !== 0) {
+        unrefObject(redeemerPtr);
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Pads the transaction with space for a specified number of additional signers.
+   *
+   * This is used for fee calculation purposes to ensure the final transaction fee
+   * is sufficient to cover signatures that will be added after the transaction is built
+   * (e.g., by co-signers). This method does **not** add any actual required signers
+   * to the transaction witnesses.
+   *
+   * @param {number} count The number of additional signer "slots" to account for in the fee calculation.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   */
+  public padSignerCount(count: number): TransactionBuilder {
+    getModule().tx_builder_pad_signer_count(this.ptr, count);
+    return this;
+  }
+
+  /**
    * Adds a required signer to the transaction.
    *
    * @param {string} pkh - The public key hash (PKH) of the required signer as a hex string.
@@ -328,6 +582,311 @@ export class TransactionBuilder {
     } finally {
       getModule()._free(pkhPtr);
     }
+    return this;
+  }
+
+  /**
+   * Adds a Plutus datum to the transaction's witness set.
+   *
+   * This allows the datum to be referenced by its hash from a transaction output,
+   * satisfying a script's requirement without including the full datum directly
+   * in the output itself.
+   *
+   * @param {PlutusData} datum The PlutusData object to add to the transaction witnesses.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   */
+  public addDatum(datum: PlutusData): TransactionBuilder {
+    const module = getModule();
+    let datumPtr = 0;
+
+    try {
+      datumPtr = writePlutusData(datum);
+
+      module.tx_builder_add_datum(this.ptr, datumPtr);
+    } finally {
+      if (datumPtr !== 0) {
+        unrefObject(datumPtr);
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Adds a withdrawal from a reward account to the transaction.
+   *
+   * The amount specified must be the full available reward balance for the account.
+   * An optional redeemer can be provided for script-locked withdrawals.
+   *
+   * @param {string | RewardAddress} rewardAddress The reward account address as a bech32 string or a RewardAddress object.
+   * @param {number | bigint} amount The full amount of rewards to withdraw in lovelace.
+   * @param {PlutusData} [redeemer] Optional. The redeemer for a script-locked withdrawal.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   */
+  public withdrawRewards(
+    rewardAddress: string | RewardAddress,
+    amount: number | bigint,
+    redeemer?: PlutusData
+  ): TransactionBuilder {
+    const module = getModule();
+    const withdrawalAmount = BigInt(amount);
+    const parts = splitToLowHigh64bit(withdrawalAmount);
+    let redeemerPtr = 0;
+
+    try {
+      if (redeemer) {
+        redeemerPtr = writePlutusData(redeemer);
+      }
+
+      if (typeof rewardAddress === 'string') {
+        const addressPtr = writeStringToMemory(rewardAddress);
+        try {
+          module.tx_builder_withdraw_rewards_ex(
+            this.ptr,
+            addressPtr,
+            rewardAddress.length,
+            withdrawalAmount,
+            redeemerPtr
+          );
+        } finally {
+          module._free(addressPtr);
+        }
+      } else {
+        module.tx_builder_withdraw_rewards(this.ptr, rewardAddress.ptr, parts.low, parts.high, redeemerPtr);
+      }
+    } finally {
+      if (redeemerPtr !== 0) {
+        unrefObject(redeemerPtr);
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Adds a stake registration certificate to the transaction.
+   *
+   * This allows the specified stake address to start participating in staking and
+   * receiving rewards. An optional redeemer can be provided for script-controlled
+   * stake credentials.
+   *
+   * @param {string | RewardAddress} stakeAddress The stake address to register, as a bech32 string or a RewardAddress object.
+   * @param {PlutusData} [redeemer] Optional. The redeemer for a script-controlled stake credential.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   */
+  public registerStakeAddress(stakeAddress: string | RewardAddress, redeemer?: PlutusData): TransactionBuilder {
+    const module = getModule();
+    let redeemerPtr = 0;
+
+    try {
+      if (redeemer) {
+        redeemerPtr = writePlutusData(redeemer);
+      }
+
+      if (typeof stakeAddress === 'string') {
+        const addressPtr = writeStringToMemory(stakeAddress);
+        try {
+          module.tx_builder_register_reward_address_ex(this.ptr, addressPtr, stakeAddress.length, redeemerPtr);
+        } finally {
+          module._free(addressPtr);
+        }
+      } else {
+        module.tx_builder_register_reward_address(this.ptr, stakeAddress.ptr, redeemerPtr);
+      }
+    } finally {
+      if (redeemerPtr !== 0) {
+        unrefObject(redeemerPtr);
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Adds a stake deregistration certificate to the transaction.
+   *
+   * This action retires the stake address and initiates the refund of the key deposit.
+   * An optional redeemer can be provided for script-controlled stake credentials.
+   *
+   * @param {string | RewardAddress} stakeAddress - The stake address to deregister, as a bech32 string or a RewardAddress object.
+   * @param {PlutusData} [redeemer] - Optional. The redeemer for a script-controlled stake credential.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   */
+  public deregisterStakeAddress(stakeAddress: string | RewardAddress, redeemer?: PlutusData): TransactionBuilder {
+    const module = getModule();
+    let redeemerPtr = 0;
+
+    try {
+      if (redeemer) {
+        redeemerPtr = writePlutusData(redeemer);
+      }
+
+      if (typeof stakeAddress === 'string') {
+        const addressPtr = writeStringToMemory(stakeAddress);
+        try {
+          module.tx_builder_deregister_reward_address_ex(this.ptr, addressPtr, stakeAddress.length, redeemerPtr);
+        } finally {
+          module._free(addressPtr);
+        }
+      } else {
+        module.tx_builder_deregister_reward_address(this.ptr, stakeAddress.ptr, redeemerPtr);
+      }
+    } finally {
+      if (redeemerPtr !== 0) {
+        unrefObject(redeemerPtr);
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Adds a stake delegation certificate to the transaction.
+   *
+   * This delegates the staking power of a reward address to a specified stake pool.
+   * An optional redeemer can be provided for script-controlled stake credentials.
+   *
+   * @param {string | RewardAddress} stakeAddress The bech32-encoded stake address to delegate from.
+   * @param {string} poolId The bech32-encoded ID of the stake pool to delegate to.
+   * @param {PlutusData} [redeemer] Optional. The redeemer for a script-controlled stake credential.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   */
+  public delegateStake(
+    stakeAddress: string | RewardAddress,
+    poolId: string,
+    redeemer?: PlutusData
+  ): TransactionBuilder {
+    const module = getModule();
+    let addressPtr = 0;
+    let poolIdPtr = 0;
+    let redeemerPtr = 0;
+
+    try {
+      const addr = typeof stakeAddress === 'string' ? stakeAddress : stakeAddress.toBech32();
+      addressPtr = writeStringToMemory(addr);
+      poolIdPtr = writeStringToMemory(poolId);
+      if (redeemer) {
+        redeemerPtr = writePlutusData(redeemer);
+      }
+
+      module.tx_builder_delegate_stake_ex(this.ptr, addressPtr, addr.length, poolIdPtr, poolId.length, redeemerPtr);
+    } finally {
+      if (addressPtr !== 0) {
+        module._free(addressPtr);
+      }
+      if (poolIdPtr !== 0) {
+        module._free(poolIdPtr);
+      }
+      if (redeemerPtr !== 0) {
+        unrefObject(redeemerPtr);
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Adds a voting delegation certificate to the transaction.
+   *
+   * This delegates the voting power of a stake address to a specified DRep
+   * (Decentralized Representative) for on-chain governance.
+   *
+   * @param {string | RewardAddress} stakeAddress The bech32-encoded stake address to delegate from.
+   * @param {string} drepId The bech32-encoded ID of the DRep to delegate to. The DRep ID can be
+   * in CIP-129 format or CIP-105 format.
+   * @param {PlutusData} [redeemer] Optional. The redeemer for a script-controlled stake credential.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   */
+  public delegateVotingPower(
+    stakeAddress: string | RewardAddress,
+    drepId: string,
+    redeemer?: PlutusData
+  ): TransactionBuilder {
+    const module = getModule();
+    let addressPtr = 0;
+    let drepIdPtr = 0;
+    let redeemerPtr = 0;
+
+    try {
+      const addr = typeof stakeAddress === 'string' ? stakeAddress : stakeAddress.toBech32();
+      addressPtr = writeStringToMemory(addr);
+      drepIdPtr = writeStringToMemory(drepId);
+      if (redeemer) {
+        redeemerPtr = writePlutusData(redeemer);
+      }
+
+      module.tx_builder_delegate_voting_power_ex(
+        this.ptr,
+        addressPtr,
+        addr.length,
+        drepIdPtr,
+        drepId.length,
+        redeemerPtr
+      );
+    } finally {
+      if (addressPtr !== 0) {
+        module._free(addressPtr);
+      }
+      if (drepIdPtr !== 0) {
+        module._free(drepIdPtr);
+      }
+      if (redeemerPtr !== 0) {
+        unrefObject(redeemerPtr);
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Adds a DRep registration certificate to the transaction.
+   *
+   * @param {string} drepId The bech32-encoded ID of the DRep to delegate to. The DRep ID can be
+   * in CIP-129 format or CIP-105 format.
+   * @param {Anchor} anchor - An object containing the URL and hash of the DRep's metadata.
+   * @param {PlutusData} [redeemer] - Optional. The redeemer for a script-controlled DRep credential.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   */
+  public registerDRep(drepId: string, anchor: Anchor, redeemer?: PlutusData): TransactionBuilder {
+    const module = getModule();
+    let drepIdPtr = 0;
+    let urlPtr = 0;
+    let hashPtr = 0;
+    let redeemerPtr = 0;
+
+    try {
+      drepIdPtr = writeStringToMemory(drepId);
+      urlPtr = writeStringToMemory(anchor.url);
+      hashPtr = writeStringToMemory(anchor.dataHash);
+      if (redeemer) {
+        redeemerPtr = writePlutusData(redeemer);
+      }
+
+      module.tx_builder_register_drep_ex(
+        this.ptr,
+        drepIdPtr,
+        drepId.length,
+        urlPtr,
+        anchor.url.length,
+        hashPtr,
+        anchor.dataHash.length,
+        redeemerPtr
+      );
+    } finally {
+      if (drepIdPtr !== 0) {
+        module._free(drepIdPtr);
+      }
+      if (urlPtr !== 0) {
+        module._free(urlPtr);
+      }
+      if (hashPtr !== 0) {
+        module._free(hashPtr);
+      }
+      if (redeemerPtr !== 0) {
+        unrefObject(redeemerPtr);
+      }
+    }
+
     return this;
   }
 

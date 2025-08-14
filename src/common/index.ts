@@ -16,6 +16,7 @@
 
 /* EXPORTS ********************************************************************/
 
+export * from './Anchor';
 export * from './ExUnits';
 export * from './NetworkMagic';
 export * from './ProtocolParameters';
