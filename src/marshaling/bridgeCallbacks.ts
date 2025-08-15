@@ -17,12 +17,13 @@
 /* IMPORTS *******************************************************************/
 
 import { Address, RewardAddress } from '../address';
+import { InstanceType, getFromInstanceRegistry } from '../instanceRegistry';
 import { ProtocolParameters, UTxO, cborToPlutusData } from '../common';
 import { blake2bHashFromHex, readBlake2bHashData } from './blake2b';
-import { getFromInstanceRegistry } from '../instanceRegistry';
 import { readAssetId } from './assetId';
 import { readInputSet } from './txIn';
 import { readUtxoList, writeUtxo, writeUtxoList } from './utxo';
+import { readValue } from './value';
 import { uint8ArrayToHex } from '../cometa';
 import { writePlutusData } from './plutusData';
 import { writeProtocolParameters } from './protocolParameters';
@@ -39,7 +40,13 @@ import { writeTransactionToCbor } from './transaction';
  */
 export const bridgeCallbacks = {
   get_provider_from_registry(objectId: number) {
-    return getFromInstanceRegistry(objectId);
+    return getFromInstanceRegistry(InstanceType.Provider, objectId);
+  },
+  get_coin_selector_from_registry(objectId: number) {
+    return getFromInstanceRegistry(InstanceType.CoinSelector, objectId);
+  },
+  get_tx_evaluator_from_registry(objectId: number) {
+    return getFromInstanceRegistry(InstanceType.TxEvaluator, objectId);
   },
   marshal_blake2b_hash_from_hex(jsHexString: string) {
     return blake2bHashFromHex(jsHexString);
@@ -82,5 +89,8 @@ export const bridgeCallbacks = {
   },
   marshall_utxo_list_to_js(utxoListPtr: number) {
     return readUtxoList(utxoListPtr);
+  },
+  marshall_value_to_js(valuePtr: number) {
+    return readValue(valuePtr);
   }
 };

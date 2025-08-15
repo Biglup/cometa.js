@@ -19,8 +19,8 @@
 import {
   Address,
   Anchor,
-  BaseProvider,
   Datum,
+  EmscriptenProvider,
   NetworkId,
   PlutusData,
   ProtocolParameters,
@@ -38,6 +38,7 @@ import {
   writeUtxo,
   writeValue
 } from '../';
+import { Provider } from '../provider';
 import { finalizationRegistry } from '../garbageCollection';
 import { splitToLowHigh64bit, writeStringToMemory, writeUtxoList } from '../marshaling';
 
@@ -53,7 +54,7 @@ import { splitToLowHigh64bit, writeStringToMemory, writeUtxoList } from '../mars
 export class TransactionBuilder {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  private provider: BaseProvider; // We need to keep the js side of this instance alive while the tx builder is alive.
+  private provider: EmscriptenProvider; // We need to keep the js side of this instance alive while the tx builder is alive.
   public ptr: number;
 
   /**
@@ -77,9 +78,10 @@ export class TransactionBuilder {
    * @returns {TransactionBuilder} A new, configured TransactionBuilder instance.
    * @throws {Error} If the native builder instance could not be created.
    */
-  public static create(params: ProtocolParameters, provider: BaseProvider): TransactionBuilder {
+  public static create(params: ProtocolParameters, provider: Provider): TransactionBuilder {
     const protocolParamsPtr = writeProtocolParameters(params);
-    const ptr = getModule().tx_builder_new(protocolParamsPtr, provider.providerPtr);
+    const emscriptenProvider = new EmscriptenProvider(provider);
+    const ptr = getModule().tx_builder_new(protocolParamsPtr, emscriptenProvider.providerPtr);
 
     unrefObject(protocolParamsPtr);
 
@@ -88,7 +90,7 @@ export class TransactionBuilder {
     }
     const builder = new TransactionBuilder(ptr);
 
-    builder.provider = provider;
+    builder.provider = emscriptenProvider;
     return builder;
   }
 

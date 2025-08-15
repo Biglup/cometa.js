@@ -28,7 +28,7 @@ describe('BlockfrostProvider', () => {
   it('should create an instance', async () => {
     const provider = new Cometa.BlockfrostProvider({
       network: Cometa.NetworkMagic.PREPROD,
-      projectId: ''
+      projectId: 'preprodeMB9jfka6qXsluxEhPLhKczRdaC5QKab'
     });
 
     const address =

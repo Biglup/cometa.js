@@ -16,7 +16,6 @@
 
 /* IMPORTS ********************************************************************/
 
-import { BaseProvider } from './BaseProvider';
 import {
   CostModel,
   NetworkMagic,
@@ -35,6 +34,7 @@ import {
   plutusDataToCbor
 } from '../common';
 import { readRedeemersFromTx, toUnitInterval } from '../marshaling';
+import { Provider } from './Provider';
 
 /* DEFINITIONS ****************************************************************/
 
@@ -204,9 +204,10 @@ const outputFromUtxo = (address: string, utxo: any, script: Script | undefined):
  * It extends the BaseProvider class and implements methods to fetch protocol parameters,
  * unspent outputs, resolve datums, confirm transactions, and submit transactions.
  */
-export class BlockfrostProvider extends BaseProvider {
+export class BlockfrostProvider implements Provider {
   url: string;
   private projectId: string;
+  private networkMagic: NetworkMagic;
 
   /**
    * Creates an instance of BlockfrostProvider.
@@ -215,9 +216,9 @@ export class BlockfrostProvider extends BaseProvider {
    * @param {string} projectId The Blockfrost project ID.
    */
   constructor({ network, projectId }: { network: NetworkMagic; projectId: string }) {
-    super(network, 'Blockfrost JS');
     this.url = `https://${networkMagicBlockfrostPrefix(network)}.blockfrost.io/api/v0/`;
     this.projectId = projectId;
+    this.networkMagic = network;
   }
 
   /**
@@ -227,6 +228,22 @@ export class BlockfrostProvider extends BaseProvider {
    */
   headers() {
     return { project_id: this.projectId };
+  }
+
+  /**
+   * Gets the human-readable name of the provider.
+   * @returns {string} The name of the provider.
+   */
+  getName(): string {
+    return 'Blockfrost';
+  }
+
+  /**
+   * Gets the network magic/ID for the provider.
+   * @returns {NetworkMagic} The network identifier.
+   */
+  getNetworkMagic(): NetworkMagic {
+    return this.networkMagic;
   }
 
   /**

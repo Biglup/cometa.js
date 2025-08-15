@@ -16,5 +16,6 @@
 
 /* EXPORTS ********************************************************************/
 
-export * from './BaseProvider';
+export * from './EmscriptenProvider';
 export * from './BlockfrostProvider';
+export * from './Provider';
