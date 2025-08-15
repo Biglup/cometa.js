@@ -24,6 +24,12 @@
  */
 const _registry = new Map<number, Map<number, any>>();
 
+/**
+ * A registry for instance-specific error handlers.
+ * @private
+ */
+const _handlerRegistry = new Map<number, Map<number, (exception: any) => void>>();
+
 /* DEFINITIONS ****************************************************************/
 
 /**
@@ -72,4 +78,42 @@ export const unregisterInstance = (type: InstanceType, id: number): void => {
 export const getFromInstanceRegistry = (type: InstanceType, id: number): any | undefined => {
   const typeMap = _registry.get(type);
   return typeMap?.get(id);
+};
+
+/**
+ * Registers an error handler for a specific instance.
+ * @param {InstanceType} type The type of the instance.
+ * @param {number} id The unique ID of the instance.
+ * @param {(exception: any) => void} handler The callback function to handle the error.
+ */
+export const registerBridgeErrorHandler = (type: InstanceType, id: number, handler: (exception: any) => void) => {
+  if (!_handlerRegistry.has(type)) {
+    _handlerRegistry.set(type, new Map<number, (exception: any) => void>());
+  }
+  _handlerRegistry.get(type)!.set(id, handler);
+};
+
+/**
+ * Unregisters an error handler for a specific instance.
+ * @param {InstanceType} type The type of the instance.
+ * @param {number} id The unique ID of the handler to remove.
+ */
+export const unregisterBridgeErrorHandler = (type: InstanceType, id: number) => {
+  const typeMap = _handlerRegistry.get(type);
+  if (typeMap) {
+    typeMap.delete(id);
+  }
+};
+
+/**
+ * Invokes the error handler for a specific instance.
+ * @param {InstanceType} type The type of the instance that erred.
+ * @param {number} id The unique ID of the instance.
+ * @param {any} exception The exception object that was caught.
+ */
+export const reportBridgeError = (type: InstanceType, id: number, exception: any) => {
+  const handler = _handlerRegistry.get(type)?.get(id);
+  if (handler) {
+    handler(exception);
+  }
 };

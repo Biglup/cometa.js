@@ -19,6 +19,7 @@
 import { CoinSelector, CoinSelectorParams, CoinSelectorResult } from './CoinSelector';
 import { InstanceType, registerInstance, unregisterInstance } from '../../instanceRegistry';
 import { assertSuccess, unrefObject, utf8ByteLen, writeStringToMemory } from '../../marshaling';
+import { asyncifyStateTracker } from '../../cometa';
 import { getModule } from '../../module';
 
 /* DEFINITIONS ****************************************************************/
@@ -77,7 +78,7 @@ export class EmscriptenCoinSelector implements CoinSelector {
    * Wraps a JavaScript CoinSelector to make it usable by the WASM module.
    * @param coinSelector The JavaScript coin selector implementation to wrap.
    */
-  protected constructor(coinSelector: CoinSelector) {
+  public constructor(coinSelector: CoinSelector) {
     this.objectId = nextId++;
     this.coinSelector = coinSelector;
 
@@ -107,6 +108,12 @@ export class EmscriptenCoinSelector implements CoinSelector {
    * @returns {Promise<CoinSelectorResult>} A promise that resolves to the result of the selection.
    */
   async select(params: CoinSelectorParams): Promise<CoinSelectorResult> {
-    return this.coinSelector.select(params);
+    asyncifyStateTracker.isAsyncActive = true;
+
+    try {
+      return await this.coinSelector.select(params);
+    } finally {
+      asyncifyStateTracker.isAsyncActive = false;
+    }
   }
 }

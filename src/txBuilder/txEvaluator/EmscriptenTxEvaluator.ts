@@ -20,6 +20,7 @@ import { InstanceType, registerInstance, unregisterInstance } from '../../instan
 import { Redeemer, UTxO } from '../../common';
 import { TxEvaluator } from './TxEvaluator';
 import { assertSuccess, unrefObject, utf8ByteLen, writeStringToMemory } from '../../marshaling';
+import { asyncifyStateTracker } from '../../cometa';
 import { getModule } from '../../module';
 
 /* DEFINITIONS ****************************************************************/
@@ -114,7 +115,13 @@ export class EmscriptenTxEvaluator implements TxEvaluator {
    * @param {UTxO[]} [additionalUtxos] - Optional extra UTxOs for the evaluator to consider.
    * @returns {Promise<Redeemer[]>} A promise that resolves to a list of redeemers with execution units.
    */
-  public async evaluateTransaction(tx: string, additionalUtxos?: UTxO[]): Promise<Redeemer[]> {
-    return this.txEvaluator.evaluateTransaction(tx, additionalUtxos);
+  public async evaluate(tx: string, additionalUtxos?: UTxO[]): Promise<Redeemer[]> {
+    asyncifyStateTracker.isAsyncActive = true;
+
+    try {
+      return await this.txEvaluator.evaluate(tx, additionalUtxos);
+    } finally {
+      asyncifyStateTracker.isAsyncActive = false;
+    }
   }
 }

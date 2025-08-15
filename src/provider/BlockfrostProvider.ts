@@ -35,6 +35,7 @@ import {
 } from '../common';
 import { readRedeemersFromTx, toUnitInterval } from '../marshaling';
 import { Provider } from './Provider';
+import { Address, RewardAddress } from '../address';
 
 /* DEFINITIONS ****************************************************************/
 
@@ -344,14 +345,14 @@ export class BlockfrostProvider implements Provider {
   }
 
   /**
-   * Retrieves the staking rewards for a given reward address.
+   * Get the current staking rewards balance for a reward account.
    *
-   * @param {string} address The Bech32-encoded stake address (e.g., stake_test1...).
-   * @returns {Promise<bigint>} A promise that resolves to the amount of withdrawable
-   * rewards in Lovelace. Returns 0n if the account is not found (404).
+   * @param {RewardAddress | string} address - Reward account address or bech32 string.
+   * @returns {Promise<bigint>} A promise that resolves to the balance in lovelace.
    */
-  async getRewardsBalance(address: string): Promise<bigint> {
-    const query = `accounts/${address}`;
+  async getRewardsBalance(address: RewardAddress | string): Promise<bigint> {
+    const addr = typeof address === 'string' ? address : address.toBech32();
+    const query = `accounts/${addr}`;
 
     const response = await fetch(`${this.url}${query}`, {
       headers: this.headers()
@@ -385,12 +386,13 @@ export class BlockfrostProvider implements Provider {
   }
 
   /**
-   * Retrieves all unspent outputs (UTxOs) for a given address.
+   * List all unspent transaction outputs (UTxOs) controlled by an address.
    *
-   * @param {string} address The Bech32-encoded payment address.
-   * @returns {Promise<UTxO[]>} A promise that resolves to an array of UTxOs for the address.
+   * @param {Address | string} address - Payment address. Address object or bech32 string.
+   * @returns {Promise<UTxO[]>} A promise that resolves to an array of UTxOs.
    */
-  async getUnspentOutputs(address: string): Promise<UTxO[]> {
+  async getUnspentOutputs(address: Address | string): Promise<UTxO[]> {
+    const addr = typeof address === 'string' ? address : address.toString();
     const maxPageCount = 100;
     let page = 1;
 
@@ -398,7 +400,7 @@ export class BlockfrostProvider implements Provider {
 
     for (;;) {
       const pagination = `count=${maxPageCount}&page=${page}`;
-      const query = `/addresses/${address}/utxos?${pagination}`;
+      const query = `/addresses/${addr}/utxos?${pagination}`;
       const json = await fetch(`${this.url}${query}`, {
         headers: this.headers()
       }).then((resp) => resp.json());
@@ -421,7 +423,7 @@ export class BlockfrostProvider implements Provider {
 
         results.add({
           input: inputFromUtxo(blockfrostUTxO),
-          output: outputFromUtxo(address, blockfrostUTxO, scriptReference)
+          output: outputFromUtxo(addr, blockfrostUTxO, scriptReference)
         });
       }
 
@@ -436,20 +438,21 @@ export class BlockfrostProvider implements Provider {
   }
 
   /**
-   * Retrieves all unspent outputs (UTxOs) for a given address that contain a specific asset.
+   * List all UTxOs for an address that contain a specific asset.
    *
-   * @param {string} address The Bech32-encoded payment address.
-   * @param {string} assetId The asset identifier (policyId + asset name in hex).
-   * @returns {Promise<UTxO[]>} A promise that resolves to an array of UTxOs containing the asset.
+   * @param {Address | string} address - Payment address. Address object or bech32 string.
+   * @param {string} assetId - Asset identifier (policyId + asset name hex).
+   * @returns {Promise<UTxO[]>} A promise that resolves to matching UTxOs.
    */
-  async getUnspentOutputsWithAsset(address: string, assetId: string): Promise<UTxO[]> {
+  async getUnspentOutputsWithAsset(address: Address | string, assetId: string): Promise<UTxO[]> {
     const maxPageCount = 100;
     let page = 1;
     const results: Set<UTxO> = new Set();
+    const addr = typeof address === 'string' ? address : address.toString();
 
     for (;;) {
       const pagination = `count=${maxPageCount}&page=${page}`;
-      const query = `/addresses/${address}/utxos/${assetId}?${pagination}`;
+      const query = `/addresses/${addr}/utxos/${assetId}?${pagination}`;
       const response = await fetch(`${this.url}${query}`, {
         headers: this.headers()
       });
@@ -470,7 +473,7 @@ export class BlockfrostProvider implements Provider {
         }
         results.add({
           input: inputFromUtxo(blockfrostUTxO),
-          output: outputFromUtxo(address, blockfrostUTxO, scriptReference)
+          output: outputFromUtxo(addr, blockfrostUTxO, scriptReference)
         });
       }
 

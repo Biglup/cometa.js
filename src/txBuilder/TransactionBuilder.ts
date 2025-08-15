@@ -19,30 +19,51 @@
 import {
   Address,
   Anchor,
+  CoinSelector,
   Datum,
+  EmscriptenCoinSelector,
   EmscriptenProvider,
+  EmscriptenTxEvaluator,
+  InstanceType,
   NetworkId,
   PlutusData,
   ProtocolParameters,
   RewardAddress,
+  Script,
+  TxEvaluator,
   TxOut,
   UTxO,
   Value,
+  asyncifyStateTracker,
   getModule,
+  registerBridgeErrorHandler,
   unrefObject,
+  unregisterBridgeErrorHandler,
   writeDatum,
   writePlutusData,
   writeProtocolParameters,
+  writeScript,
   writeTransactionToCbor,
   writeTxOut,
   writeUtxo,
   writeValue
 } from '../';
 import { Provider } from '../provider';
-import { finalizationRegistry } from '../garbageCollection';
 import { splitToLowHigh64bit, writeStringToMemory, writeUtxoList } from '../marshaling';
 
 /* DEFINITIONS ****************************************************************/
+
+/**
+ * A finalizer responsible for cleaning up all resources associated with a
+ * TransactionBuilder instance when it is garbage collected.
+ * @private
+ */
+const builderFinalizer = new FinalizationRegistry(
+  (heldValue: { ptr: number; handlers: Array<{ type: InstanceType; id: number }> }) => {
+    for (const h of heldValue.handlers) unregisterBridgeErrorHandler(h.type, h.id);
+    unrefObject(heldValue.ptr);
+  }
+);
 
 /**
  * A high-level builder for constructing Cardano transactions.
@@ -52,9 +73,15 @@ import { splitToLowHigh64bit, writeStringToMemory, writeUtxoList } from '../mars
  * the complexities of transaction assembly, fee calculation, and balancing.
  */
 export class TransactionBuilder {
+  // We need to keep these references to the Emscripten provider, coin selector, and evaluator
+  // to ensure they are not garbage collected while the TransactionBuilder is in use.
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  private provider: EmscriptenProvider; // We need to keep the js side of this instance alive while the tx builder is alive.
+  private provider: EmscriptenProvider | undefined;
+  private coinSelector: EmscriptenCoinSelector | undefined;
+  private txEvaluator: EmscriptenTxEvaluator | undefined;
+  private registeredHandlers: Array<{ type: InstanceType; id: number }> = [];
+
   public ptr: number;
 
   /**
@@ -64,8 +91,8 @@ export class TransactionBuilder {
    */
   private constructor(ptr: number) {
     this.ptr = ptr;
-    finalizationRegistry.register(this, {
-      freeFunc: getModule().tx_builder_unref,
+    builderFinalizer.register(this, {
+      handlers: this.registeredHandlers,
       ptr: this.ptr
     });
   }
@@ -91,7 +118,74 @@ export class TransactionBuilder {
     const builder = new TransactionBuilder(ptr);
 
     builder.provider = emscriptenProvider;
+
+    registerBridgeErrorHandler(InstanceType.Provider, emscriptenProvider.objectId, (exception: any) => {
+      const errorMessage = exception.message || 'Error in Provider';
+      const errorPtr = writeStringToMemory(errorMessage);
+      try {
+        getModule().tx_builder_set_last_error(builder.ptr, errorPtr);
+      } finally {
+        getModule()._free(errorPtr);
+      }
+    });
+    builder.registeredHandlers.push({ id: emscriptenProvider.objectId, type: InstanceType.CoinSelector });
+
     return builder;
+  }
+
+  /**
+   * Sets a custom coin selection strategy for the transaction.
+   *
+   * The coin selector determines how UTxOs are chosen to cover the transaction's
+   * required value. If this method is not called, the builder will use a default
+   * coin selection strategy ('largest-first').
+   *
+   * @param {CoinSelector} coinSelector The coin selection strategy to use.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   */
+  public setCoinSelector(coinSelector: CoinSelector): TransactionBuilder {
+    this.coinSelector = new EmscriptenCoinSelector(coinSelector);
+    getModule().tx_builder_set_coin_selector(this.ptr, this.coinSelector.coinSelectorPtr);
+
+    registerBridgeErrorHandler(InstanceType.CoinSelector, this.coinSelector.objectId, (exception: any) => {
+      const errorMessage = exception.message || 'Error in CoinSelector';
+      const errorPtr = writeStringToMemory(errorMessage);
+      try {
+        getModule().tx_builder_set_last_error(this.ptr, errorPtr);
+      } finally {
+        getModule()._free(errorPtr);
+      }
+    });
+    this.registeredHandlers.push({ id: this.coinSelector.objectId, type: InstanceType.CoinSelector });
+
+    return this;
+  }
+
+  /**
+   * Sets a custom transaction evaluator.
+   *
+   * The evaluator is responsible for calculating the execution units (memory and steps)
+   * required for any Plutus scripts in the transaction. If this method is not called,
+   * the builder will use a default evaluator that relies on the configured provider.
+   *
+   * @param {TxEvaluator} txEvaluator The transaction evaluator to use.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   */
+  public setTxEvaluator(txEvaluator: TxEvaluator): TransactionBuilder {
+    this.txEvaluator = new EmscriptenTxEvaluator(txEvaluator);
+    getModule().tx_builder_set_tx_evaluator(this.ptr, this.txEvaluator.txEvaluatorPtr);
+
+    registerBridgeErrorHandler(InstanceType.TxEvaluator, this.txEvaluator.objectId, (exception: any) => {
+      const errorMessage = exception.message || 'Error in TxEvaluator';
+      const errorPtr = writeStringToMemory(errorMessage);
+      try {
+        getModule().tx_builder_set_last_error(this.ptr, errorPtr);
+      } finally {
+        getModule()._free(errorPtr);
+      }
+    });
+
+    return this;
   }
 
   /**
@@ -224,9 +318,12 @@ export class TransactionBuilder {
 
     if (value instanceof Date) {
       const unixTime = BigInt(Math.floor(value.getTime() / 1000));
-      module.tx_builder_set_invalid_after_ex(this.ptr, unixTime);
+      const parts = splitToLowHigh64bit(unixTime);
+      module.tx_builder_set_invalid_after_ex(this.ptr, parts.low, parts.high);
     } else {
-      module.tx_builder_set_invalid_after(this.ptr, BigInt(value));
+      const slot = BigInt(value);
+      const parts = splitToLowHigh64bit(slot);
+      module.tx_builder_set_invalid_after(this.ptr, parts.low, parts.high);
     }
 
     return this;
@@ -249,9 +346,12 @@ export class TransactionBuilder {
 
     if (value instanceof Date) {
       const unixTime = BigInt(Math.floor(value.getTime() / 1000));
-      module.tx_builder_set_invalid_before_ex(this.ptr, unixTime);
+      const parts = splitToLowHigh64bit(unixTime);
+      module.tx_builder_set_invalid_before_ex(this.ptr, parts.low, parts.high);
     } else {
-      module.tx_builder_set_invalid_before(this.ptr, BigInt(value));
+      const slot = BigInt(value);
+      const parts = splitToLowHigh64bit(slot);
+      module.tx_builder_set_invalid_before(this.ptr, parts.low, parts.high);
     }
 
     return this;
@@ -893,6 +993,33 @@ export class TransactionBuilder {
   }
 
   /**
+   * Adds a script to the transaction's witness set.
+   *
+   * This is necessary when using a script that is not already available on-chain
+   * via a reference input, such as a minting policy or a native script for a
+   * required signer.
+   *
+   * @param {Script} script The script object (Plutus or Native) to add.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   */
+  public addScript(script: Script): TransactionBuilder {
+    const module = getModule();
+    let scriptPtr = 0;
+
+    try {
+      scriptPtr = writeScript(script);
+
+      module.tx_builder_add_script(this.ptr, scriptPtr);
+    } finally {
+      if (scriptPtr !== 0) {
+        unrefObject(scriptPtr);
+      }
+    }
+
+    return this;
+  }
+
+  /**
    * Finalizes the transaction by performing coin selection, balancing, and fee calculation.
    * This is the final step in the building process.
    *
@@ -905,7 +1032,13 @@ export class TransactionBuilder {
     let txPtr = 0;
 
     try {
-      const result = await module.tx_builder_build(this.ptr, txPtrPtr);
+      asyncifyStateTracker.isAsyncActive = false;
+
+      let result = module.tx_builder_build(this.ptr, txPtrPtr);
+
+      if (asyncifyStateTracker.isAsyncActive) {
+        result = await module.Asyncify.whenDone();
+      }
 
       if (result !== 0) {
         const errorMsg = module.UTF8ToString(module.tx_builder_get_last_error(this.ptr));

@@ -16,6 +16,7 @@
 
 /* IMPORTS ********************************************************************/
 
+import { Address, RewardAddress } from '../address';
 import { NetworkMagic, ProtocolParameters, Redeemer, TxIn, UTxO } from '../common';
 
 /* DEFINITIONS ****************************************************************/
@@ -42,10 +43,10 @@ export interface Provider {
   /**
    * Get the current staking rewards balance for a reward account.
    *
-   * @param {string} rewardAccount - Stake/reward account identifier.
+   * @param {RewardAddress | string} rewardAccount - Reward account address or bech32 string.
    * @returns {Promise<bigint>} A promise that resolves to the balance in lovelace.
    */
-  getRewardsBalance(rewardAccount: string): Promise<bigint>;
+  getRewardsBalance(rewardAccount: RewardAddress | string): Promise<bigint>;
 
   /**
    * Fetch the current protocol parameters for the network.
@@ -57,19 +58,19 @@ export interface Provider {
   /**
    * List all unspent transaction outputs (UTxOs) controlled by an address.
    *
-   * @param {string} address - Payment address.
+   * @param {Address | string} address - Payment address. Address object or bech32 string.
    * @returns {Promise<UTxO[]>} A promise that resolves to an array of UTxOs.
    */
-  getUnspentOutputs(address: string): Promise<UTxO[]>;
+  getUnspentOutputs(address: Address | string): Promise<UTxO[]>;
 
   /**
    * List all UTxOs for an address that contain a specific asset.
    *
-   * @param {string} address - Payment address.
+   * @param {Address | string} address - Payment address. Address object or bech32 string.
    * @param {string} assetId - Asset identifier (policyId + asset name hex).
    * @returns {Promise<UTxO[]>} A promise that resolves to matching UTxOs.
    */
-  getUnspentOutputsWithAsset(address: string, assetId: string): Promise<UTxO[]>;
+  getUnspentOutputsWithAsset(address: Address | string, assetId: string): Promise<UTxO[]>;
 
   /**
    * Find the single UTxO that holds a given NFT.

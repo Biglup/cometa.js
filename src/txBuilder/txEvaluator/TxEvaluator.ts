@@ -34,5 +34,5 @@ export interface TxEvaluator {
    * @param additionalUtxos - Optional extra UTxOs the evaluator may consider for inputs/collateral.
    * @returns Promise that resolves to a list of redeemers (with costs/ex-units) for the transaction.
    */
-  evaluateTransaction(tx: string, additionalUtxos?: UTxO[]): Promise<Redeemer[]>;
+  evaluate(tx: string, additionalUtxos?: UTxO[]): Promise<Redeemer[]>;
 }

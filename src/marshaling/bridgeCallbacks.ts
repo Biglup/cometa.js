@@ -17,7 +17,7 @@
 /* IMPORTS *******************************************************************/
 
 import { Address, RewardAddress } from '../address';
-import { InstanceType, getFromInstanceRegistry } from '../instanceRegistry';
+import { InstanceType, getFromInstanceRegistry, reportBridgeError } from '../instanceRegistry';
 import { ProtocolParameters, UTxO, cborToPlutusData } from '../common';
 import { blake2bHashFromHex, readBlake2bHashData } from './blake2b';
 import { readAssetId } from './assetId';
@@ -47,6 +47,15 @@ export const bridgeCallbacks = {
   },
   get_tx_evaluator_from_registry(objectId: number) {
     return getFromInstanceRegistry(InstanceType.TxEvaluator, objectId);
+  },
+  report_provider_bridge_error(objectId: number, exception: any) {
+    return reportBridgeError(InstanceType.Provider, objectId, exception);
+  },
+  report_coin_selector_bridge_error(objectId: number, exception: any) {
+    return reportBridgeError(InstanceType.CoinSelector, objectId, exception);
+  },
+  report_tx_evaluator_bridge_error(objectId: number, exception: any) {
+    return reportBridgeError(InstanceType.TxEvaluator, objectId, exception);
   },
   marshal_blake2b_hash_from_hex(jsHexString: string) {
     return blake2bHashFromHex(jsHexString);

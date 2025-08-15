@@ -40,7 +40,12 @@ export const writeTransactionToCbor = (transactionPtr: number): string => {
   const result = module.transaction_to_cbor(transactionPtr, cborWriter.ptr);
 
   if (result !== 0) {
-    throw new Error('Failed to marshal transaction to CBOR.');
+    const errorCString = module.transaction_get_last_error(cborWriter.ptr);
+    const codeCString = module.error_to_string(result);
+
+    const errorMessage = module.UTF8ToString(errorCString);
+    const codeMessage = module.UTF8ToString(codeCString);
+    throw new Error(`Failed to marshal transaction to CBOR: ${codeMessage} - ${errorMessage}`);
   }
 
   return cborWriter.encodeHex();

@@ -20,7 +20,9 @@ import { InstanceType, registerInstance, unregisterInstance } from '../instanceR
 import { NetworkMagic, ProtocolParameters, Redeemer, TxIn, UTxO } from '../common';
 import { Provider } from './Provider';
 import { assertSuccess, unrefObject, utf8ByteLen, writeStringToMemory } from '../marshaling';
+import { asyncifyStateTracker } from '../cometa';
 import { getModule } from '../module';
+import { Address, RewardAddress } from '../address';
 
 /* DEFINITIONS ****************************************************************/
 
@@ -114,11 +116,15 @@ export class EmscriptenProvider implements Provider {
   /**
    * Get the current staking rewards balance for a reward account.
    *
-   * @param {string} rewardAccount - Stake/reward account identifier.
+   * @param {RewardAddress | string} rewardAccount - Reward account address or bech32 string.
    * @returns {Promise<bigint>} A promise that resolves to the balance in lovelace.
    */
-  public async getRewardsBalance(rewardAccount: string): Promise<bigint> {
-    return this.provider.getRewardsBalance(rewardAccount);
+  public async getRewardsBalance(rewardAccount: RewardAddress | string): Promise<bigint> {
+    try {
+      return this.provider.getRewardsBalance(rewardAccount);
+    } finally {
+      asyncifyStateTracker.isAsyncActive = false;
+    }
   }
 
   /**
@@ -127,28 +133,40 @@ export class EmscriptenProvider implements Provider {
    * @returns {Promise<ProtocolParameters>} A promise that resolves to the protocol parameters.
    */
   public async getParameters(): Promise<ProtocolParameters> {
-    return this.provider.getParameters();
+    try {
+      return this.provider.getParameters();
+    } finally {
+      asyncifyStateTracker.isAsyncActive = false;
+    }
   }
 
   /**
    * List all unspent transaction outputs (UTxOs) controlled by an address.
    *
-   * @param {string} address - Payment address.
+   * @param {Address | string} address - Payment address. Address object or bech32 string.
    * @returns {Promise<UTxO[]>} A promise that resolves to an array of UTxOs.
    */
-  public async getUnspentOutputs(address: string): Promise<UTxO[]> {
-    return this.provider.getUnspentOutputs(address);
+  public async getUnspentOutputs(address: Address | string): Promise<UTxO[]> {
+    try {
+      return this.provider.getUnspentOutputs(address);
+    } finally {
+      asyncifyStateTracker.isAsyncActive = false;
+    }
   }
 
   /**
    * List all UTxOs for an address that contain a specific asset.
    *
-   * @param {string} address - Payment address.
+   * @param {Address | string} address - Payment address. Address object or bech32 string.
    * @param {string} assetId - Asset identifier (policyId + asset name hex).
    * @returns {Promise<UTxO[]>} A promise that resolves to matching UTxOs.
    */
-  public async getUnspentOutputsWithAsset(address: string, assetId: string): Promise<UTxO[]> {
-    return this.provider.getUnspentOutputsWithAsset(address, assetId);
+  public async getUnspentOutputsWithAsset(address: Address | string, assetId: string): Promise<UTxO[]> {
+    try {
+      return this.provider.getUnspentOutputsWithAsset(address, assetId);
+    } finally {
+      asyncifyStateTracker.isAsyncActive = false;
+    }
   }
 
   /**
@@ -158,7 +176,11 @@ export class EmscriptenProvider implements Provider {
    * @returns {Promise<UTxO>} A promise that resolves to the UTxO containing the NFT.
    */
   public async getUnspentOutputByNft(assetId: string): Promise<UTxO> {
-    return this.provider.getUnspentOutputByNft(assetId);
+    try {
+      return await this.provider.getUnspentOutputByNft(assetId);
+    } finally {
+      asyncifyStateTracker.isAsyncActive = false;
+    }
   }
 
   /**
@@ -168,7 +190,13 @@ export class EmscriptenProvider implements Provider {
    * @returns {Promise<UTxO[]>} A promise that resolves to an array of UTxOs.
    */
   public async resolveUnspentOutputs(txIns: TxIn[]): Promise<UTxO[]> {
-    return this.provider.resolveUnspentOutputs(txIns);
+    asyncifyStateTracker.isAsyncActive = true;
+
+    try {
+      return await this.provider.resolveUnspentOutputs(txIns);
+    } finally {
+      asyncifyStateTracker.isAsyncActive = false;
+    }
   }
 
   /**
@@ -178,7 +206,13 @@ export class EmscriptenProvider implements Provider {
    * @returns {Promise<string>} A promise that resolves to the datum payload (hex-encoded CBOR).
    */
   public async resolveDatum(datumHash: string): Promise<string> {
-    return this.provider.resolveDatum(datumHash);
+    asyncifyStateTracker.isAsyncActive = true;
+
+    try {
+      return await this.provider.resolveDatum(datumHash);
+    } finally {
+      asyncifyStateTracker.isAsyncActive = false;
+    }
   }
 
   /**
@@ -189,7 +223,13 @@ export class EmscriptenProvider implements Provider {
    * @returns {Promise<boolean>} A promise that resolves to true if confirmed, otherwise false.
    */
   public async confirmTransaction(txId: string, timeout?: number): Promise<boolean> {
-    return this.provider.confirmTransaction(txId, timeout);
+    asyncifyStateTracker.isAsyncActive = true;
+
+    try {
+      return await this.provider.confirmTransaction(txId, timeout);
+    } finally {
+      asyncifyStateTracker.isAsyncActive = false;
+    }
   }
 
   /**
@@ -199,7 +239,13 @@ export class EmscriptenProvider implements Provider {
    * @returns {Promise<string>} A promise that resolves to the submitted transaction id.
    */
   public async submitTransaction(tx: string): Promise<string> {
-    return this.provider.submitTransaction(tx);
+    asyncifyStateTracker.isAsyncActive = true;
+
+    try {
+      return await this.provider.submitTransaction(tx);
+    } finally {
+      asyncifyStateTracker.isAsyncActive = false;
+    }
   }
 
   /**
@@ -210,6 +256,12 @@ export class EmscriptenProvider implements Provider {
    * @returns {Promise<Redeemer[]>} A promise that resolves to a list of redeemers with execution units.
    */
   public async evaluateTransaction(tx: string, additionalUtxos?: UTxO[]): Promise<Redeemer[]> {
-    return this.provider.evaluateTransaction(tx, additionalUtxos);
+    asyncifyStateTracker.isAsyncActive = true;
+
+    try {
+      return await this.provider.evaluateTransaction(tx, additionalUtxos);
+    } finally {
+      asyncifyStateTracker.isAsyncActive = false;
+    }
   }
 }

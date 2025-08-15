@@ -81,3 +81,11 @@ export const utf8ToUint8Array = (str: string): Uint8Array => new TextEncoder().e
  * @returns {string} The converted UTF-8 string.
  */
 export const uint8ArrayToUtf8 = (uint8Array: Uint8Array): string => new TextDecoder().decode(uint8Array);
+
+/**
+ * A simple state tracker to manually signal when an async operation,
+ * callable from WASM, has been initiated.
+ */
+export const asyncifyStateTracker = {
+  isAsyncActive: false
+};
