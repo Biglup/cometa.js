@@ -24,6 +24,14 @@ import { writeStringToMemory } from './string';
 
 /* DEFINITIONS ****************************************************************/
 
+/**
+ * Deserializes a native `cardano_value_t` object into a JavaScript `Value` object.
+ * This function reads the lovelace (coins) and multi-asset data from the given memory pointer.
+ *
+ * @param {number} ptr - A pointer to the native `cardano_value_t` object.
+ * @returns {Value} The deserialized JavaScript `Value` object.
+ * @throws {Error} If the provided pointer is null.
+ */
 export const readValue = (ptr: number): Value => {
   if (!ptr) {
     throw new Error('Pointer is null');
@@ -79,6 +87,14 @@ export const readValue = (ptr: number): Value => {
   return result;
 };
 
+/**
+ * Serializes a JavaScript `Value` object into a native `cardano_value_t` object.
+ * This function creates a new native object in memory representing the lovelace and multi-asset data.
+ *
+ * @param {Value} value - The `Value` object to serialize.
+ * @returns {number} A pointer to the newly created native `cardano_value_t` object. The caller is responsible for freeing this memory with `unrefObject`.
+ * @throws {Error} If adding an asset to the native value object fails.
+ */
 export const writeValue = (value: Value): number => {
   const module = getModule();
 

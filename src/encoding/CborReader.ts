@@ -20,7 +20,7 @@ import { CborReaderState } from './CborReaderState';
 import { CborSimpleValue } from './CborSimpleValue';
 import { CborTag } from './CborTag';
 import { assertSuccess, readBufferData, readI64, writeStringToMemory } from '../marshaling';
-import { finalizationRegistry } from '../garbageCollection/finalizationRegistry';
+import { finalizationRegistry } from '../garbageCollection';
 import { getModule } from '../module';
 
 /* DEFINITIONS ****************************************************************/

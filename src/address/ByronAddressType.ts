@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+/* DEFINITIONS ****************************************************************/
+
 /**
  * Enumerates the types of spending data associated with Byron addresses.
  *

@@ -1,3 +1,11 @@
+Next (V1.0.8)
+---------------------
+
+Next (V1.0.7)
+---------------------
+
+This version includes bindings to the transaction builder from libcardano-c library.
+
 Next (V1.0.3)
 ---------------------
 

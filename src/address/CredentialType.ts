@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+/* DEFINITIONS ****************************************************************/
+
 /**
  * Defines the types of credentials that can be used in Cardano addresses.
  *

@@ -17,6 +17,7 @@
 
 /* IMPORTS **************************************************************/
 
+import { Address, CredentialType, EnterpriseAddress, NetworkId } from '../address';
 import { CborReader, CborWriter } from '../encoding';
 import { assertSuccess, readBlake2bHashData, readScript, unrefObject, writeScript } from '../marshaling';
 import { getModule } from '../module';
@@ -265,6 +266,29 @@ export const computeScriptHash = (script: Script): string => {
   } finally {
     unrefObject(ptr);
   }
+};
+
+/**
+ * Derives a script address (enterprise address) from a script.
+ *
+ * This function calculates the script's hash, creates a script credential from it,
+ * and then constructs an enterprise address for the specified network.
+ *
+ * @param {Script} script The script (Native or Plutus) from which to derive the address.
+ * @param {NetworkId} networkId The network identifier (e.g., Mainnet or Testnet).
+ * @returns {Address} An Address object representing the script address.
+ * @throws {Error} If any step of the address creation process fails.
+ */
+// eslint-disable-next-line max-statements
+export const getScriptAddress = (script: Script, networkId: NetworkId): Address => {
+  const scriptHash = computeScriptHash(script);
+  const credential = {
+    hash: scriptHash,
+    type: CredentialType.ScriptHash
+  };
+  const enterpriseAddress = EnterpriseAddress.fromCredentials(networkId, credential);
+
+  return enterpriseAddress.toAddress();
 };
 
 /**
