@@ -22,6 +22,7 @@ import { getModule } from '../module';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Serializes a native transaction object into its CBOR representation as a hex string.
  *
  * @param {number} transactionPtr - A pointer to the transaction object in WASM memory.
@@ -52,6 +53,7 @@ export const writeTransactionToCbor = (transactionPtr: number): string => {
 };
 
 /**
+ * @hidden
  * Deserializes a transaction from its CBOR hex string representation into a native object in WASM memory.
  *
  * @param {string} transactionCbor - The CBOR representation of the transaction, encoded as a hexadecimal string.

@@ -27,6 +27,7 @@ import { writeStringToMemory } from './string';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Deserializes a native `cardano_voter_t` object into a JavaScript `Voter` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_voter_t` object.
@@ -59,6 +60,7 @@ export const readVoter = (ptr: number): Voter => {
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `Voter` object into a native `cardano_voter_t` object.
  *
  * @param {Voter} voter - The `Voter` object to serialize.
@@ -81,6 +83,7 @@ export const writeVoter = (voter: Voter): number => {
 };
 
 /**
+ * @hidden
  * Deserializes a native `cardano_governance_action_id_t` object into a JavaScript `GovernanceActionId` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_governance_action_id_t` object.
@@ -112,6 +115,7 @@ export const readGovernanceActionId = (ptr: number): GovernanceActionId => {
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `GovernanceActionId` object into a native `cardano_governance_action_id_t` object.
  *
  * @param {GovernanceActionId} govActionId - The `GovernanceActionId` object to serialize.
@@ -142,6 +146,7 @@ export const writeGovernanceActionId = (govActionId: GovernanceActionId): number
 };
 
 /**
+ * @hidden
  * Deserializes a native `cardano_voting_procedure_t` object into a JavaScript `VotingProcedure` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_voting_procedure_t` object.
@@ -169,6 +174,7 @@ export const readVotingProcedure = (ptr: number): VotingProcedure => {
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `VotingProcedure` object into a native `cardano_voting_procedure_t` object.
  *
  * @param {VotingProcedure} votingProcedure - The `VotingProcedure` object to serialize.

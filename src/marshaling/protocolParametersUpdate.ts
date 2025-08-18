@@ -31,6 +31,7 @@ import { splitToLowHigh64bit } from './number';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Serializes a JavaScript `ProtocolParametersUpdate` object into a native C `cardano_protocol_param_update_t`.
  * Only the properties defined in the input object will be set in the native structure.
  *
@@ -135,6 +136,7 @@ export const writeProtocolParamUpdate = (params: ProtocolParametersUpdate): numb
 };
 
 /**
+ * @hidden
  * Deserializes a native `cardano_protocol_param_update_t` object into a JavaScript `ProtocolParametersUpdate` object.
  * Only the properties present in the native structure will be included in the returned object.
  *

@@ -63,6 +63,7 @@ const FAILED_TO_GET_DREP_ERROR = 'Failed to get DRep credential from certificate
 /* IMPORTS *******************************************************************/
 
 /**
+ * @hidden
  * Deserializes a native C `cardano_certificate_t` object into a JavaScript `StakeRegistrationCertificate` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_certificate_t` object, expected to be of the stake registration type.
@@ -103,6 +104,7 @@ export const readStakeRegistrationCertificate = (ptr: number): StakeRegistration
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `StakeRegistrationCertificate` object into a native C `cardano_certificate_t`.
  *
  * @param {StakeRegistrationCertificate} cert - The `StakeRegistrationCertificate` object to serialize.
@@ -140,6 +142,7 @@ export const writeStakeRegistrationCertificate = (cert: StakeRegistrationCertifi
 };
 
 /**
+ * @hidden
  * Deserializes a native C `cardano_certificate_t` object into a JavaScript `StakeDeregistrationCertificate` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_certificate_t` object, expected to be of the stake deregistration type.
@@ -180,6 +183,7 @@ export const readStakeDeregistrationCertificate = (ptr: number): StakeDeregistra
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `StakeDeregistrationCertificate` object into a native C `cardano_certificate_t`.
  *
  * @param {StakeDeregistrationCertificate} cert - The `StakeDeregistrationCertificate` object to serialize.
@@ -217,6 +221,7 @@ export const writeStakeDeregistrationCertificate = (cert: StakeDeregistrationCer
 };
 
 /**
+ * @hidden
  * Deserializes a native C `cardano_certificate_t` object into a JavaScript `StakeDelegationCertificate` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_certificate_t` object, expected to be of the stake delegation type.
@@ -267,6 +272,7 @@ export const readStakeDelegationCertificate = (ptr: number): StakeDelegationCert
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `StakeDelegationCertificate` object into a native C `cardano_certificate_t`.
  *
  * @param {StakeDelegationCertificate} cert - The `StakeDelegationCertificate` object to serialize.
@@ -307,6 +313,7 @@ export const writeStakeDelegationCertificate = (cert: StakeDelegationCertificate
 };
 
 /**
+ * @hidden
  * Deserializes a native C `cardano_certificate_t` object into a JavaScript `PoolRegistrationCertificate` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_certificate_t` object, expected to be of the pool registration type.
@@ -350,6 +357,7 @@ export const readPoolRegistrationCertificate = (ptr: number): PoolRegistrationCe
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `PoolRegistrationCertificate` object into a native C `cardano_certificate_t`.
  *
  * @param {PoolRegistrationCertificate} cert - The `PoolRegistrationCertificate` object to serialize.
@@ -388,6 +396,7 @@ export const writePoolRegistrationCertificate = (cert: PoolRegistrationCertifica
 };
 
 /**
+ * @hidden
  * Deserializes a native C `cardano_certificate_t` object into a JavaScript `PoolRetirementCertificate` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_certificate_t` object, expected to be of the pool retirement type.
@@ -431,6 +440,7 @@ export const readPoolRetirementCertificate = (ptr: number): PoolRetirementCertif
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `PoolRetirementCertificate` object into a native C `cardano_certificate_t`.
  *
  * @param {PoolRetirementCertificate} cert - The `PoolRetirementCertificate` object to serialize.
@@ -470,6 +480,7 @@ export const writePoolRetirementCertificate = (cert: PoolRetirementCertificate):
 };
 
 /**
+ * @hidden
  * Deserializes a native C `cardano_certificate_t` object into a JavaScript `GenesisKeyDelegationCertificate` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_certificate_t` object, expected to be of the genesis key delegation type.
@@ -515,6 +526,7 @@ export const readGenesisKeyDelegationCertificate = (ptr: number): GenesisKeyDele
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `GenesisKeyDelegationCertificate` object into a native C `cardano_certificate_t`.
  *
  * @param {GenesisKeyDelegationCertificate} cert - The `GenesisKeyDelegationCertificate` object to serialize.
@@ -557,6 +569,7 @@ export const writeGenesisKeyDelegationCertificate = (cert: GenesisKeyDelegationC
 };
 
 /**
+ * @hidden
  * Deserializes a native C `cardano_certificate_t` object into a JavaScript `MirCertificate` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_certificate_t` object, expected to be of the MIR type.
@@ -650,6 +663,7 @@ export const readMoveInstantaneousRewardsCertificate = (ptr: number): MirCertifi
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `MirCertificate` object into a native C `cardano_certificate_t`.
  *
  * @param {MirCertificate} cert - The `MirCertificate` object to serialize.
@@ -700,6 +714,7 @@ export const writeMoveInstantaneousRewardsCertificate = (cert: MirCertificate): 
 };
 
 /**
+ * @hidden
  * Deserializes a native C `cardano_certificate_t` object into a JavaScript `RegistrationCertificate` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_certificate_t` object, expected to be of the registration type.
@@ -743,6 +758,7 @@ export const readRegistrationCertificate = (ptr: number): RegistrationCertificat
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `RegistrationCertificate` object into a native C `cardano_certificate_t`.
  *
  * @param {RegistrationCertificate} cert - The `RegistrationCertificate` object to serialize.
@@ -782,6 +798,7 @@ export const writeRegistrationCertificate = (cert: RegistrationCertificate): num
 };
 
 /**
+ * @hidden
  * Deserializes a native C `cardano_certificate_t` object into a JavaScript `UnregistrationCertificate` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_certificate_t` object, expected to be of the unregistration type.
@@ -825,6 +842,7 @@ export const readUnregistrationCertificate = (ptr: number): UnregistrationCertif
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `UnregistrationCertificate` object into a native C `cardano_certificate_t`.
  *
  * @param {UnregistrationCertificate} cert - The `UnregistrationCertificate` object to serialize.
@@ -931,6 +949,7 @@ const writeDRep = (drep: DRep): number => {
 };
 
 /**
+ * @hidden
  * Deserializes a native C `cardano_certificate_t` object into a JavaScript `VoteDelegationCertificate` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_certificate_t` object, expected to be of the vote delegation type.
@@ -981,6 +1000,7 @@ export const readVoteDelegationCertificate = (ptr: number): VoteDelegationCertif
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `VoteDelegationCertificate` object into a native C `cardano_certificate_t`.
  *
  * @param {VoteDelegationCertificate} cert - The `VoteDelegationCertificate` object to serialize.
@@ -1021,6 +1041,7 @@ export const writeVoteDelegationCertificate = (cert: VoteDelegationCertificate):
 };
 
 /**
+ * @hidden
  * Deserializes a native C `cardano_certificate_t` object into a JavaScript `StakeVoteDelegationCertificate` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_certificate_t` object, expected to be of the stake vote delegation type.
@@ -1066,6 +1087,7 @@ export const readStakeVoteDelegationCertificate = (ptr: number): StakeVoteDelega
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `StakeVoteDelegationCertificate` object into a native C `cardano_certificate_t`.
  *
  * @param {StakeVoteDelegationCertificate} cert - The `StakeVoteDelegationCertificate` object to serialize.
@@ -1108,6 +1130,7 @@ export const writeStakeVoteDelegationCertificate = (cert: StakeVoteDelegationCer
 };
 
 /**
+ * @hidden
  * Deserializes a native C `cardano_certificate_t` object into a JavaScript `StakeRegistrationDelegationCertificate` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_certificate_t` object, expected to be of the stake registration delegation type.
@@ -1151,6 +1174,7 @@ export const readStakeRegistrationDelegationCertificate = (ptr: number): StakeRe
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `StakeRegistrationDelegationCertificate` object into a native C `cardano_certificate_t`.
  *
  * @param {StakeRegistrationDelegationCertificate} cert - The `StakeRegistrationDelegationCertificate` object to serialize.
@@ -1198,6 +1222,7 @@ export const writeStakeRegistrationDelegationCertificate = (cert: StakeRegistrat
 };
 
 /**
+ * @hidden
  * Deserializes a native C `cardano_certificate_t` object into a JavaScript `VoteRegistrationDelegationCertificate` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_certificate_t` object, expected to be of the vote registration delegation type.
@@ -1241,6 +1266,7 @@ export const readVoteRegistrationDelegationCertificate = (ptr: number): VoteRegi
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `VoteRegistrationDelegationCertificate` object into a native C `cardano_certificate_t`.
  *
  * @param {VoteRegistrationDelegationCertificate} cert - The `VoteRegistrationDelegationCertificate` object to serialize.
@@ -1288,6 +1314,7 @@ export const writeVoteRegistrationDelegationCertificate = (cert: VoteRegistratio
 };
 
 /**
+ * @hidden
  * Deserializes a native C `cardano_certificate_t` object into a JavaScript `StakeVoteRegistrationDelegationCertificate` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_certificate_t` object, expected to be of the stake vote registration delegation type.
@@ -1337,6 +1364,7 @@ export const readStakeVoteRegistrationDelegationCertificate = (
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `StakeVoteRegistrationDelegationCertificate` object into a native C `cardano_certificate_t`.
  *
  * @param {StakeVoteRegistrationDelegationCertificate} cert - The `StakeVoteRegistrationDelegationCertificate` object to serialize.
@@ -1389,6 +1417,7 @@ export const writeStakeVoteRegistrationDelegationCertificate = (
 };
 
 /**
+ * @hidden
  * Deserializes a native C `cardano_certificate_t` object into a JavaScript `AuthCommitteeHotCertificate` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_certificate_t` object, expected to be of the auth committee hot type.
@@ -1439,6 +1468,7 @@ export const readAuthCommitteeHotCertificate = (ptr: number): AuthCommitteeHotCe
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `AuthCommitteeHotCertificate` object into a native C `cardano_certificate_t`.
  *
  * @param {AuthCommitteeHotCertificate} cert - The `AuthCommitteeHotCertificate` object to serialize.
@@ -1479,6 +1509,7 @@ export const writeAuthCommitteeHotCertificate = (cert: AuthCommitteeHotCertifica
 };
 
 /**
+ * @hidden
  * Deserializes a native C `cardano_certificate_t` object into a JavaScript `ResignCommitteeColdCertificate` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_certificate_t` object, expected to be of the resign committee cold type.
@@ -1520,6 +1551,7 @@ export const readResignCommitteeColdCertificate = (ptr: number): ResignCommittee
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `ResignCommitteeColdCertificate` object into a native C `cardano_certificate_t`.
  *
  * @param {ResignCommitteeColdCertificate} cert - The `ResignCommitteeColdCertificate` object to serialize.
@@ -1562,6 +1594,7 @@ export const writeResignCommitteeColdCertificate = (cert: ResignCommitteeColdCer
 };
 
 /**
+ * @hidden
  * Deserializes a native C `cardano_certificate_t` object into a JavaScript `DRepRegistrationCertificate` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_certificate_t` object, expected to be of the DRep registration type.
@@ -1605,6 +1638,7 @@ export const readDRepRegistrationCertificate = (ptr: number): DRepRegistrationCe
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `DRepRegistrationCertificate` object into a native C `cardano_certificate_t`.
  *
  * @param {DRepRegistrationCertificate} cert - The `DRepRegistrationCertificate` object to serialize.
@@ -1648,6 +1682,7 @@ export const writeDRepRegistrationCertificate = (cert: DRepRegistrationCertifica
 };
 
 /**
+ * @hidden
  * Deserializes a native C `cardano_certificate_t` object into a JavaScript `DRepUnregistrationCertificate` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_certificate_t` object, expected to be of the DRep unregistration type.
@@ -1687,6 +1722,7 @@ export const readDRepUnregistrationCertificate = (ptr: number): DRepUnregistrati
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `DRepUnregistrationCertificate` object into a native C `cardano_certificate_t`.
  *
  * @param {DRepUnregistrationCertificate} cert - The `DRepUnregistrationCertificate` object to serialize.
@@ -1726,6 +1762,7 @@ export const writeDRepUnregistrationCertificate = (cert: DRepUnregistrationCerti
 };
 
 /**
+ * @hidden
  * Deserializes a native C `cardano_certificate_t` object into a JavaScript `UpdateDRepCertificate` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_certificate_t` object, expected to be of the update DRep type.
@@ -1767,6 +1804,7 @@ export const readUpdateDRepCertificate = (ptr: number): UpdateDRepCertificate =>
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `UpdateDRepCertificate` object into a native C `cardano_certificate_t`.
  *
  * @param {UpdateDRepCertificate} cert - The `UpdateDRepCertificate` object to serialize.
@@ -1811,6 +1849,7 @@ export const writeUpdateDRepCertificate = (cert: UpdateDRepCertificate): number 
 /* MAIN EXPORTS **************************************************************/
 
 /**
+ * @hidden
  * Deserializes a native `cardano_certificate_t` object into a specific JavaScript `Certificate` object.
  *
  * @param {number} ptr A pointer to the native `cardano_certificate_t` object.
@@ -1994,6 +2033,7 @@ export const readCertificate = (ptr: number): Certificate => {
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `Certificate` object into a native `cardano_certificate_t`.
  *
  * @param {Certificate} cert The `Certificate` object to serialize.

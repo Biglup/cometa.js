@@ -23,6 +23,7 @@ import { getModule } from '../module';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Reads a credential object from WASM memory and converts it into a JavaScript object.
  *
  * This function takes a pointer to a native Credential object, extracts its
@@ -61,6 +62,7 @@ export const readCredential = (credentialPtr: number): Credential => {
 };
 
 /**
+ * @hidden
  * Creates a credential object in WASM memory from a JavaScript object.
  *
  * This function takes a JavaScript object representing a credential, converts its

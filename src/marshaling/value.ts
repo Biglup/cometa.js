@@ -25,6 +25,7 @@ import { writeStringToMemory } from './string';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Deserializes a native `cardano_value_t` object into a JavaScript `Value` object.
  * This function reads the lovelace (coins) and multi-asset data from the given memory pointer.
  *
@@ -88,6 +89,7 @@ export const readValue = (ptr: number): Value => {
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `Value` object into a native `cardano_value_t` object.
  * This function creates a new native object in memory representing the lovelace and multi-asset data.
  *

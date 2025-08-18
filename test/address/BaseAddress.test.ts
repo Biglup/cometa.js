@@ -14,8 +14,12 @@
  * limitations under the License.
  */
 
+/* IMPORTS ********************************************************************/
+
 import * as Cometa from '../../dist/cjs';
 import * as cip19TestVectors from '../vectors/Cip19TestVectors';
+
+/* TESTS **********************************************************************/
 
 describe('BaseAddress', () => {
   beforeAll(async () => {

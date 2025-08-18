@@ -24,6 +24,7 @@ import { splitToLowHigh64bit } from './number';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Reads a UnitInterval value from a pointer in WASM memory.
  *
  * This function reads a UnitInterval value from a pointer in WASM memory and returns it as a number
@@ -49,6 +50,7 @@ export const readUnitIntervalAsDouble = (ptr: number): number => {
 };
 
 /**
+ * @hidden
  * Creates a UnitInterval value from a string or number representation.
  *
  * This function creates a UnitInterval value from either a string or number representation
@@ -78,6 +80,11 @@ export const writeUnitIntervalAsDouble = (value: string | number): number => {
   }
 };
 
+/**
+ * @hidden
+ * Writes a UnitInterval value to WASM memory from a UnitInterval object.
+ * @param value - The UnitInterval object containing numerator and denominator.
+ */
 export const writeUnitInterval = (value: UnitInterval): number => {
   const module = getModule();
   const unitIntervalPtrPtr = module._malloc(4);
@@ -102,6 +109,7 @@ export const writeUnitInterval = (value: UnitInterval): number => {
 };
 
 /**
+ * @hidden
  * Dereferences a UnitInterval pointer, freeing its memory.
  *
  * This function decrements the reference count of a UnitInterval object and frees its memory
@@ -127,6 +135,7 @@ export const derefUnitInterval = (ptr: number): void => {
 };
 
 /**
+ * @hidden
  * Reads the numerator and denominator of a UnitInterval from a pointer in WASM memory.
  * @param ptr - The pointer to the UnitInterval in WASM memory.
  * @returns An object containing the numerator and denominator of the UnitInterval.
@@ -148,6 +157,7 @@ export const readIntervalComponents = (ptr: number): UnitInterval => {
 };
 
 /**
+ * @hidden
  * Converts a string or number to a UnitInterval object.
  * @param value - The string or number representation of the UnitInterval value (must be between 0 and 1).
  */

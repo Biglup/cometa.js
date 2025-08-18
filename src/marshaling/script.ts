@@ -37,17 +37,20 @@ import { writeStringToMemory } from './string';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Allocates a pointer in WASM memory for a 32-bit integer.
  */
 const allocPtr = (): number => getModule()._malloc(4);
 
 /**
+ * @hidden
  * Reads a 32-bit integer pointer from WASM memory.
  * @param ptr - The pointer to read from.
  */
 const readPtr = (ptr: number): number => getModule().getValue(ptr, 'i32');
 
 /**
+ * @hidden
  * Recursively writes a JavaScript NativeScript object to WASM memory and
  * returns a pointer to a `cardano_native_script_t`.
  *
@@ -197,6 +200,7 @@ const writeNativeScript = (script: NativeScript): number => {
 };
 
 /**
+ * @hidden
  * Writes a JavaScript PlutusScript object to WASM memory and returns a
  * pointer to a generic `cardano_script_t`.
  *
@@ -263,6 +267,7 @@ const writePlutusScript = (script: PlutusScript): number => {
 };
 
 /**
+ * @hidden
  * Marshals a JavaScript `Script` object into a C `cardano_script_t` object
  * in WASM memory and returns a handle (pointer) to it.
  *
@@ -295,6 +300,7 @@ export const writeScript = (script: Script): number => {
 };
 
 /**
+ * @hidden
  * Reads a C `cardano_native_script_t` pointer and converts it into a
  * @param nativeScriptPtr A pointer to the C `cardano_native_script_t` object.
  */
@@ -435,6 +441,7 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
 };
 
 /**
+ * @hidden
  * Reads a C `cardano_plutus_script_t` pointer and converts it into a
  * @param scriptPtr A pointer to the C `cardano_plutus_script_t` object.
  * @param language The Plutus language version of the script.
@@ -497,6 +504,7 @@ const readPlutusScript = (scriptPtr: number, language: PlutusLanguageVersion): P
 };
 
 /**
+ * @hidden
  * Reads a C `cardano_script_t` pointer and converts it into a
  * JavaScript Script object.
  * @param ptr A pointer to the C `cardano_script_t` object.

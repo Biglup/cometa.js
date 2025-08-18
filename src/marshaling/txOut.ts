@@ -34,7 +34,7 @@ const DATUM_TYPE_INLINE_DATA = 1;
 /* DEFINITIONS ****************************************************************/
 
 /**
- * @private
+ * @hidden
  * Internal helper to read a Datum from its WASM pointer.
  * It determines if the datum is inline or a hash and returns the appropriate JS representation.
  *
@@ -73,7 +73,7 @@ const _readDatum = (datumPtr: number): { inlineDatum?: PlutusData; datumHash?: s
 };
 
 /**
- * @private
+ * @hidden
  * Internal helper to create a native Datum object from a TxOut's datum properties.
  *
  * @param {TxOut} txOut - The JavaScript TxOut object containing datum information.
@@ -120,6 +120,7 @@ const _writeDatum = (txOut: TxOut): number => {
 };
 
 /**
+ * @hidden
  * Reads a transaction output from a WASM memory pointer and converts it into a JavaScript object.
  *
  * @param {number} ptr - A pointer to the `cardano_transaction_output_t` object in WASM memory.
@@ -168,6 +169,7 @@ export const readTxOut = (ptr: number): TxOut => {
 };
 
 /**
+ * @hidden
  * Creates a transaction output object in WASM memory from a JavaScript object.
  *
  * This function handles the serialization of the address, value, datum, and script reference

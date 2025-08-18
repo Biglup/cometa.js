@@ -27,6 +27,7 @@ export const MAX_UNSIGNED_64BIT = 2n ** 64n - 1n;
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Splits a 64-bit integer into its lower and upper 32-bit components.
  *
  * This function takes a `number` or `bigint` value and splits it into two 32-bit integers,
@@ -56,6 +57,7 @@ export const splitToLowHigh64bit = (value: number | bigint): { low: number; high
 };
 
 /**
+ * @hidden
  * Reads a 64-bit integer (signed or unsigned) from memory and returns it as a `bigint`.
  *
  * This function reads a 64-bit value split into two 32-bit integers (low and high) from a given
@@ -84,6 +86,7 @@ export const readI64 = (ptr: any, isSigned = false): bigint => {
 };
 
 /**
+ * @hidden
  * Writes a 64-bit integer to memory at the specified pointer.
  *
  * @param ptr The pointer to write to.

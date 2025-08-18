@@ -420,6 +420,7 @@ const writePoolMetadata = (metadata: Anchor): number => {
 };
 
 /**
+ * @hidden
  * Deserializes a native `cardano_pool_params_t` into a JavaScript `PoolParameters` object.
  *
  * @param {number} ptr A pointer to the native `cardano_pool_params_t` object.
@@ -507,6 +508,7 @@ export const readPoolParameters = (ptr: number): PoolParameters => {
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `PoolParameters` object into a native `cardano_pool_params_t`.
  *
  * @param {PoolParameters} params The `PoolParameters` object to serialize.

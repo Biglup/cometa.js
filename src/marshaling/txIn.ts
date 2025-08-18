@@ -26,6 +26,7 @@ import { uint8ArrayToHex } from '../cometa';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Reads a transaction input object from WASM memory and converts it into a JavaScript object.
  *
  * @param {number} ptr - A pointer to the `cardano_transaction_input_t` object in WASM memory.
@@ -61,6 +62,7 @@ export const readTxIn = (ptr: number): TxIn => {
 };
 
 /**
+ * @hidden
  * Creates a transaction input object in WASM memory from a JavaScript object.
  *
  * @param {TxIn} txIn - The JavaScript object representing the transaction input.
@@ -99,6 +101,7 @@ export const writeTxIn = (txIn: TxIn): number => {
 };
 
 /**
+ * @hidden
  * Reads a list of transaction inputs from WASM memory and converts it into a JavaScript array.
  *
  * @param {number} inputSetPtr - A pointer to the `cardano_transaction_input_list_t` object in WASM memory.
@@ -140,13 +143,7 @@ export const readInputSet = (inputSetPtr: number): TxIn[] => {
 };
 
 /**
- * Converts a JavaScript array of TxIn objects into a C `cardano_transaction_input_set_t`
- * and returns its pointer.
- *
- * @param {TxIn[]} txIns The JavaScript array of transaction inputs.
- * @returns {number} A pointer to the C `cardano_transaction_input_set_t`.
- */
-/**
+ * @hidden
  * Converts a JavaScript array of TxIn objects into a C `cardano_transaction_input_set_t`
  * and returns its pointer.
  *

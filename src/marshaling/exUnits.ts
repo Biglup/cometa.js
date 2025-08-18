@@ -24,6 +24,7 @@ import { readI64, splitToLowHigh64bit } from './number';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Writes an ExUnits object to WASM memory.
  *
  * @param units - The ExUnits object to write.
@@ -52,6 +53,7 @@ export const writeExUnits = (units: ExUnits): number => {
 };
 
 /**
+ * @hidden
  * Reads an ExUnits object from a pointer in WASM memory.
  *
  * @param ptr - The pointer to the execution units in WASM memory.
@@ -87,6 +89,7 @@ export const readExUnits = (ptr: number): ExUnits => {
 };
 
 /**
+ * @hidden
  * Dereferences an execution units pointer, freeing its memory.
  *
  * Note: After calling this, the pointer is dangling. Reading from it will likely return zero or garbage, not throw.

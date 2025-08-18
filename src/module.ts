@@ -16,8 +16,11 @@
 
 /* IMPORTS *******************************************************************/
 
+import { Buffer } from 'buffer';
 import { bridgeCallbacks } from './marshaling';
 import { ensureModuleHasRandomValue } from './randomValue';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import pako from 'pako';
 
 /* GLOBALS ********************************************************************/
 
@@ -40,12 +43,21 @@ export const ready = async (): Promise<void> => {
 
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  const ModuleFactory = (await import('../libcardano-c/cardano_c.js')).default;
+  const EmscriptenModule = (await import('../libcardano-c/cardano_c_compressed.js')).default;
+  const ModuleFactory = EmscriptenModule;
+
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  const compressedWasmBase64 = EmscriptenModule.compressedWasmBase64;
+
+  const compressedBytes = Buffer.from(compressedWasmBase64, 'base64');
+  const decompressedWasmBinary = pako.inflate(compressedBytes);
 
   return new Promise<void>((resolve, reject) => {
     Object.assign(globalThis, bridgeCallbacks);
 
     const moduleInstance = ModuleFactory({
+      wasmBinary: decompressedWasmBinary,
       onAbort: (err: unknown) => {
         reject(err);
       },

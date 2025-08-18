@@ -31,6 +31,7 @@ import { splitToLowHigh64bit } from './number';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Writes a ProtocolParameters object to WASM memory.
  *
  * @param params - The ProtocolParameters object to write.
@@ -283,6 +284,7 @@ export const writeProtocolParameters = (params: ProtocolParameters): number => {
 };
 
 /**
+ * @hidden
  * Reads a ProtocolParameters object from a pointer in WASM memory.
  *
  * @param ptr - The pointer to the protocol parameters in WASM memory.
@@ -419,6 +421,7 @@ export const readProtocolParameters = (ptr: number): ProtocolParameters => {
 };
 
 /**
+ * @hidden
  * Dereferences a protocol parameters pointer, freeing its memory.
  *
  * @param ptr - The pointer to the protocol parameters in WASM memory.

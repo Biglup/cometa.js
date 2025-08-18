@@ -23,6 +23,7 @@ import { writeStringToMemory } from './string';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Creates an asset ID from a byte array.
  *
  * This function converts a byte array representation of an asset ID into a
@@ -57,6 +58,7 @@ export const writeAssetId = (assetIdHex: string): number => {
 };
 
 /**
+ * @hidden
  * Reads an asset ID from WASM memory and returns it as a hex string.
  *
  * @param {number} assetIdPtr - A pointer to the asset ID object in WASM memory.

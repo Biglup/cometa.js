@@ -24,6 +24,7 @@ import { writeStringToMemory } from './string';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Deserializes a native `cardano_anchor_t` object into a JavaScript `Anchor` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_anchor_t` object.
@@ -47,6 +48,7 @@ export const readAnchor = (ptr: number): Anchor => {
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `Anchor` object into a native `cardano_anchor_t` object.
  *
  * @param {Anchor} anchor - The `Anchor` object to serialize.
