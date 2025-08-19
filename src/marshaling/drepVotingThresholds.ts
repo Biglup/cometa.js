@@ -24,6 +24,7 @@ import { getModule } from '../module';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Writes a DelegateRepresentativeThresholds object to WASM memory.
  *
  * @param thresholds - The DelegateRepresentativeThresholds object to write.
@@ -83,6 +84,7 @@ export const writeDRepVotingThresholds = (thresholds: DRepThresholds): number =>
 };
 
 /**
+ * @hidden
  * Reads a DelegateRepresentativeThresholds object from a pointer in WASM memory.
  *
  * @param ptr - The pointer to the DRep voting thresholds in WASM memory.
@@ -186,6 +188,7 @@ export const readDRepVotingThresholds = (ptr: number): DRepThresholds => {
 };
 
 /**
+ * @hidden
  * Dereferences a DRep voting thresholds pointer, freeing its memory.
  *
  * @param ptr - The pointer to the DRep voting thresholds in WASM memory.

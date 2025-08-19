@@ -48,4 +48,5 @@ export * from './unitInterval';
 export * from './utxo';
 export * from './value';
 export * from './voting';
+export * from './vkeyWitness';
 export * from './withdrawalMap';

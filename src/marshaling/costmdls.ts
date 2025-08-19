@@ -24,6 +24,7 @@ import { getModule } from '../module';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Writes a CostModels object to WASM memory.
  *
  * @param costModels - The CostModels object to write.
@@ -55,6 +56,7 @@ export const writeCostModels = (costModels: CostModel[]): number => {
 };
 
 /**
+ * @hidden
  * Reads a CostModels map from a pointer in WASM memory.
  *
  * @param ptr - The pointer to the cost models map in WASM memory.
@@ -88,6 +90,7 @@ export const readCostModels = (ptr: number): CostModel[] => {
 };
 
 /**
+ * @hidden
  * Dereferences a cost models map pointer, freeing its memory.
  *
  * @param ptr - The pointer to the cost models map in WASM memory.

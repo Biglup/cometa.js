@@ -23,7 +23,9 @@ import { readCredential, writeCredential } from './credential';
 import { splitToLowHigh64bit } from './number';
 
 /* DEFINITIONS ****************************************************************/
+
 /**
+ * @hidden
  * Deserializes a native C `cardano_credential_set_t` into a JavaScript `CredentialSet` array.
  *
  * @param {number} setPtr - A pointer to the native `cardano_credential_set_t` object.
@@ -52,6 +54,7 @@ export const readCredentialSet = (setPtr: number): CredentialSet => {
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `CredentialSet` array into a native C `cardano_credential_set_t`.
  *
  * @param {CredentialSet} credentials - The array of `Credential` objects to serialize.
@@ -85,6 +88,7 @@ export const writeCredentialSet = (credentials: CredentialSet): number => {
 };
 
 /**
+ * @hidden
  * Deserializes a native C `cardano_committee_members_map_t` into a JavaScript `CommitteeMembers` array.
  *
  * @param {number} mapPtr - A pointer to the native `cardano_committee_members_map_t` object.
@@ -126,6 +130,7 @@ export const readCommitteeMembersMap = (mapPtr: number): CommitteeMembers => {
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `CommitteeMembers` array into a native C `cardano_committee_members_map_t`.
  *
  * @param {CommitteeMembers} members - The array of `CommitteeMember` objects to serialize.

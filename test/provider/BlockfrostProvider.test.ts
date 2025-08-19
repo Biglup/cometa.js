@@ -18,6 +18,34 @@
 
 import * as Cometa from '../../dist/cjs';
 
+const MNEMONIC_WORDS = [
+  'antenna',
+  'whale',
+  'clutch',
+  'cushion',
+  'narrow',
+  'chronic',
+  'matrix',
+  'alarm',
+  'raise',
+  'much',
+  'stove',
+  'beach',
+  'mimic',
+  'daughter',
+  'review',
+  'build',
+  'dinner',
+  'twelve',
+  'orbit',
+  'soap',
+  'decorate',
+  'bachelor',
+  'athlete',
+  'close'
+];
+const PASSWORD = new TextEncoder().encode('password');
+
 export const coinSelector = {
   getName: () => 'EmscriptenCoinSelector',
   select: async (params: Cometa.CoinSelectorParams): Promise<Cometa.CoinSelectorResult> => {
@@ -34,8 +62,6 @@ export const coinSelector = {
 
 export const txEvaluator = {
   evaluate: async (_tx: string, _additionalUtxs?: Cometa.UTxO[]): Promise<Cometa.Redeemer[]> => {
-    // sleep 500ms
-    await new Promise((resolve) => setTimeout(resolve, 500));
     // eslint-disable-next-line no-console
     console.log('EmscriptenTxEvaluator.evaluate called with tx:');
     return [
@@ -48,15 +74,19 @@ export const txEvaluator = {
           }
         },
         executionUnits: {
-          memory: 97777,
-          steps: 253397471
+          memory: 697777,
+          steps: 293397471
         },
-        index: 2,
+        index: 1,
         purpose: Cometa.RedeemerPurpose.spend
       }
     ];
   },
   getName: () => 'EmscriptenTxEvaluator'
+};
+
+const getPassword = async (): Promise<Uint8Array> => {
+  return new Uint8Array(PASSWORD);
 };
 
 /* TESTS **********************************************************************/
@@ -96,24 +126,63 @@ describe.skip('BlockfrostProvider', () => {
     twoHoursFromNow.setHours(twoHoursFromNow.getHours() + 2);
 
     const address =
-      'addr_test1qq6arzxkm7zt9n9nxun07p6aj845eymdmkurz46g5gtx6qu0hgrdvrt3ahq80nz7hju0lqsn0tauu6xlnqn3jzfnydyq00jt6v';
+      'addr_test1qpjhcqawjma79scw4d9fjudwcu0sww9kv9x8f30fer3rmpu2qn0kv3udaf5pmf94ts27ul2w7q3sepupwccez2u2lu5s7aa8rv';
     const pparams = await provider.getParameters();
     const utxos = await provider.getUnspentOutputs(address);
     const txBuilder = Cometa.TransactionBuilder.create({ params: pparams, provider });
 
-    const unsignedTx = await txBuilder
-      .setChangeAddress(scriptAddress)
-      .setCoinSelector(coinSelector)
-      .setTxEvaluator(txEvaluator)
-      .setCollateralChangeAddress(scriptAddress)
+    txBuilder
+      .setChangeAddress(address)
+      .setCollateralChangeAddress(address)
       .setCollateralUtxos(utxos)
       .setUtxos(utxos)
-      .addInput({ redeemer: voidData, utxo: scriptUtxos[2] })
-      .sendLovelace({ address, amount: 10000n })
-      .setInvalidAfter(twoHoursFromNow)
-      .addScript(script)
-      .build();
+      .sendLovelace({ address, amount: 12000000n })
+      .setInvalidAfter(twoHoursFromNow);
 
-    expect(unsignedTx).toBe('');
+    const unsignedTx = await txBuilder.build();
+
+    const entropy = Cometa.mnemonicToEntropy(MNEMONIC_WORDS);
+    const secureKeyHandler = await Cometa.SoftwareBip32SecureKeyHandler.fromEntropy(
+      entropy,
+      new Uint8Array(PASSWORD),
+      getPassword
+    );
+    const bip32PublicKey = await secureKeyHandler.getAccountPublicKey({
+      account: Cometa.harden(0),
+      coinType: Cometa.harden(1815),
+      purpose: Cometa.harden(1852)
+    });
+
+    const paymentKey = bip32PublicKey.derive([Cometa.KeyDerivationRole.External, 0]);
+    const stakingKey = bip32PublicKey.derive([Cometa.KeyDerivationRole.Staking, 0]);
+
+    const baseAddress = Cometa.BaseAddress.fromCredentials(
+      Cometa.NetworkId.Testnet,
+      {
+        hash: paymentKey.toEd25519Key().toHashHex(),
+        type: Cometa.CredentialType.KeyHash
+      },
+      {
+        hash: stakingKey.toEd25519Key().toHashHex(),
+        type: Cometa.CredentialType.KeyHash
+      }
+    );
+
+    console.error(baseAddress.toBech32());
+
+    const witness = await secureKeyHandler.signTransaction(unsignedTx, [
+      {
+        account: Cometa.harden(0),
+        coinType: Cometa.harden(1815),
+        index: 0,
+        purpose: Cometa.harden(1852),
+        role: 0
+      }
+    ]);
+
+    const signedTx = Cometa.applyVkeyWitnessSet(unsignedTx, witness);
+    //expect(signedTx).toBe('');
+    const txId = await provider.submitTransaction(signedTx);
+    expect(txId).toBe('');
   });
 });

@@ -24,7 +24,9 @@ import { readAnchor, writeAnchor } from './anchor';
 import { uint8ArrayToHex } from '../cometa';
 
 /* DEFINITIONS ****************************************************************/
+
 /**
+ * @hidden
  * Deserializes a native C `cardano_constitution_t` object into a JavaScript `Constitution` object.
  *
  * @param {number} ptr - A pointer to the native `cardano_constitution_t` object.
@@ -64,6 +66,7 @@ export const readConstitution = (ptr: number): Constitution => {
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `Constitution` object into a native C `cardano_constitution_t`.
  *
  * @param {Constitution} constitution - The `Constitution` object to serialize.

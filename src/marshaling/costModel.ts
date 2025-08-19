@@ -24,6 +24,7 @@ import { splitToLowHigh64bit } from './number';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Maps string language keys to the corresponding enum values.
  */
 const LANGUAGE_MAP: Record<string, number> = {
@@ -33,6 +34,7 @@ const LANGUAGE_MAP: Record<string, number> = {
 };
 
 /**
+ * @hidden
  * Maps enum values back to string language keys.
  */
 const LANGUAGE_MAP_REVERSE: Record<number, string> = {
@@ -42,6 +44,7 @@ const LANGUAGE_MAP_REVERSE: Record<number, string> = {
 };
 
 /**
+ * @hidden
  * Writes a CostModel object to WASM memory.
  *
  * @param costModel - The CostModel object to write.
@@ -59,8 +62,8 @@ export const writeCostModel = (costModel: CostModel): number => {
   try {
     for (let i = 0; i < costModel.costs.length; i++) {
       const { high, low } = splitToLowHigh64bit(costModel.costs[i]);
-      module.setValue(costArrayPtr + i * 8, high, 'i32');
-      module.setValue(costArrayPtr + i * 8 + 4, low, 'i32');
+      module.setValue(costArrayPtr + i * 8, low, 'i32');
+      module.setValue(costArrayPtr + i * 8 + 4, high, 'i32');
     }
 
     const costModelPtrPtr = module._malloc(4);
@@ -77,6 +80,7 @@ export const writeCostModel = (costModel: CostModel): number => {
 };
 
 /**
+ * @hidden
  * Reads a CostModel from a pointer in WASM memory.
  *
  * @param ptr - The pointer to the cost model in WASM memory.
@@ -106,11 +110,9 @@ export const readCostModel = (ptr: number): CostModel => {
       try {
         const getResult = module.cost_model_get_cost(ptr, i, costPtr);
         assertSuccess(getResult, `Failed to read cost at index ${i}`);
-        // Read high and low 32 bits
-        const high = module.getValue(costPtr, 'i32');
-        const low = module.getValue(costPtr + 4, 'i32');
-        // Combine into 64-bit number
-        const cost = Number((BigInt(high) << BigInt(32)) | BigInt(low >>> 0));
+        const low = module.getValue(costPtr, 'i32');
+        const high = module.getValue(costPtr + 4, 'i32');
+        const cost = Number((BigInt(high) << 32n) | BigInt(low >>> 0));
         costs.push(cost);
       } finally {
         module._free(costPtr);
@@ -124,6 +126,7 @@ export const readCostModel = (ptr: number): CostModel => {
 };
 
 /**
+ * @hidden
  * Dereferences a cost model pointer, freeing its memory.
  *
  * @param ptr - The pointer to the cost model in WASM memory.

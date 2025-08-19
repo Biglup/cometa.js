@@ -24,6 +24,7 @@ import { splitToLowHigh64bit } from './number';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Reads a ProtocolVersion value from a pointer in WASM memory.
  *
  * This function reads a ProtocolVersion value from a pointer in WASM memory and returns it as an object
@@ -54,6 +55,7 @@ export const readProtocolVersion = (ptr: number): ProtocolVersion => {
 };
 
 /**
+ * @hidden
  * Creates a ProtocolVersion value from major and minor version numbers.
  *
  * This function creates a ProtocolVersion value from major and minor version numbers.
@@ -91,6 +93,7 @@ export const writeProtocolVersion = (major: number, minor: number): number => {
 };
 
 /**
+ * @hidden
  * Dereferences a ProtocolVersion pointer, freeing its memory.
  *
  * This function decrements the reference count of a ProtocolVersion object and frees its memory

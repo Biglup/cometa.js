@@ -36,7 +36,7 @@ import { writeBytesToMemory, writeStringToMemory } from './string';
 /* DEFINITIONS ****************************************************************/
 
 /**
- * @private
+ * @hidden
  * Internal helper to write a `ConstrPlutusData` object to WASM memory.
  * This is called by the main `writePlutusData` dispatcher.
  *
@@ -75,7 +75,7 @@ const writeConstrPlutusData = (data: ConstrPlutusData): number => {
 };
 
 /**
- * @private
+ * @hidden
  * Internal helper to write a `PlutusMap` object to WASM memory.
  * This is called by the main `writePlutusData` dispatcher.
  *
@@ -108,7 +108,7 @@ const writePlutusMap = (data: PlutusMap): number => {
 };
 
 /**
- * @private
+ * @hidden
  * Internal helper to write a `PlutusList` object to WASM memory.
  * This is called by the main `writePlutusData` dispatcher.
  *
@@ -138,6 +138,7 @@ const writePlutusList = (data: PlutusList): number => {
 };
 
 /**
+ * @hidden
  * Creates a PlutusData object in WASM memory from a JavaScript representation.
  *
  * This is the main dispatcher function for writing `PlutusData`. It intelligently
@@ -232,7 +233,7 @@ export const writePlutusData = (data: PlutusData): number => {
 };
 
 /**
- * @private
+ * @hidden
  * Internal helper to read a `ConstrPlutusData` object from WASM memory.
  * This is called by the main `readPlutusData` dispatcher.
  *
@@ -264,7 +265,7 @@ const readConstrPlutusData = (constrPtr: number): ConstrPlutusData => {
 };
 
 /**
- * @private
+ * @hidden
  * Internal helper to read a `PlutusMap` object from WASM memory.
  * This is called by the main `readPlutusData` dispatcher.
  *
@@ -323,7 +324,7 @@ const readPlutusMap = (mapPtr: number): PlutusMap => {
 };
 
 /**
- * @private
+ * @hidden
  * Internal helper to read a `PlutusList` object from WASM memory.
  * This is called by the main `readPlutusData` dispatcher.
  *
@@ -350,6 +351,7 @@ const readPlutusList = (listPtr: number): PlutusList => {
 };
 
 /**
+ * @hidden
  * Reads a PlutusData object from WASM memory and converts it into its JavaScript representation.
  *
  * This is the main dispatcher function for reading `PlutusData`. It determines the

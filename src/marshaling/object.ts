@@ -22,6 +22,7 @@ import { getModule } from '../module';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Decrements the reference count of a Cardano object and releases it if the reference count reaches zero.
  *
  * This function is used to manage the lifecycle of objects allocated in the Cardano WASM runtime.
@@ -43,6 +44,7 @@ export const unrefObject = (ptr: number): void => {
 };
 
 /**
+ * @hidden
  * Asserts that a given operation was successful.
  *
  * This function checks the result code of an operation performed in the Cardano WASM runtime.
@@ -69,6 +71,7 @@ export const assertSuccess = (result: number, lastError?: string): void => {
 };
 
 /**
+ * @hidden
  * Reads data from a buffer pointer and converts it into a `Uint8Array`.
  *
  * This function retrieves the size and data pointer of a buffer in the WASM runtime, then constructs
@@ -95,6 +98,7 @@ export const readBufferData = (bufferPtr: number): Uint8Array => {
 };
 
 /**
+ * @hidden
  * Converts a hexadecimal string into a buffer object in the WASM runtime.
  *
  * @param hex - A hexadecimal string to be converted into a buffer object.

@@ -391,6 +391,7 @@ export class BlockfrostProvider implements Provider {
    * @param {Address | string} address - Payment address. Address object or bech32 string.
    * @returns {Promise<UTxO[]>} A promise that resolves to an array of UTxOs.
    */
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   async getUnspentOutputs(address: Address | string): Promise<UTxO[]> {
     const addr = typeof address === 'string' ? address : address.toString();
     const maxPageCount = 100;
@@ -401,21 +402,25 @@ export class BlockfrostProvider implements Provider {
     for (;;) {
       const pagination = `count=${maxPageCount}&page=${page}`;
       const query = `/addresses/${addr}/utxos?${pagination}`;
-      const json = await fetch(`${this.url}${query}`, {
+      const response = await fetch(`${this.url}${query}`, {
         headers: this.headers()
-      }).then((resp) => resp.json());
+      });
+
+      if (response.status === 404) {
+        return [];
+      }
+
+      const json = await response.json();
 
       if (!json) {
         throw new Error('getUnspentOutputs: Could not parse response json');
       }
 
-      const response = json;
-
-      if ('message' in response) {
-        throw new Error(`getUnspentOutputs: Blockfrost threw "${response.message}"`);
+      if ('message' in json) {
+        throw new Error(`getUnspentOutputs: Blockfrost threw "${json.message}"`);
       }
 
-      for (const blockfrostUTxO of response) {
+      for (const blockfrostUTxO of json) {
         let scriptReference;
         if (blockfrostUTxO.reference_script_hash) {
           scriptReference = await this.getScriptRef(blockfrostUTxO.reference_script_hash);
@@ -427,7 +432,7 @@ export class BlockfrostProvider implements Provider {
         });
       }
 
-      if (response.length < maxPageCount) {
+      if (json.length < maxPageCount) {
         break;
       } else {
         page += 1;
@@ -444,6 +449,7 @@ export class BlockfrostProvider implements Provider {
    * @param {string} assetId - Asset identifier (policyId + asset name hex).
    * @returns {Promise<UTxO[]>} A promise that resolves to matching UTxOs.
    */
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   async getUnspentOutputsWithAsset(address: Address | string, assetId: string): Promise<UTxO[]> {
     const maxPageCount = 100;
     let page = 1;
@@ -456,6 +462,10 @@ export class BlockfrostProvider implements Provider {
       const response = await fetch(`${this.url}${query}`, {
         headers: this.headers()
       });
+
+      if (response.status === 404) {
+        return [];
+      }
 
       if (!response.ok) {
         throw new Error(`getUnspentOutputsWithAsset: Network request failed with status ${response.status}`);

@@ -24,6 +24,7 @@ import { getModule } from '../module';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Writes an ExUnitPrices object to WASM memory.
  *
  * @param prices - The ExUnitPrices object to write.
@@ -49,6 +50,7 @@ export const writeExUnitPrices = (prices: ExUnitsPrices): number => {
 };
 
 /**
+ * @hidden
  * Reads an ExUnitPrices object from a pointer in WASM memory.
  *
  * @param ptr - The pointer to the execution unit prices in WASM memory.
@@ -95,6 +97,7 @@ export const readExUnitPrices = (ptr: number): ExUnitsPrices => {
 };
 
 /**
+ * @hidden
  * Dereferences an execution unit prices pointer, freeing its memory.
  *
  * @param ptr - The pointer to the execution unit prices in WASM memory.

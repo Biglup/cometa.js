@@ -23,6 +23,7 @@ import { hexToUint8Array } from '../cometa';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Creates a Blake2b hash object from a byte array.
  *
  * This is the inverse operation of readBlake2bHashData, allowing you to create
@@ -52,6 +53,7 @@ export const blake2bHashFromBytes = (data: Uint8Array): number => {
 };
 
 /**
+ * @hidden
  * Creates a Blake2b hash object from a hexadecimal string.
  *
  * This function converts a hexadecimal string representation of a Blake2b hash

@@ -17,12 +17,14 @@
 /* EXPORTS ********************************************************************/
 
 export * from './address';
+export * from './bip39';
 export * from './cometa';
 export * from './common';
 export * from './crypto';
 export * from './encoding';
 export * from './garbageCollection';
 export * from './instanceRegistry';
+export * from './keyHandlers';
 export * from './marshaling';
 export * from './module';
 export * from './provider';

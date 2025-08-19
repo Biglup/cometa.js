@@ -33,6 +33,7 @@ import { writeTransactionToCbor } from './transaction';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Bridge callbacks for marshaling various Cardano data types.
  *
  * These functions are used to convert between JavaScript representations

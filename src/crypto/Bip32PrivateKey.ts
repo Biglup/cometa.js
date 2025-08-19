@@ -86,7 +86,7 @@ export class Bip32PrivateKey {
       module.HEAPU8.set(entropy, entropyPtr);
 
       const result = module.bip32_private_key_from_bip39_entropy(
-        passwordPtr,
+        password.length === 0 ? 0 : passwordPtr,
         password.length,
         entropyPtr,
         entropy.length,

@@ -21,6 +21,7 @@ import { getModule } from '../module';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Writes a UTF-8 encoded string to a specified memory location in the WASM heap.
  *
  * @param str - The string to encode and write. A null terminator (`\0`) is appended automatically.
@@ -48,6 +49,7 @@ export const writeStringToMemory = (str: string): number => {
 };
 
 /**
+ * @hidden
  * Writes a byte array to a specified memory location in the WASM heap.
  *
  * @param bytes - The byte array to write.
@@ -72,6 +74,7 @@ export const writeBytesToMemory = (bytes: Uint8Array): number => {
 };
 
 /**
+ * @hidden
  * Calculates the number of bytes required to store a UTF-8-encoded copy of
  * the given string **including** a trailing NUL (`\0`) terminator.
  *
@@ -84,6 +87,7 @@ export const writeBytesToMemory = (bytes: Uint8Array): number => {
 export const utf8ByteLen = (str: string): number => new TextEncoder().encode(str).length + 1;
 
 /**
+ * @hidden
  * Retrieves the human-readable string representation of a given error code.
  *
  * This function uses the WASM module to convert an error code into a descriptive string.

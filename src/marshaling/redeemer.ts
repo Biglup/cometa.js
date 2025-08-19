@@ -27,6 +27,7 @@ import { unrefObject } from './object';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Maps a RedeemerPurpose to a corresponding tag number.
  * @param purpose The RedeemerPurpose to map.
  */
@@ -50,6 +51,7 @@ const _mapPurposeToTag = (purpose: RedeemerPurpose): number => {
 };
 
 /**
+ * @hidden
  * Maps a tag number to a RedeemerPurpose.
  * @param tag The tag number to map.
  */
@@ -73,6 +75,7 @@ const _mapTagToPurpose = (tag: number): RedeemerPurpose => {
 };
 
 /**
+ * @hidden
  * Reads a pointer to a C `cardano_redeemer_t` and converts it into a
  * JavaScript Redeemer object.
  *
@@ -109,6 +112,7 @@ export const readRedeemer = (ptr: number): Redeemer => {
 };
 
 /**
+ * @hidden
  * Converts a JavaScript Redeemer object into a C `cardano_redeemer_t` object in
  * WASM memory and returns a pointer to it.
  *
@@ -159,6 +163,7 @@ export const writeRedeemer = (redeemer: Redeemer): number => {
 };
 
 /**
+ * @hidden
  * Converts a JavaScript array of Redeemer objects into a C `cardano_redeemer_list_t`
  * and returns its pointer.
  *
@@ -202,6 +207,7 @@ export const writeRedeemerList = (redeemers: Redeemer[]): number => {
 };
 
 /**
+ * @hidden
  * Reads a pointer to a C `cardano_redeemer_list_t` and converts it into a
  * JavaScript array of Redeemer objects.
  *
@@ -240,6 +246,7 @@ export const readRedeemerList = (ptr: number): Redeemer[] => {
 };
 
 /**
+ * @hidden
  * Parses a transaction CBOR hex string and returns its list of redeemers.
  * This function handles the temporary WASM objects and their memory.
  * @param {string} txCborHex The transaction CBOR as a hex string.

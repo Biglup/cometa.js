@@ -24,6 +24,7 @@ import { getModule } from '../module';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Writes a PoolVotingThresholds object to WASM memory.
  *
  * @param thresholds - The PoolVotingThresholds object to write.
@@ -68,6 +69,7 @@ export const writePoolVotingThresholds = (thresholds: PoolVotingThresholds): num
 };
 
 /**
+ * @hidden
  * Reads a PoolVotingThresholds object from a pointer in WASM memory.
  *
  * @param ptr - The pointer to the pool voting thresholds in WASM memory.
@@ -131,6 +133,7 @@ export const readPoolVotingThresholds = (ptr: number): PoolVotingThresholds => {
 };
 
 /**
+ * @hidden
  * Dereferences a pool voting thresholds pointer, freeing its memory.
  *
  * @param ptr - The pointer to the pool voting thresholds in WASM memory.

@@ -16,3 +16,4 @@ lerna-debug.log
 dist
 mkdocs.yml
 libcardano-c/include
+libcardano-c/cardano_c_compressed.js

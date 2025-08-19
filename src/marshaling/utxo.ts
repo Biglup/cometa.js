@@ -25,6 +25,7 @@ import { unrefObject } from './object';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Reads a pointer to a C `cardano_utxo_t` object and converts it into a
  * JavaScript UTxO object.
  *
@@ -62,6 +63,7 @@ export const readUtxo = (ptr: number): UTxO => {
 };
 
 /**
+ * @hidden
  * Converts a JavaScript UTxO object into a C `cardano_utxo_t` object in
  * WASM memory and returns a pointer to it.
  *
@@ -110,6 +112,7 @@ export const writeUtxo = (utxo: UTxO): number => {
 };
 
 /**
+ * @hidden
  * Converts a JavaScript array of UTxO objects into a C `cardano_utxo_list_t`
  * object in WASM memory and returns a pointer to it.
  *
@@ -157,6 +160,7 @@ export const writeUtxoList = (utxos: UTxO[]): number => {
 };
 
 /**
+ * @hidden
  * Reads a pointer to a C `cardano_utxo_list_t` object and converts it into a
  * JavaScript array of UTxO objects.
  *

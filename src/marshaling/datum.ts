@@ -26,6 +26,7 @@ import { uint8ArrayToHex } from '../cometa';
 /* DEFINITIONS ****************************************************************/
 
 /**
+ * @hidden
  * Reads a Datum object from WASM memory and converts it into a JavaScript object.
  *
  * This function inspects the type of the native Datum object. If it's a `DataHash`,
@@ -63,6 +64,7 @@ export const readDatum = (datumPtr: number): Datum => {
 };
 
 /**
+ * @hidden
  * Creates a Datum object in WASM memory from a JavaScript Datum object.
  *
  * The function creates either an inline datum (from a PlutusData object) or a
