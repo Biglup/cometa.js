@@ -3,7 +3,7 @@
   "readme": "GETTING_STARTED.md",
   "out": "docs/html",
   "json": "docs/html/typedoc.json",
-  "exclude": ["**/*.spec.ts", "**/*.test.ts", "**/*marshaling*.ts"],
+  "exclude": ["**/*.spec.ts", "**/*.test.ts", "**/*marshaling*.ts", "**/libcardano-c"],
   "tsconfig": "tsconfig.json",
   "includeVersion": true,
   "excludeExternals": true

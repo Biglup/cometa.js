@@ -29,9 +29,10 @@
   "include": [
     "./src/*.ts",
     "./src/**/*.ts",
-    "./src/**/*.js",
-    "./libcardano-c/*" ],
+    "./src/**/*.js"
+  ],
   "exclude": [
+    "./libcardano-c",
     "./node_modules",
     "./dist",
     "./build"
