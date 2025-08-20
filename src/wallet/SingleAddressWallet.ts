@@ -26,8 +26,9 @@ import {
   SoftwareBip32SecureKeyHandler,
   harden
 } from '../keyHandlers';
-import { NetworkMagic, UTxO, Value, VkeyWitnessSet } from '../common';
+import { NetworkMagic, ProtocolParameters, UTxO, Value, VkeyWitnessSet } from '../common';
 import { Provider } from '../provider';
+import { TransactionBuilder } from '../txBuilder';
 import { Wallet } from './Wallet';
 import { mnemonicToEntropy } from '../bip39';
 
@@ -120,6 +121,7 @@ export class SingleAddressWallet implements Wallet {
   private accountRootPublicKey: Bip32PublicKey;
   private paymentAddress: Address | undefined;
   private rewardAddress: RewardAddress | undefined;
+  private protocolParams: ProtocolParameters | undefined;
 
   /**
    * Constructs a new instance of the SingleAddressWallet.
@@ -298,6 +300,32 @@ export class SingleAddressWallet implements Wallet {
    */
   public async getCollateral(): Promise<UTxO[]> {
     return [];
+  }
+
+  /**
+   * Creates and initializes a new transaction builder with the wallet's current state.
+   *
+   * @returns {Promise<TransactionBuilder>} A promise that resolves to a pre-configured `TransactionBuilder` instance.
+   * @remarks
+   * This method simplifies transaction construction by automatically pre-populating the builder with:
+   * 1. The wallet's available UTxOs as inputs.
+   * 2. The wallet's change address to receive any leftover funds.
+   * 3. The network parameters from the wallet's provider.
+   *
+   * The returned builder is ready for you to add outputs and other transaction details.
+   */
+  public async createTransactionBuilder(): Promise<TransactionBuilder> {
+    const ownAddress = await this.getAddress();
+    const ownUtxos = await this.getUnspentOutputs();
+
+    if (!this.protocolParams) {
+      this.protocolParams = await this.provider.getParameters();
+    }
+    return TransactionBuilder.create({ params: this.protocolParams, provider: this.provider })
+      .setChangeAddress(ownAddress)
+      .setCollateralChangeAddress(ownAddress)
+      .setCollateralUtxos(ownUtxos)
+      .setUtxos(ownUtxos);
   }
 
   /**

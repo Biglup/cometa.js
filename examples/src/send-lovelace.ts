@@ -68,25 +68,20 @@ const sendLovelace = async () => {
     provider
   });
 
-  monitor.startTask('Fetching wallet information...');
-  const walletUtxos = await wallet.getUnspentOutputs();
-  const walletAddresses = await wallet.getUsedAddresses();
-  const params = await provider.getParameters();
-  monitor.endTask('Wallet information fetched successfully.', TaskResult.Success);
-
   monitor.startTask('Building transaction...');
-  const builder = Cometa.TransactionBuilder.create({
-    params,
-    provider
-  });
+  /**
+   * While a TransactionBuilder can be instantiated manually, the wallet provides
+   * this factory method to simplify the process. It automatically pre-populates
+   * the new builder instance with the necessary context from the wallet's state,
+   * including protocol parameters, UTxOs, and a change address (bot for regular inputs and collateral).
+   */
+  const builder = await wallet.createTransactionBuilder();
 
-  builder
-    .setChangeAddress(walletAddresses[0])
-    .setUtxos(walletUtxos)
+  const unsignedTx = await builder
     .sendLovelace({ address: RECEIVING_ADDRESS, amount: 12000000n })
-    .setInvalidAfter(getTimeFromNow(HOUR_IN_SECONDS * 2));
+    .setInvalidAfter(getTimeFromNow(HOUR_IN_SECONDS * 2))
+    .build();
 
-  const unsignedTx = await builder.build();
   monitor.endTask('Transaction built successfully.', TaskResult.Success);
 
   monitor.logInfo('Signing transaction...');

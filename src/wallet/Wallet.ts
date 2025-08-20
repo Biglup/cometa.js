@@ -17,6 +17,7 @@
 /* IMPORTS ********************************************************************/
 
 import { Address, NetworkId, RewardAddress } from '../address';
+import { TransactionBuilder } from '../txBuilder';
 import { UTxO, Value, VkeyWitnessSet } from '../common';
 
 /* EXPORTS ********************************************************************/
@@ -102,4 +103,18 @@ export interface Wallet {
    * @remarks Collateral is required for transactions that interact with Plutus smart contracts to cover potential script execution failure fees.
    */
   getCollateral(): Promise<UTxO[]>;
+
+  /**
+   * Creates and initializes a new transaction builder with the wallet's current state.
+   *
+   * @returns {Promise<TransactionBuilder>} A promise that resolves to a pre-configured `TransactionBuilder` instance.
+   * @remarks
+   * This method simplifies transaction construction by automatically pre-populating the builder with:
+   * 1. The wallet's available UTxOs as inputs.
+   * 2. The wallet's change address to receive any leftover funds.
+   * 3. The network parameters from the wallet's provider.
+   *
+   * The returned builder is ready for you to add outputs and other transaction details.
+   */
+  createTransactionBuilder(): Promise<TransactionBuilder>;
 }

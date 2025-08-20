@@ -18,7 +18,9 @@
 
 import { Address, NetworkId, RewardAddress } from '../address';
 import { Cip30Wallet } from './Cip30Wallet';
-import { UTxO, Value, VkeyWitnessSet } from '../common';
+import { ProtocolParameters, UTxO, Value, VkeyWitnessSet } from '../common';
+import { Provider } from '../provider';
+import { TransactionBuilder } from '../txBuilder';
 import { Wallet } from './Wallet';
 import { readUTxOtFromCbor, readValueFromCbor, readVkeyWitnessSetFromCbor } from '../marshaling';
 
@@ -30,13 +32,17 @@ import { readUTxOtFromCbor, readValueFromCbor, readVkeyWitnessSetFromCbor } from
  */
 export class BrowserExtensionWallet implements Wallet {
   private cip30Wallet: Cip30Wallet;
+  private protocolParams: ProtocolParameters | undefined;
+  private provider: Provider;
 
   /**
    * Constructs a new instance of the BrowserExtensionWallet.
    * @param {Cip30Wallet} cip30Wallet - The raw CIP-30 wallet API provided by the browser extension.
+   * @param {Provider} provider - The provider used to fetch additional data.
    */
-  public constructor(cip30Wallet: Cip30Wallet) {
+  public constructor(cip30Wallet: Cip30Wallet, provider: Provider) {
     this.cip30Wallet = cip30Wallet;
+    this.provider = provider;
   }
 
   /**
@@ -141,5 +147,36 @@ export class BrowserExtensionWallet implements Wallet {
   public async getCollateral(): Promise<UTxO[]> {
     const utxos = await this.cip30Wallet.getCollateral();
     return (utxos ?? []).map((utxo) => readUTxOtFromCbor(utxo));
+  }
+
+  /**
+   * Creates and initializes a new transaction builder with the wallet's current state.
+   *
+   * @returns {Promise<TransactionBuilder>} A promise that resolves to a pre-configured `TransactionBuilder` instance.
+   * @remarks
+   * This method simplifies transaction construction by automatically pre-populating the builder with:
+   * 1. The wallet's available UTxOs as inputs.
+   * 2. The wallet's change address to receive any leftover funds.
+   * 3. The network parameters from the wallet's provider.
+   *
+   * The returned builder is ready for you to add outputs and other transaction details.
+   */
+  public async createTransactionBuilder(): Promise<TransactionBuilder> {
+    let ownAddress = await this.getUsedAddresses();
+    const ownUtxos = await this.getUnspentOutputs();
+
+    if (ownAddress.length === 0) {
+      ownAddress = await this.getUnusedAddresses();
+    }
+
+    if (!this.protocolParams) {
+      this.protocolParams = await this.provider.getParameters();
+    }
+
+    return TransactionBuilder.create({ params: this.protocolParams, provider: this.provider })
+      .setChangeAddress(ownAddress[0])
+      .setCollateralChangeAddress(ownAddress[0])
+      .setCollateralUtxos(ownUtxos)
+      .setUtxos(ownUtxos);
   }
 }
