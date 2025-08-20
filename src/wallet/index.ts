@@ -19,3 +19,4 @@
 export * from './Cip30Wallet';
 export * from './Wallet';
 export * from './SingleAddressWallet';
+export * from './BrowserExtensionWallet';

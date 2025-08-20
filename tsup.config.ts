@@ -15,7 +15,8 @@ export default defineConfig({
       'direct-eval': 'silent'
     };
   },
-  format: ['cjs', 'esm'],
+  format: ['cjs', 'esm', 'iife'],
+  globalName: 'Cometa',
   legacyOutput: false,
   minify: true,
   noExternal: [/(.*)/],

@@ -21,7 +21,7 @@
     "sendLovelace": "ts-node src/send-lovelace.ts"
   },
   "dependencies": {
-    "@biglup/cometa": "^1.0.7001",
+    "@biglup/cometa": "^1.0.7004",
     "chalk": "4.1.2",
     "cli-spinners": "^2.9.0",
     "dotenv": "^17.2.1",

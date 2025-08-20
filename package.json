@@ -1,14 +1,17 @@
 {
   "name": "@biglup/cometa",
-  "version": "1.0.7002",
+  "version": "1.0.7004",
   "description": "Cometa JS is a lightweight and high performance library designed to streamline transaction building and smart contract interactions on the Cardano blockchain",
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=7.0.0"
   },
   "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "unpkg": "dist/iife/index.global.js",
   "exports": {
     ".": {
+      "browser": "./dist/iife/index.global.js",
       "import": "./dist/esm/index.js",
       "require": "./dist/cjs/index.js"
     }
@@ -25,7 +28,7 @@
   ],
   "license": "Apache-2.0",
   "scripts": {
-    "build:js": "tsup --config ./tsup.config.ts && mkdir -p dist/esm && mkdir -p dist/cjs && cp ./build/esm-package.json dist/esm/package.json && mv ./dist/index.mjs ./dist/esm/index.js && mv ./dist/index.mjs.map ./dist/esm/index.js.map && cp ./dist/index.d.ts ./dist/esm/index.d.ts && cp ./dist/index.d.mts ./dist/esm/index.d.mts && mv ./dist/index.js ./dist/cjs/index.js && mv ./dist/index.js.map ./dist/cjs/index.js.map && mv ./dist/index.d.ts ./dist/cjs/index.d.ts && mv ./dist/index.d.mts ./dist/cjs/index.d.mts && cp ./build/cjs-package.json dist/cjs/package.json",
+    "build:js": "tsup --config ./tsup.config.ts && mkdir -p dist/esm && mkdir -p dist/cjs && mkdir -p dist/iife && cp ./build/esm-package.json dist/esm/package.json && mv ./dist/index.mjs ./dist/esm/index.js && mv ./dist/index.mjs.map ./dist/esm/index.js.map && cp ./dist/index.d.ts ./dist/esm/index.d.ts && cp ./dist/index.d.mts ./dist/esm/index.d.mts && mv ./dist/index.js ./dist/cjs/index.js && mv ./dist/index.js.map ./dist/cjs/index.js.map && mv ./dist/index.d.ts ./dist/cjs/index.d.ts && mv ./dist/index.d.mts ./dist/cjs/index.d.mts && cp ./build/cjs-package.json dist/cjs/package.json && mv ./dist/index.global.js ./dist/iife/index.global.js && mv ./dist/index.global.js.map ./dist/iife/index.global.js.map",
     "build:compress": "node ./scripts/compress-wasm.mjs",
     "build:clean-dts": "node ./scripts/clean-dts.mjs",
     "build:shake": "node ./scripts/tree-shake-bindings.mjs",
