@@ -78,7 +78,7 @@ export class BrowserExtensionWallet implements Wallet {
    */
   public async getUsedAddresses(): Promise<Address[]> {
     const addresses = await this.cip30Wallet.getUsedAddresses();
-    return addresses.map((address) => Address.fromString(address));
+    return addresses.map((address) => Address.fromHex(address));
   }
 
   /**
@@ -87,7 +87,7 @@ export class BrowserExtensionWallet implements Wallet {
    */
   public async getUnusedAddresses(): Promise<Address[]> {
     const addresses = await this.cip30Wallet.getUnusedAddresses();
-    return addresses.map((address) => Address.fromString(address));
+    return addresses.map((address) => Address.fromHex(address));
   }
 
   /**
@@ -96,7 +96,7 @@ export class BrowserExtensionWallet implements Wallet {
    */
   public async getChangeAddress(): Promise<Address> {
     const address = await this.cip30Wallet.getChangeAddress();
-    return Address.fromString(address);
+    return Address.fromHex(address);
   }
 
   /**
