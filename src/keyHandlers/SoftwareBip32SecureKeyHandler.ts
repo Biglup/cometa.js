@@ -70,11 +70,11 @@ export class SoftwareBip32SecureKeyHandler implements Bip32SecureKeyHandler {
    * @returns {Promise<Bip32SecureKeyHandler>} A new instance of the key handler.
    * @warning For security, this function will zero out the `entropy` and `passphrase` Uint8Array buffers after they are used. Do not reuse them.
    */
-  public static async fromEntropy(
+  public static fromEntropy(
     entropy: Uint8Array,
     passphrase: Uint8Array,
     getPassphrase: () => Promise<Uint8Array>
-  ): Promise<Bip32SecureKeyHandler> {
+  ): Bip32SecureKeyHandler {
     try {
       const encryptedEntropy = Emip003.encrypt(entropy, passphrase);
       return new SoftwareBip32SecureKeyHandler(encryptedEntropy, getPassphrase);

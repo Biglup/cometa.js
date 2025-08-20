@@ -16,6 +16,7 @@
 
 /* IMPORTS *******************************************************************/
 
+import { CborReader } from '../encoding';
 import { Value, assetNameFromAssetId, policyIdFromAssetId } from '../common';
 import { assertSuccess, unrefObject } from './object';
 import { getModule } from '../module';
@@ -131,4 +132,35 @@ export const writeValue = (value: Value): number => {
     }
   }
   return valuePtr;
+};
+
+/**
+ * @hidden
+ * Deserializes a value from its CBOR hex string representation into a Value object.
+ *
+ * @param {string} valueCbor - The CBOR representation of the value, encoded as a hexadecimal string.
+ * @returns {number} A pointer to the newly created value object in WASM memory.
+ * @throws {Error} Throws an error if the deserialization fails, including a descriptive message from the CBOR parser.
+ */
+export const readValueFromCbor = (valueCbor: string): Value => {
+  const module = getModule();
+
+  const cborReader = CborReader.fromHex(valueCbor);
+  const valuePtrPtr = module._malloc(4);
+  let valuePtr = 0;
+
+  try {
+    const result = module.value_from_cbor(cborReader.ptr, valuePtrPtr);
+
+    if (result !== 0) {
+      const error = cborReader.getLastError();
+      throw new Error(`Failed to unmarshal transaction from CBOR: ${error}`);
+    }
+
+    valuePtr = module.getValue(valuePtrPtr, 'i32');
+    return readValue(valuePtr);
+  } finally {
+    unrefObject(valuePtr);
+    module._free(valuePtrPtr);
+  }
 };

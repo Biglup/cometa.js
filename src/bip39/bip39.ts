@@ -70,6 +70,7 @@ export const mnemonicToEntropy = (mnemonic: string[]): Uint8Array => {
   const wordsArrayPtr = module._malloc(wordCount * 4);
   const entropyBufferPtr = module._malloc(64);
   const entropySizePtr = module._malloc(4);
+  let actualEntropySize = 0;
 
   try {
     for (let i = 0; i < wordCount; i++) {
@@ -87,7 +88,7 @@ export const mnemonicToEntropy = (mnemonic: string[]): Uint8Array => {
     );
     assertSuccess(result, 'Failed to convert mnemonic to entropy');
 
-    const actualEntropySize = module.getValue(entropySizePtr, 'i32');
+    actualEntropySize = module.getValue(entropySizePtr, 'i32');
 
     return new Uint8Array(module.HEAPU8.subarray(entropyBufferPtr, entropyBufferPtr + actualEntropySize));
   } finally {
@@ -95,7 +96,11 @@ export const mnemonicToEntropy = (mnemonic: string[]): Uint8Array => {
       module._free(ptr);
     }
     module._free(wordsArrayPtr);
-    module._free(entropyBufferPtr);
+
+    if (entropyBufferPtr && actualEntropySize > 0) {
+      module.HEAPU8.fill(0, entropyBufferPtr, entropyBufferPtr + actualEntropySize);
+    }
+
     module._free(entropySizePtr);
   }
 };
