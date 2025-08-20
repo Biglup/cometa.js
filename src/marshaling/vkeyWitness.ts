@@ -105,6 +105,7 @@ export const readVkeyWitnessSet = (setPtr: number): VkeyWitnessSet => {
 };
 
 /**
+ * @hidden
  * Serializes a JavaScript `VkeyWitnessSet` array into a native C `cardano_vkey_witness_set_t`.
  *
  * @param {VkeyWitnessSet} set - The array of `VkeyWitness` objects to serialize.
@@ -193,6 +194,13 @@ export const writeDerivationPaths = (paths: DerivationPath[]): number => {
   }
 };
 
+/**
+ * @hidden
+ * Serializes a JavaScript `AccountDerivationPath` object into a C-style struct
+ * @param path - The `AccountDerivationPath` object to serialize.
+ *
+ * @return {number} A pointer to the start of the allocated memory block for the C struct.
+ */
 export const writeAccountDerivationPaths = (path: AccountDerivationPath): number => {
   const module = getModule();
 

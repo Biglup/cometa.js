@@ -187,10 +187,10 @@
     "@babel/helper-string-parser" "^7.27.1"
     "@babel/helper-validator-identifier" "^7.27.1"
 
-"@biglup/cometa@^1.0.7":
-  version "1.0.7"
-  resolved "https://registry.yarnpkg.com/@biglup/cometa/-/cometa-1.0.7.tgz#60cf4a3e7529f380075c678e375bbe106e5aea09"
-  integrity sha512-876kCDlsgjlhEuPvcm6n/S/d+yTacrzOCi8y9pyvJAojLLXYEJRP0+1EifmuEXAjty0ykwF2wuvHpN7s9mcSiA==
+"@biglup/cometa@^1.0.7001":
+  version "1.0.7001"
+  resolved "https://registry.yarnpkg.com/@biglup/cometa/-/cometa-1.0.7001.tgz#e82c8f33693482c74daa79af8a3f9962ef53f3c0"
+  integrity sha512-oie3tMNYtFXb3qoxTTGoI8vn/B0VB6+aeoU1DDHnRxuhloz1u6yjn2Azwb648g++D2oIQLH547ThAYmuQsn5yQ==
 
 "@cspotcode/source-map-support@^0.8.0":
   version "0.8.1"

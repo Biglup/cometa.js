@@ -246,7 +246,7 @@ export class SingleAddressWallet implements Wallet {
    * @remarks
    * For this type of wallet, we are going to hijack this flag and break the interface contract:
    * - When `partialSign` is `true`, the transaction is signed **only** with the payment credential.
-   * - When `partialSign` is `false`, the transaction is signed with **both** the payment and staking credentials..
+   * - When `partialSign` is `false`, the transaction is signed with **both** the payment and staking credentials.
    */
   public async signTransaction(txCbor: string, partialSign: boolean): Promise<VkeyWitnessSet> {
     const derivationPaths = [
