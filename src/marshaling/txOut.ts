@@ -17,6 +17,7 @@
 /* IMPORTS *******************************************************************/
 
 import { Address } from '../address';
+import { CborReader } from '../encoding';
 import { PlutusData, TxOut } from '../common';
 import { assertSuccess, unrefObject } from './object';
 import { blake2bHashFromHex, readBlake2bHashData } from './blake2b';
@@ -231,5 +232,36 @@ export const writeTxOut = (txOut: TxOut): number => {
     if (datumPtr !== 0) unrefObject(datumPtr);
     if (scriptRefPtr !== 0) unrefObject(scriptRefPtr);
     if (txOutPtrPtr !== 0) module._free(txOutPtrPtr);
+  }
+};
+
+/**
+ * @hidden
+ * Deserializes a TxOut from its CBOR hex string representation into a TxOut object.
+ *
+ * @param {string} txOutCbor - The CBOR representation of the TxOut, encoded as a hexadecimal string.
+ * @returns {number} A pointer to the newly created value object in WASM memory.
+ * @throws {Error} Throws an error if the deserialization fails, including a descriptive message from the CBOR parser.
+ */
+export const readTxOutFromCbor = (txOutCbor: string): TxOut => {
+  const module = getModule();
+
+  const cborReader = CborReader.fromHex(txOutCbor);
+  const valuePtrPtr = module._malloc(4);
+  let valuePtr = 0;
+
+  try {
+    const result = module.transaction_output_from_cbor(cborReader.ptr, valuePtrPtr);
+
+    if (result !== 0) {
+      const error = cborReader.getLastError();
+      throw new Error(`Failed to unmarshal transaction from CBOR: ${error}`);
+    }
+
+    valuePtr = module.getValue(valuePtrPtr, 'i32');
+    return readTxOut(valuePtr);
+  } finally {
+    unrefObject(valuePtr);
+    module._free(valuePtrPtr);
   }
 };

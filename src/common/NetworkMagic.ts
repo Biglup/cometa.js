@@ -30,7 +30,7 @@ export enum NetworkMagic {
    * before they are deployed to the Mainnet. It closely mirrors the Mainnet
    * environment, providing a final testing ground for applications.
    */
-  PREPROD = 1,
+  Preprod = 1,
 
   /**
    * \brief The Preview test network.
@@ -39,7 +39,7 @@ export enum NetworkMagic {
    * before they are released to the Pre-Production network. It allows developers
    * to experiment with new functionalities in a controlled environment.
    */
-  PREVIEW = 2,
+  Preview = 2,
 
   /**
    * \brief The SanchoNet test network.
@@ -47,7 +47,7 @@ export enum NetworkMagic {
    * SanchoNet is the testnet for rolling out governance features for the Cardano blockchain,
    * aligning with the comprehensive CIP-1694 specifications.
    */
-  SANCHONET = 4,
+  Sanchonet = 4,
 
   /**
    * \brief The Mainnet network.
@@ -56,5 +56,5 @@ export enum NetworkMagic {
    * Applications interacting with the Mainnet are dealing with actual ADA and
    * other assets. Caution should be exercised to ensure correctness and security.
    */
-  MAINNET = 764824073
+  Mainnet = 764824073
 }

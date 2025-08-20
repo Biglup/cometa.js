@@ -16,6 +16,7 @@
 
 /* IMPORTS *******************************************************************/
 
+import { CborReader } from '../encoding';
 import { UTxO } from '../common';
 import { getModule } from '../module';
 import { readTxIn, writeTxIn } from './txIn';
@@ -202,4 +203,35 @@ export const readUtxoList = (ptr: number): UTxO[] => {
   }
 
   return jsArray;
+};
+
+/**
+ * @hidden
+ * Deserializes a UTxO from its CBOR hex string representation into a UTxO object.
+ *
+ * @param {string} utxoCbor - The CBOR representation of the UTxO, encoded as a hexadecimal string.
+ * @returns {number} A pointer to the newly created value object in WASM memory.
+ * @throws {Error} Throws an error if the deserialization fails, including a descriptive message from the CBOR parser.
+ */
+export const readUTxOtFromCbor = (utxoCbor: string): UTxO => {
+  const module = getModule();
+
+  const cborReader = CborReader.fromHex(utxoCbor);
+  const valuePtrPtr = module._malloc(4);
+  let valuePtr = 0;
+
+  try {
+    const result = module.utxo_from_cbor(cborReader.ptr, valuePtrPtr);
+
+    if (result !== 0) {
+      const error = cborReader.getLastError();
+      throw new Error(`Failed to unmarshal transaction from CBOR: ${error}`);
+    }
+
+    valuePtr = module.getValue(valuePtrPtr, 'i32');
+    return readUtxo(valuePtr);
+  } finally {
+    unrefObject(valuePtr);
+    module._free(valuePtrPtr);
+  }
 };

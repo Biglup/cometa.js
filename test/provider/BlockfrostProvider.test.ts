@@ -98,7 +98,7 @@ describe.skip('BlockfrostProvider', () => {
 
   it('should create an instance', async () => {
     const provider = new Cometa.BlockfrostProvider({
-      network: Cometa.NetworkMagic.PREPROD,
+      network: Cometa.NetworkMagic.Preprod,
       projectId: ''
     });
 

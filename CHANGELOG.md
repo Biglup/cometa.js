@@ -1,12 +1,17 @@
 Next (V1.0.8)
 ---------------------
 
-Next (V1.0.7)
+V1.0.7001
+---------------------
+
+This version CIP-30 and sing address wallet integration
+
+V1.0.7
 ---------------------
 
 This version includes bindings to the transaction builder from libcardano-c library.
 
-Next (V1.0.3)
+V1.0.3
 ---------------------
 
 This version includes bindings to the address parsing libcardano-c library. The following functions are included:

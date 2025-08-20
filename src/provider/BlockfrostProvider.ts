@@ -48,16 +48,16 @@ import { Address, RewardAddress } from '../address';
 const networkMagicBlockfrostPrefix = (magic: NetworkMagic): string => {
   let prefix;
   switch (magic) {
-    case NetworkMagic.PREPROD:
+    case NetworkMagic.Preprod:
       prefix = 'cardano-preprod';
       break;
-    case NetworkMagic.PREVIEW:
+    case NetworkMagic.Preview:
       prefix = 'cardano-preview';
       break;
-    case NetworkMagic.SANCHONET:
+    case NetworkMagic.Sanchonet:
       prefix = 'cardano-sanchonet';
       break;
-    case NetworkMagic.MAINNET:
+    case NetworkMagic.Mainnet:
       prefix = 'cardano-mainnet';
       break;
     default:

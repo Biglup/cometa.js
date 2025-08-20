@@ -1,0 +1,71 @@
+{
+  "name": "@biglup/cometa-examples",
+  "version": "1.0.0",
+  "description": "Examples for cometa.js",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=7.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Biglup/cometa.js.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "contributors": [
+    "Angel Castillo <angel.castillob@prototnmail.io>"
+  ],
+  "license": "Apache-2.0",
+  "scripts": {
+    "sendLovelace": "ts-node src/send-lovelace.ts"
+  },
+  "dependencies": {
+    "@biglup/cometa": "^1.0.7",
+    "chalk": "4.1.2",
+    "cli-spinners": "^2.9.0",
+    "dotenv": "^17.2.1",
+    "ora": "^3.2.0",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/chalk": "^2.2.0",
+    "@types/ora": "^3.2.0",
+    "@atixlabs/eslint-config": "^1.2.3",
+    "@types/jest": "^26.0.24",
+    "@types/node": "^22.10.2",
+    "@types/prompts": "^2.4.9",
+    "@typescript-eslint/eslint-plugin": "^5.27.1",
+    "@typescript-eslint/parser": "^5.27.1",
+    "esbuild-plugin-inline-worker": "^0.1.1",
+    "eslint": "^7.32.0",
+    "eslint-import-resolver-typescript": "^2.7.0",
+    "eslint-plugin-filenames": "^1.3.2",
+    "eslint-plugin-import": "^2.24.2",
+    "eslint-plugin-jest": "^24.4.0",
+    "eslint-plugin-prettier": "^3.4.0",
+    "eslint-plugin-promise": "^5.1.0",
+    "eslint-plugin-sonarjs": "^0.9.1",
+    "eslint-plugin-sort-imports-es6-autofix": "^0.6.0",
+    "eslint-plugin-sort-keys-fix": "^1.1.2",
+    "eslint-plugin-unicorn": "^35.0.0",
+    "eslint-watch": "^7.0.0",
+    "fs-extra": "^10.0.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^2.3.2",
+    "shx": "^0.3.3",
+    "ts-node": "^10.0.0",
+    "ts-node-dev": "^1.1.8",
+    "typescript": "^4.7.4"
+  },
+  "files": [
+    "dist/*",
+    "!dist/tsconfig.tsbuildinfo",
+    "LICENSE"
+  ],
+  "bugs": {
+    "url": "https://github.com/Biglup/cometa.js/issues"
+  },
+  "homepage": "https://github.com/Biglup/cometa.js#readme",
+  "author": "Angel Castillo <angel.castillob@prototnmail.io>"
+}
