@@ -57,7 +57,6 @@ export const ready = async (): Promise<void> => {
     Object.assign(globalThis, bridgeCallbacks);
 
     const moduleInstance = ModuleFactory({
-      wasmBinary: decompressedWasmBinary,
       onAbort: (err: unknown) => {
         reject(err);
       },
@@ -65,7 +64,8 @@ export const ready = async (): Promise<void> => {
         _isReady = true;
 
         resolve();
-      }
+      },
+      wasmBinary: decompressedWasmBinary
     });
 
     moduleInstance

@@ -116,32 +116,54 @@ export const readGovernanceActionId = (ptr: number): GovernanceActionId => {
 
 /**
  * @hidden
- * Serializes a JavaScript `GovernanceActionId` object into a native `cardano_governance_action_id_t` object.
+ * Serializes a JavaScript `GovernanceActionId` object or Bech32 string into a
+ * native `cardano_governance_action_id_t` object pointer.
  *
- * @param {GovernanceActionId} govActionId - The `GovernanceActionId` object to serialize.
+ * @param {GovernanceActionId | string} govActionId - The `GovernanceActionId` object or Bech32 string to serialize.
  * @returns {number} A pointer to the newly created native `cardano_governance_action_id_t` object.
  */
-export const writeGovernanceActionId = (govActionId: GovernanceActionId): number => {
+export const writeGovernanceActionId = (govActionId: GovernanceActionId | string): number => {
   const module = getModule();
-  const idPtr = writeStringToMemory(govActionId.id);
-  const govActionIdPtrPtr = module._malloc(4);
 
-  try {
-    const { low, high } = splitToLowHigh64bit(BigInt(govActionId.actionIndex));
+  if (typeof govActionId === 'string') {
+    const bech32Ptr = writeStringToMemory(govActionId);
+    const govActionIdPtrPtr = module._malloc(4);
 
-    const result = module.governance_action_id_from_hash_hex(
-      idPtr,
-      govActionId.id.length,
-      low,
-      high,
-      govActionIdPtrPtr
-    );
-    assertSuccess(result, 'Failed to create governance action id from hex');
+    try {
+      assertSuccess(
+        module.governance_action_id_from_bech32(bech32Ptr, govActionId.length, govActionIdPtrPtr),
+        'Failed to create governance action id from bech32'
+      );
+      return module.getValue(govActionIdPtrPtr, 'i32');
+    } finally {
+      module._free(bech32Ptr);
+      module._free(govActionIdPtrPtr);
+    }
+  } else {
+    if (typeof govActionId.id !== 'string' || typeof govActionId.actionIndex !== 'number') {
+      throw new TypeError('Invalid GovernanceActionId object: must have id (string) and actionIndex (number).');
+    }
 
-    return module.getValue(govActionIdPtrPtr, 'i32');
-  } finally {
-    module._free(idPtr);
-    module._free(govActionIdPtrPtr);
+    const idPtr = writeStringToMemory(govActionId.id);
+    const govActionIdPtrPtr = module._malloc(4);
+
+    try {
+      const { low, high } = splitToLowHigh64bit(BigInt(govActionId.actionIndex));
+
+      const result = module.governance_action_id_from_hash_hex(
+        idPtr,
+        govActionId.id.length,
+        low,
+        high,
+        govActionIdPtrPtr
+      );
+      assertSuccess(result, 'Failed to create governance action id from hex hash');
+
+      return module.getValue(govActionIdPtrPtr, 'i32');
+    } finally {
+      module._free(idPtr);
+      module._free(govActionIdPtrPtr);
+    }
   }
 };
 

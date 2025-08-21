@@ -18,6 +18,15 @@
 
 import { Anchor } from './Anchor';
 import { Credential } from '../address';
+import {
+  assertSuccess,
+  readGovernanceActionId,
+  readStringFromMemory,
+  unrefObject,
+  writeGovernanceActionId,
+  writeStringToMemory
+} from '../marshaling';
+import { getModule } from '../module';
 
 /* DEFINITIONS **************************************************************/
 
@@ -26,11 +35,11 @@ import { Credential } from '../address';
  */
 export enum Vote {
   /** A vote against the governance action. */
-  no = 0,
+  No = 0,
   /** A vote in favor of the governance action. */
-  yes = 1,
+  Yes = 1,
   /** A vote to abstain, neither for nor against the action. */
-  abstain = 2
+  Abstain = 2
 }
 
 /**
@@ -121,3 +130,85 @@ export const isDRepNoConfidence = (drep: DRep): drep is AlwaysNoConfidence => dr
  * @returns {boolean} True if the DRep is of the 'Credential' type.
  */
 export const isDRepCredential = (drep: DRep): drep is Credential => !isDRepAbstain(drep) && !isDRepNoConfidence(drep);
+
+/**
+ * Deserializes a Bech32-encoded governance action ID string into a GovernanceActionId object.
+ *
+ * This function parses a governance action ID string (e.g., "gov_action1...") according to the
+ * [CIP-129](https://cips.cardano.org/cip/CIP-129) specification and returns a structured object
+ * containing the transaction ID and action index.
+ *
+ * @param {string} bech32 - The CIP-129 formatted, Bech32-encoded governance action ID string.
+ * @returns {GovernanceActionId} A structured object representing the governance action ID.
+ * @throws {Error} Throws an error if the Bech32 string is malformed or invalid.
+ * @see {@link https://cips.cardano.org/cip/CIP-129|CIP-129} for the official specification.
+ * @example
+ * const bech32Id = 'gov_action1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpzklpgpf';
+ * const govActionId = govActionIdFromBech32(bech32Id);
+ *
+ * console.log(govActionId.id);
+ * //-> "0000000000000000000000000000000000000000000000000000000000000000"
+ *
+ * console.log(govActionId.actionIndex);
+ * //-> 11
+ */
+export const govActionIdFromBech32 = (bech32: string): GovernanceActionId => {
+  const module = getModule();
+
+  const bech32Ptr = writeStringToMemory(bech32);
+  const govActionIdPtrPtr = module._malloc(4);
+  let ptr = 0;
+
+  try {
+    assertSuccess(
+      module.governance_action_id_from_bech32(bech32Ptr, bech32.length, govActionIdPtrPtr),
+      'Failed to create governance action id from bech32'
+    );
+    ptr = module.getValue(govActionIdPtrPtr, 'i32');
+    return readGovernanceActionId(ptr);
+  } finally {
+    unrefObject(ptr);
+    module._free(bech32Ptr);
+    module._free(govActionIdPtrPtr);
+  }
+};
+
+/**
+ * Serializes a GovernanceActionId object into its Bech32 string representation.
+ *
+ * This function converts a structured GovernanceActionId object (containing a transaction ID
+ * and action index) into its CIP-129 formatted Bech32 string (e.g., "gov_action1...").
+ *
+ * @param {GovernanceActionId} govActionId - The structured object to serialize.
+ * @returns {string} The Bech32-encoded governance action ID string.
+ * @throws {Error} Throws an error if the serialization fails.
+ * @see {@link https://cips.cardano.org/cip/CIP-129|CIP-129} for the official specification.
+ * @example
+ * const govActionId = {
+ * id: '0000000000000000000000000000000000000000000000000000000000000000',
+ * actionIndex: 11
+ * };
+ * const bech32Id = govActionIdToBech32(govActionId);
+ *
+ * console.log(bech32Id);
+ * //-> "gov_action1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpzklpgpf"
+ */
+export const govActionIdToBech32 = (govActionId: GovernanceActionId): string => {
+  const module = getModule();
+  let govActionIdPtr = 0;
+
+  try {
+    govActionIdPtr = writeGovernanceActionId(govActionId);
+
+    const bech32Ptr = module.governance_action_id_get_string(govActionIdPtr);
+
+    if (bech32Ptr === 0) {
+      throw new Error('Failed to retrieve Bech32 string for GovernanceActionId');
+    }
+
+    return readStringFromMemory(bech32Ptr);
+  } finally {
+    // 4. We MUST free the Wasm object we created with writeGovernanceActionId
+    unrefObject(govActionIdPtr);
+  }
+};

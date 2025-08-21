@@ -323,9 +323,9 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
           assertSuccess(m.script_pubkey_get_key_hash(pubkeyScriptPtr, keyHashPtrPtr));
           keyHashPtr = readPtr(keyHashPtrPtr);
           return {
-            __type: ScriptType.Native,
             keyHash: uint8ArrayToHex(readBlake2bHashData(keyHashPtr)),
-            kind: NativeScriptKind.RequireSignature
+            kind: NativeScriptKind.RequireSignature,
+            type: ScriptType.Native
           };
         } finally {
           m._free(keyHashPtrPtr);
@@ -345,9 +345,9 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
             if (m.script_invalid_before_get_slot(invalidBeforePtr, slotPtr) !== 0)
               throw new Error('Failed to get slot');
             return {
-              __type: ScriptType.Native,
               kind: NativeScriptKind.RequireTimeAfter,
-              slot: Number(readI64(slotPtr))
+              slot: Number(readI64(slotPtr)),
+              type: ScriptType.Native
             };
           } finally {
             m._free(slotPtr);
@@ -367,9 +367,9 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
           try {
             if (m.script_invalid_after_get_slot(invalidAfterPtr, slotPtr) !== 0) throw new Error('Failed to get slot');
             return {
-              __type: ScriptType.Native,
               kind: NativeScriptKind.RequireTimeBefore,
-              slot: Number(readI64(slotPtr))
+              slot: Number(readI64(slotPtr)),
+              type: ScriptType.Native
             };
           } finally {
             m._free(slotPtr);
@@ -422,9 +422,9 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
 
           if (kind === NativeScriptKind.RequireNOf) {
             const required = m.script_n_of_k_get_required(containerPtr);
-            return { __type: ScriptType.Native, kind, required, scripts };
+            return { kind, required, scripts, type: ScriptType.Native };
           }
-          return { __type: ScriptType.Native, kind, scripts };
+          return { kind, scripts, type: ScriptType.Native };
         } finally {
           if (listPtr) unrefObject(listPtr);
           if (containerPtr) unrefObject(containerPtr);
@@ -489,8 +489,8 @@ const readPlutusScript = (scriptPtr: number, language: PlutusLanguageVersion): P
       const bytes = m.HEAPU8.subarray(dataPtr, dataPtr + size);
 
       return {
-        __type: ScriptType.Plutus,
         bytes: uint8ArrayToHex(bytes),
+        type: ScriptType.Plutus,
         version: language
       };
     } finally {

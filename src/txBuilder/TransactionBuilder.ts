@@ -360,53 +360,119 @@ export class TransactionBuilder {
    * This function marks the transaction as invalid if it is not included in a block
    * before the specified time.
    *
-   * @param {number | bigint | Date} value The expiration time for the transaction.
-   * - If a `number` or `bigint` is provided, it is treated as an absolute **slot number**.
-   * - If a `Date` object is provided, it is converted to a **Unix timestamp** (in seconds).
+   * @param {number | bigint} slot The absolute **slot number** after which this transaction will be invalid.
    * @returns {TransactionBuilder} The builder instance for chaining.
    */
-  public setInvalidAfter(value: number | bigint | Date): TransactionBuilder {
+  public setInvalidAfter(slot: number | bigint): TransactionBuilder {
     const module = getModule();
 
-    if (value instanceof Date) {
-      const unixTime = BigInt(Math.floor(value.getTime() / 1000));
-      const parts = splitToLowHigh64bit(unixTime);
-      module.tx_builder_set_invalid_after_ex(this.ptr, parts.low, parts.high);
-    } else {
-      const slot = BigInt(value);
-      const parts = splitToLowHigh64bit(slot);
-      module.tx_builder_set_invalid_after(this.ptr, parts.low, parts.high);
-    }
+    const parts = splitToLowHigh64bit(slot);
+    module.tx_builder_set_invalid_after(this.ptr, parts.low, parts.high);
 
     return this;
   }
 
   /**
-   * Sets the transaction's validity start time.
+   * Sets the transaction to be valid for a specific duration from now.
    *
-   * This function marks the transaction as invalid if it is included in a block
-   * created before the specified time. It defines the earliest point at which
-   * the transaction can be processed.
+   * This is a convenience method that calculates a future expiration date and sets it.
+   * The transaction will be marked as invalid if it is not included in a block
+   * within the specified duration.
    *
-   * @param {number | bigint | Date} value The validity start time for the transaction.
-   * - If a `number` or `bigint` is provided, it is treated as an absolute **slot number**.
-   * - If a `Date` object is provided, it is converted to a **Unix timestamp** (in seconds).
+   * @param {number} seconds - The number of seconds from now that the transaction should remain valid.
    * @returns {TransactionBuilder} The builder instance for chaining.
+   *
+   * @example
+   * // Set the transaction to expire in 3 minutes (180 seconds) from now.
+   * txBuilder.setValidFor(180);
    */
-  public setInvalidBefore(value: number | bigint | Date): TransactionBuilder {
+  public expiresIn(seconds: number): TransactionBuilder {
     const module = getModule();
-
-    if (value instanceof Date) {
-      const unixTime = BigInt(Math.floor(value.getTime() / 1000));
-      const parts = splitToLowHigh64bit(unixTime);
-      module.tx_builder_set_invalid_before_ex(this.ptr, parts.low, parts.high);
-    } else {
-      const slot = BigInt(value);
-      const parts = splitToLowHigh64bit(slot);
-      module.tx_builder_set_invalid_before(this.ptr, parts.low, parts.high);
-    }
+    const now = Date.now() / 1000;
+    const unixTime = BigInt(Math.floor(now + seconds));
+    const parts = splitToLowHigh64bit(unixTime);
+    module.tx_builder_set_invalid_after_ex(this.ptr, parts.low, parts.high);
 
     return this;
+  }
+
+  /**
+   * Sets the transaction's expiration to a specific, absolute date and time.
+   *
+   * This function marks the transaction as invalid if it is not included in a block
+   * before the specified date.
+   *
+   * @param {Date} date - The absolute date and time after which the transaction will be invalid.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   *
+   * @example
+   * // Set the transaction to expire on New Year's Day, 2026.
+   * const expiryDate = new Date('2026-01-01T00:00:00Z');
+   * txBuilder.expiresAfter(expiryDate);
+   */
+  public expiresAfter(date: Date): TransactionBuilder {
+    const module = getModule();
+
+    const unixTime = BigInt(Math.floor(date.getTime() / 1000));
+
+    const parts = splitToLowHigh64bit(unixTime);
+    module.tx_builder_set_invalid_after_ex(this.ptr, parts.low, parts.high);
+
+    return this;
+  }
+
+  /**
+   * Sets the transaction's validity start time using an absolute slot number.
+   *
+   * This function marks the transaction as invalid if it is included in a block
+   * created before the specified slot.
+   *
+   * @param {number | bigint} slot The absolute slot number before which this transaction is invalid.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   */
+  public setInvalidBefore(slot: number | bigint): TransactionBuilder {
+    const module = getModule();
+    const slotValue = BigInt(slot);
+    const parts = splitToLowHigh64bit(slotValue);
+    module.tx_builder_set_invalid_before(this.ptr, parts.low, parts.high);
+    return this;
+  }
+
+  /**
+   * Sets the transaction's validity start time to a specific, absolute date and time.
+   * The transaction will be invalid if processed before this date.
+   *
+   * @param {Date} date The absolute date and time from which the transaction will be valid.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   *
+   * @example
+   * // Make the transaction valid starting on New Year's Day, 2026.
+   * const startDate = new Date('2026-01-01T00:00:00Z');
+   * txBuilder.validFromDate(startDate);
+   */
+  public validFromDate(date: Date): TransactionBuilder {
+    const module = getModule();
+    const unixTime = BigInt(Math.floor(date.getTime() / 1000));
+    const parts = splitToLowHigh64bit(unixTime);
+    module.tx_builder_set_invalid_before_ex(this.ptr, parts.low, parts.high);
+    return this;
+  }
+
+  /**
+   * Sets the transaction to become valid only after a specified duration from now.
+   * This is a convenience method that calculates a future start date.
+   *
+   * @param {number} seconds The number of seconds from now to wait before the transaction becomes valid.
+   * @returns {TransactionBuilder} The builder instance for chaining.
+   *
+   * @example
+   * // Make the transaction valid only after 1 hour (3600 seconds) has passed.
+   * txBuilder.validAfter(3600);
+   */
+  public validAfter(seconds: number): TransactionBuilder {
+    const startTime = Date.now() + seconds * 1000;
+    const startDate = new Date(startTime);
+    return this.validFromDate(startDate);
   }
 
   /**
@@ -682,12 +748,13 @@ export class TransactionBuilder {
   public setMetadata({ tag, metadata }: { tag: number | bigint; metadata: object | string }): TransactionBuilder {
     const module = getModule();
     const metadataTag = BigInt(tag);
+    const parts = splitToLowHigh64bit(metadataTag);
 
     const metadataJson = typeof metadata === 'string' ? metadata : JSON.stringify(metadata);
     const jsonPtr = writeStringToMemory(metadataJson);
 
     try {
-      module.tx_builder_set_metadata_ex(this.ptr, metadataTag, jsonPtr, metadataJson.length);
+      module.tx_builder_set_metadata_ex(this.ptr, parts.low, parts.high, jsonPtr, metadataJson.length);
     } finally {
       module._free(jsonPtr);
     }
@@ -869,15 +936,15 @@ export class TransactionBuilder {
    * stake credentials.
    *
    * @param {Object} params - The parameters for the function.
-   * @param {string | RewardAddress} params.stakeAddress The stake address to register, as a bech32 string or a RewardAddress object.
+   * @param {string | RewardAddress} params.rewardAddress The stake address to register, as a bech32 string or a RewardAddress object.
    * @param {PlutusData} [params.redeemer] Optional. The redeemer for a script-controlled stake credential.
    * @returns {TransactionBuilder} The builder instance for chaining.
    */
   public registerStakeAddress({
-    stakeAddress,
+    rewardAddress,
     redeemer
   }: {
-    stakeAddress: string | RewardAddress;
+    rewardAddress: string | RewardAddress;
     redeemer?: PlutusData;
   }): TransactionBuilder {
     const module = getModule();
@@ -888,15 +955,15 @@ export class TransactionBuilder {
         redeemerPtr = writePlutusData(redeemer);
       }
 
-      if (typeof stakeAddress === 'string') {
-        const addressPtr = writeStringToMemory(stakeAddress);
+      if (typeof rewardAddress === 'string') {
+        const addressPtr = writeStringToMemory(rewardAddress);
         try {
-          module.tx_builder_register_reward_address_ex(this.ptr, addressPtr, stakeAddress.length, redeemerPtr);
+          module.tx_builder_register_reward_address_ex(this.ptr, addressPtr, rewardAddress.length, redeemerPtr);
         } finally {
           module._free(addressPtr);
         }
       } else {
-        module.tx_builder_register_reward_address(this.ptr, stakeAddress.ptr, redeemerPtr);
+        module.tx_builder_register_reward_address(this.ptr, rewardAddress.ptr, redeemerPtr);
       }
     } finally {
       if (redeemerPtr !== 0) {
@@ -914,15 +981,15 @@ export class TransactionBuilder {
    * An optional redeemer can be provided for script-controlled stake credentials.
    *
    * @param {Object} params - The parameters for the function.
-   * @param {string | RewardAddress} params.stakeAddress - The stake address to deregister, as a bech32 string or a RewardAddress object.
+   * @param {string | RewardAddress} params.rewardAddress - The stake address to deregister, as a bech32 string or a RewardAddress object.
    * @param {PlutusData} [params.redeemer] - Optional. The redeemer for a script-controlled stake credential.
    * @returns {TransactionBuilder} The builder instance for chaining.
    */
   public deregisterStakeAddress({
-    stakeAddress,
+    rewardAddress,
     redeemer
   }: {
-    stakeAddress: string | RewardAddress;
+    rewardAddress: string | RewardAddress;
     redeemer?: PlutusData;
   }): TransactionBuilder {
     const module = getModule();
@@ -933,15 +1000,15 @@ export class TransactionBuilder {
         redeemerPtr = writePlutusData(redeemer);
       }
 
-      if (typeof stakeAddress === 'string') {
-        const addressPtr = writeStringToMemory(stakeAddress);
+      if (typeof rewardAddress === 'string') {
+        const addressPtr = writeStringToMemory(rewardAddress);
         try {
-          module.tx_builder_deregister_reward_address_ex(this.ptr, addressPtr, stakeAddress.length, redeemerPtr);
+          module.tx_builder_deregister_reward_address_ex(this.ptr, addressPtr, rewardAddress.length, redeemerPtr);
         } finally {
           module._free(addressPtr);
         }
       } else {
-        module.tx_builder_deregister_reward_address(this.ptr, stakeAddress.ptr, redeemerPtr);
+        module.tx_builder_deregister_reward_address(this.ptr, rewardAddress.ptr, redeemerPtr);
       }
     } finally {
       if (redeemerPtr !== 0) {
@@ -959,17 +1026,17 @@ export class TransactionBuilder {
    * An optional redeemer can be provided for script-controlled stake credentials.
    *
    * @param {Object} params - The parameters for the function.
-   * @param {string | RewardAddress} params.stakeAddress The bech32-encoded stake address to delegate from.
+   * @param {string | RewardAddress} params.rewardAddress The bech32-encoded stake address to delegate from.
    * @param {string} params.poolId The bech32-encoded ID of the stake pool to delegate to.
    * @param {PlutusData} [params.redeemer] Optional. The redeemer for a script-controlled stake credential.
    * @returns {TransactionBuilder} The builder instance for chaining.
    */
   public delegateStake({
-    stakeAddress,
+    rewardAddress,
     poolId,
     redeemer
   }: {
-    stakeAddress: string | RewardAddress;
+    rewardAddress: string | RewardAddress;
     poolId: string;
     redeemer?: PlutusData;
   }): TransactionBuilder {
@@ -979,7 +1046,7 @@ export class TransactionBuilder {
     let redeemerPtr = 0;
 
     try {
-      const addr = typeof stakeAddress === 'string' ? stakeAddress : stakeAddress.toBech32();
+      const addr = typeof rewardAddress === 'string' ? rewardAddress : rewardAddress.toBech32();
       addressPtr = writeStringToMemory(addr);
       poolIdPtr = writeStringToMemory(poolId);
       if (redeemer) {
@@ -1009,18 +1076,18 @@ export class TransactionBuilder {
    * (Decentralized Representative) for on-chain governance.
    *
    * @param {Object} params - The parameters for the function.
-   * @param {string | RewardAddress} params.stakeAddress The bech32-encoded stake address to delegate from.
+   * @param {string | RewardAddress} params.rewardAddress The bech32-encoded stake address to delegate from.
    * @param {string} params.drepId The bech32-encoded ID of the DRep to delegate to. The DRep ID can be
    * in CIP-129 format or CIP-105 format.
    * @param {PlutusData} [params.redeemer] Optional. The redeemer for a script-controlled stake credential.
    * @returns {TransactionBuilder} The builder instance for chaining.
    */
   public delegateVotingPower({
-    stakeAddress,
+    rewardAddress,
     drepId,
     redeemer
   }: {
-    stakeAddress: string | RewardAddress;
+    rewardAddress: string | RewardAddress;
     drepId: string;
     redeemer?: PlutusData;
   }): TransactionBuilder {
@@ -1030,7 +1097,7 @@ export class TransactionBuilder {
     let redeemerPtr = 0;
 
     try {
-      const addr = typeof stakeAddress === 'string' ? stakeAddress : stakeAddress.toBech32();
+      const addr = typeof rewardAddress === 'string' ? rewardAddress : rewardAddress.toBech32();
       addressPtr = writeStringToMemory(addr);
       drepIdPtr = writeStringToMemory(drepId);
       if (redeemer) {
@@ -1238,7 +1305,7 @@ export class TransactionBuilder {
     redeemer
   }: {
     voter: Voter;
-    actionId: GovernanceActionId;
+    actionId: GovernanceActionId | string;
     votingProcedure: VotingProcedure;
     redeemer?: PlutusData;
   }): TransactionBuilder {

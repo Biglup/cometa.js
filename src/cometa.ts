@@ -75,6 +75,14 @@ export const uint8ArrayToHex = (byteArray: Uint8Array): string =>
 export const utf8ToUint8Array = (str: string): Uint8Array => new TextEncoder().encode(str);
 
 /**
+ * Converts a UTF-8 string to its hex string representation.
+ *
+ * @param {string} str - The UTF-8 string to convert.
+ * @returns {string} The hex string representation of the UTF-8 string.
+ */
+export const utf8ToHex = (str: string): string => uint8ArrayToHex(new TextEncoder().encode(str));
+
+/**
  * Converts a Uint8Array to a UTF-8 string.
  *
  * @param {Uint8Array} uint8Array - The Uint8Array to convert.

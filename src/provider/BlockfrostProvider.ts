@@ -16,6 +16,7 @@
 
 /* IMPORTS ********************************************************************/
 
+import { Address, RewardAddress } from '../address';
 import {
   CostModel,
   NetworkMagic,
@@ -33,9 +34,8 @@ import {
   nativeScriptToJson,
   plutusDataToCbor
 } from '../common';
-import { readRedeemersFromTx, toUnitInterval } from '../marshaling';
 import { Provider } from './Provider';
-import { Address, RewardAddress } from '../address';
+import { readRedeemersFromTx, toUnitInterval } from '../marshaling';
 
 /* DEFINITIONS ****************************************************************/
 
@@ -138,12 +138,12 @@ export const prepareUtxoForEvaluation = (utxo: UTxO): [object, object] => {
 
   const scriptRef = utxo.output.scriptReference;
   if (scriptRef) {
-    if (scriptRef.__type === ScriptType.Plutus) {
+    if (scriptRef.type === ScriptType.Plutus) {
       outputJson.script = {
         cbor: scriptRef.bytes,
         language: plutusVersionToApiString[scriptRef.version]
       };
-    } else if (scriptRef.__type === ScriptType.Native) {
+    } else if (scriptRef.type === ScriptType.Native) {
       outputJson.script = {
         json: nativeScriptToJson(scriptRef),
         language: 'native'
@@ -815,8 +815,8 @@ export class BlockfrostProvider implements Provider {
     }
 
     return {
-      __type: ScriptType.Plutus,
       bytes: cborJson.cbor,
+      type: ScriptType.Plutus,
       version
     };
   }

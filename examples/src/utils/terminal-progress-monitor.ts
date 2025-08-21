@@ -118,6 +118,10 @@ export class TerminalProgressMonitor {
    * @param message The result message to be displayed.
    */
   logFailure(message: string) {
+    if (this.isTrackingTask()) {
+      this.endTask(message, TaskResult.Fail);
+      return;
+    }
     this.log(message, TaskResult.Fail);
   }
 

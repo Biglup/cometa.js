@@ -101,3 +101,20 @@ export const getErrorString = (error: number): string => {
   const errorPtr = module.error_to_string(error);
   return errorPtr ? module.UTF8ToString(errorPtr) : 'Unknown error';
 };
+
+/**
+ * Reads a null-terminated UTF-8 string from the WebAssembly memory.
+ *
+ * @param {number} ptr - The pointer to the beginning of the string in Wasm memory.
+ * @returns {string} The resulting JavaScript string.
+ * @remarks
+ * This function only reads the string; it does not free the pointer. The caller is
+ * responsible for managing the memory of the C string if it was dynamically allocated.
+ */
+export const readStringFromMemory = (ptr: number): string => {
+  if (ptr === 0) {
+    return '';
+  }
+  const module = getModule();
+  return module.UTF8ToString(ptr);
+};

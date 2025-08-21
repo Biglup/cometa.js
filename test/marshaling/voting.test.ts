@@ -107,7 +107,7 @@ describe('Voting Marshalling', () => {
     it('should correctly write and read a VotingProcedure with an anchor', () => {
       const votingProcedure: Cometa.VotingProcedure = {
         anchor: VALID_ANCHOR,
-        vote: Cometa.Vote.yes
+        vote: Cometa.Vote.Yes
       };
 
       const ptr = Cometa.writeVotingProcedure(votingProcedure);
@@ -122,7 +122,7 @@ describe('Voting Marshalling', () => {
     it('should correctly write and read a VotingProcedure without an anchor', () => {
       const votingProcedure: Cometa.VotingProcedure = {
         anchor: null,
-        vote: Cometa.Vote.abstain
+        vote: Cometa.Vote.Abstain
       };
 
       const ptr = Cometa.writeVotingProcedure(votingProcedure);
