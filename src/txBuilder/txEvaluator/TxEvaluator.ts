@@ -20,6 +20,10 @@ import { Redeemer, UTxO } from '../../common';
 
 /* DEFINITIONS ****************************************************************/
 
+/**
+ * Interface for transaction evaluation strategies. This will compute the required
+ * execution units for each redeemer in a transaction.
+ */
 export interface TxEvaluator {
   /**
    * Gets the human-readable name of the coin selection strategy.

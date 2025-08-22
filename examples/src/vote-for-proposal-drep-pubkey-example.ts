@@ -159,7 +159,7 @@ const example = async () => {
   };
   const votingProcedure = {
     anchor: ANCHOR,
-    vote: Cometa.Vote.yes
+    vote: Cometa.Vote.Yes
   };
 
   await registerDRep(wallet, provider, drepId);
