@@ -21,6 +21,7 @@ export * from './Certificates';
 export * from './CommitteeMembers';
 export * from './Constitution';
 export * from './CostModel';
+export * from './DRep';
 export * from './DRepThresholds';
 export * from './Datum';
 export * from './ExUnits';

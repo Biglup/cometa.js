@@ -105,6 +105,28 @@ export interface Wallet {
   getCollateral(): Promise<UTxO[]>;
 
   /**
+   * Returns the "network magic," a unique number identifying the Cardano network.
+   * @returns {Promise<number>} A promise that resolves to the network magic number (e.g., Mainnet: `764824073`, Preprod: `1`).
+   */
+  getNetworkMagic: () => Promise<number>;
+
+  /**
+   * Returns the wallet's active public DRep (Delegated Representative) key.
+   * @returns {Promise<string>} A promise that resolves to the hex-encoded public DRep key.
+   */
+  getPubDRepKey: () => Promise<string>;
+  /**
+   * Returns public stake keys from the wallet that are currently registered for on-chain governance voting.
+   * @returns {Promise<string[]>} A promise that resolves to an array of hex-encoded public stake keys.
+   */
+  getRegisteredPubStakeKeys: () => Promise<string[]>;
+  /**
+   * Returns public stake keys from the wallet that are NOT yet registered for on-chain governance voting.
+   * @returns {Promise<string[]>} A promise that resolves to an array of hex-encoded public stake keys.
+   */
+  getUnregisteredPubStakeKeys: () => Promise<string[]>;
+
+  /**
    * Creates and initializes a new transaction builder with the wallet's current state.
    *
    * @returns {Promise<TransactionBuilder>} A promise that resolves to a pre-configured `TransactionBuilder` instance.

@@ -17,7 +17,7 @@
 /* IMPORTS *******************************************************************/
 
 import { AccountDerivationPath, DerivationPath } from '../keyHandlers';
-import { Ed25519PublicKey, Ed25519Signature, VkeyWitness, VkeyWitnessSet, splitToLowHigh64bit, CborReader } from '../';
+import { CborReader, Ed25519PublicKey, Ed25519Signature, VkeyWitness, VkeyWitnessSet, splitToLowHigh64bit } from '../';
 import { assertSuccess, unrefObject } from './object';
 import { getModule } from '../module';
 
@@ -230,31 +230,35 @@ export const writeAccountDerivationPaths = (path: AccountDerivationPath): number
 
 /**
  * @hidden
- * Deserializes a vkey witness set from its CBOR hex string representation into a Value object.
+ * Deserializes a vkey witness set from a transaction witness set in CBOR hex string representation into a VkeyWitnessSet.
  *
- * @param {string} vkeyWitnessSetCbor - The CBOR representation of the vkey witness set, encoded as a hexadecimal string.
- * @returns {number} A pointer to the newly created vkey witness set object in WASM memory.
+ * @param {string} witnessSetCbor - The CBOR representation of the witness set, encoded as a hexadecimal string.
+ * @returns {VkeyWitnessSet} The deserialized `VkeyWitnessSet` object containing an array of `VkeyWitness` objects.
  * @throws {Error} Throws an error if the deserialization fails, including a descriptive message from the CBOR parser.
  */
-export const readVkeyWitnessSetFromCbor = (vkeyWitnessSetCbor: string): VkeyWitnessSet => {
+export const readVkeyWitnessSetFromWitnessSetCbor = (witnessSetCbor: string): VkeyWitnessSet => {
   const module = getModule();
 
-  const cborReader = CborReader.fromHex(vkeyWitnessSetCbor);
-  const valuePtrPtr = module._malloc(4);
-  let valuePtr = 0;
+  const cborReader = CborReader.fromHex(witnessSetCbor);
+  const witnessSetPtrPtr = module._malloc(4);
+  let witnessSetPtr = 0;
+  let vkeyWitnessSetPtr = 0;
 
   try {
-    const result = module.vkey_witness_set_from_cbor(cborReader.ptr, valuePtrPtr);
+    const result = module.witness_set_from_cbor(cborReader.ptr, witnessSetPtrPtr);
 
     if (result !== 0) {
       const error = cborReader.getLastError();
       throw new Error(`Failed to unmarshal transaction from CBOR: ${error}`);
     }
 
-    valuePtr = module.getValue(valuePtrPtr, 'i32');
-    return readVkeyWitnessSet(valuePtr);
+    witnessSetPtr = module.getValue(witnessSetPtrPtr, 'i32');
+
+    vkeyWitnessSetPtr = module.witness_set_get_vkeys(witnessSetPtr);
+    return readVkeyWitnessSet(vkeyWitnessSetPtr);
   } finally {
-    unrefObject(valuePtr);
-    module._free(valuePtrPtr);
+    unrefObject(witnessSetPtr);
+    unrefObject(vkeyWitnessSetPtr);
+    module._free(witnessSetPtrPtr);
   }
 };

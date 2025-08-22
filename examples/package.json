@@ -18,10 +18,24 @@
   ],
   "license": "Apache-2.0",
   "scripts": {
-    "sendLovelace": "ts-node src/send-lovelace.ts"
+    "sendLovelace-example": "ts-node src/send-lovelace-example.ts",
+    "bip39-example": "ts-node src/bip39-example.ts",
+    "donate-to-treasury-example": "ts-node src/donate-to-treasury-example.ts",
+    "drep-pubkey-example": "ts-node src/drep-pubkey-example.ts",
+    "drep-script-example": "ts-node src/drep-script-example.ts",
+    "mint-burn-native-script-example": "ts-node src/mint-burn-native-script-example.ts",
+    "mint-burn-plutus-script-example": "ts-node src/mint-burn-plutus-script-example.ts",
+    "reward-account-pubkey-example": "ts-node src/reward-account-pubkey-example.ts",
+    "reward-account-script-example": "ts-node src/reward-account-script-example.ts",
+    "secure-key-handler-example": "ts-node src/secure-key-handler-example.ts",
+    "spend-from-native-script-example": "ts-node src/spend-from-native-script-example.ts",
+    "spend-from-plutus-script-example": "ts-node src/spend-from-plutus-script-example.ts",
+    "propose-treasury-withdrawal-example": "ts-node src/propose-treasury-withdrawal-example.ts",
+    "vote-for-proposal-drep-pubkey-example": "ts-node src/vote-for-proposal-drep-pubkey-example.ts",
+    "vote-for-proposal-drep-script-example" : "ts-node src/vote-for-proposal-drep-script-example.ts"
   },
   "dependencies": {
-    "@biglup/cometa": "^1.0.7004",
+    "@biglup/cometa": "^1.0.901",
     "chalk": "4.1.2",
     "cli-spinners": "^2.9.0",
     "dotenv": "^17.2.1",

@@ -50,7 +50,7 @@ export enum NativeScriptKind {
  */
 export interface RequireSignatureScript {
   /** Script type. */
-  __type: ScriptType.Native;
+  type: ScriptType.Native;
 
   /** The hash of a verification key. */
   keyHash: string;
@@ -66,7 +66,7 @@ export interface RequireSignatureScript {
  */
 export interface RequireAllOfScript {
   /** Script type. */
-  __type: ScriptType.Native;
+  type: ScriptType.Native;
 
   /** The list of sub-scripts. */
   scripts: NativeScript[];
@@ -83,7 +83,7 @@ export interface RequireAllOfScript {
  */
 export interface RequireAnyOfScript {
   /** Script type. */
-  __type: ScriptType.Native;
+  type: ScriptType.Native;
 
   /** The list of sub-scripts. */
   scripts: NativeScript[];
@@ -95,7 +95,7 @@ export interface RequireAnyOfScript {
 /** This script evaluates to true if at least M (required field) of the sub-scripts evaluate to true. */
 export interface RequireAtLeastScript {
   /** Script type. */
-  __type: ScriptType.Native;
+  type: ScriptType.Native;
 
   /** The number of sub-scripts that must evaluate to true for this script to evaluate to true. */
   required: number;
@@ -116,7 +116,7 @@ export interface RequireAtLeastScript {
  */
 export interface RequireTimeBeforeScript {
   /** Script type. */
-  __type: ScriptType.Native;
+  type: ScriptType.Native;
 
   /** The slot number specifying the upper bound of the validity interval. */
   slot: number;
@@ -134,7 +134,7 @@ export interface RequireTimeBeforeScript {
  */
 export interface RequireTimeAfterScript {
   /** Script type. */
-  __type: ScriptType.Native;
+  type: ScriptType.Native;
 
   /** The slot number specifying the lower bound of the validity interval. */
   slot: number;
@@ -196,7 +196,7 @@ export enum PlutusLanguageVersion {
  * several inputs such as Datum, Redeemer and the transaction context to decide whether an output can be spent or not.
  */
 export interface PlutusScript {
-  __type: ScriptType.Plutus;
+  type: ScriptType.Plutus;
   bytes: string;
   version: PlutusLanguageVersion;
 }
@@ -209,14 +209,14 @@ export type Script = NativeScript | PlutusScript;
  *
  * @param script The Script to check.
  */
-export const isNativeScript = (script: Script): script is NativeScript => script.__type === ScriptType.Native;
+export const isNativeScript = (script: Script): script is NativeScript => script.type === ScriptType.Native;
 
 /**
  * Predicate that returns true if the given core script is a plutus script.
  *
  * @param script The Script to check.
  */
-export const isPlutusScript = (script: Script): script is PlutusScript => script.__type === ScriptType.Plutus;
+export const isPlutusScript = (script: Script): script is PlutusScript => script.type === ScriptType.Plutus;
 
 /**
  * Performs a deep equality check on two Script.
@@ -368,18 +368,18 @@ export const jsonToNativeScript = (json: any): NativeScript => {
   switch (json.type) {
     case 'sig': {
       coreScript = {
-        __type: ScriptType.Native,
         keyHash: json.keyHash,
-        kind: NativeScriptKind.RequireSignature
+        kind: NativeScriptKind.RequireSignature,
+        type: ScriptType.Native
       };
 
       break;
     }
     case 'all': {
       coreScript = {
-        __type: ScriptType.Native,
         kind: NativeScriptKind.RequireAllOf,
-        scripts: new Array<NativeScript>()
+        scripts: new Array<NativeScript>(),
+        type: ScriptType.Native
       };
       for (let i = 0; i < json.scripts.length; ++i) {
         coreScript.scripts.push(jsonToNativeScript(json.scripts[i]));
@@ -389,9 +389,9 @@ export const jsonToNativeScript = (json: any): NativeScript => {
     }
     case 'any': {
       coreScript = {
-        __type: ScriptType.Native,
         kind: NativeScriptKind.RequireAnyOf,
-        scripts: new Array<NativeScript>()
+        scripts: new Array<NativeScript>(),
+        type: ScriptType.Native
       };
       for (let i = 0; i < json.scripts.length; ++i) {
         coreScript.scripts.push(jsonToNativeScript(json.scripts[i]));
@@ -402,10 +402,10 @@ export const jsonToNativeScript = (json: any): NativeScript => {
     case 'atLeast': {
       const required = Number.parseInt(json.required);
       coreScript = {
-        __type: ScriptType.Native,
         kind: NativeScriptKind.RequireNOf,
         required,
-        scripts: new Array<NativeScript>()
+        scripts: new Array<NativeScript>(),
+        type: ScriptType.Native
       };
 
       for (let i = 0; i < json.scripts.length; ++i) {
@@ -416,18 +416,18 @@ export const jsonToNativeScript = (json: any): NativeScript => {
     }
     case 'before': {
       coreScript = {
-        __type: ScriptType.Native,
         kind: NativeScriptKind.RequireTimeBefore,
-        slot: Number.parseInt(json.slot)
+        slot: Number.parseInt(json.slot),
+        type: ScriptType.Native
       };
 
       break;
     }
     case 'after': {
       coreScript = {
-        __type: ScriptType.Native,
         kind: NativeScriptKind.RequireTimeAfter,
-        slot: Number.parseInt(json.slot)
+        slot: Number.parseInt(json.slot),
+        type: ScriptType.Native
       };
 
       break;

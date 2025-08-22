@@ -97,8 +97,8 @@ describe('Transaction Output (TxOut)', () => {
     runRoundTripTest('TxOut with a script reference', {
       address: SAMPLE_ADDRESS,
       scriptReference: {
-        __type: Cometa.ScriptType.Plutus,
         bytes: SAMPLE_SCRIPT_CBOR,
+        type: Cometa.ScriptType.Plutus,
         version: Cometa.PlutusLanguageVersion.V2
       },
       value: { coins: 5000000n }
@@ -108,8 +108,8 @@ describe('Transaction Output (TxOut)', () => {
       address: SAMPLE_ADDRESS,
       datum: 42n,
       scriptReference: {
-        __type: Cometa.ScriptType.Plutus,
         bytes: SAMPLE_SCRIPT_CBOR,
+        type: Cometa.ScriptType.Plutus,
         version: Cometa.PlutusLanguageVersion.V2
       },
       value: {

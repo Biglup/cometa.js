@@ -18,37 +18,34 @@
 /* IMPORTS ********************************************************************/
 
 import * as Cometa from '@biglup/cometa';
-import {
-  TaskResult,
-  TerminalProgressMonitor,
-  getBlockfrostProjectIdFromEnv,
-  getPassword,
-  getTimeFromNow,
-  printHeader
-} from './utils';
+import { TaskResult, TerminalProgressMonitor, getBlockfrostProjectIdFromEnv, getPassword, printHeader } from './utils';
 
 /* CONSTANTS ******************************************************************/
 
-const LOVELACE_TO_SEND = 2000000;
-const RECEIVING_ADDRESS =
-  'addr_test1qpjhcqawjma79scw4d9fjudwcu0sww9kv9x8f30fer3rmpu2qn0kv3udaf5pmf94ts27ul2w7q3sepupwccez2u2lu5s7aa8rv';
 const HOUR_IN_SECONDS = 3600;
 const MNEMONICS =
   'antenna whale clutch cushion narrow chronic matrix alarm raise much stove beach mimic daughter review build dinner twelve orbit soap decorate bachelor athlete close';
+
+const ANCHOR = {
+  dataHash: '93106d082a93e94df5aff74f678438bae3a647dac63465fbfcde6a3058f41a1e',
+  url: 'https://raw.githubusercontent.com/IntersectMBO/governance-actions/refs/heads/main/mainnet/2024-11-19-infohf/metadata.jsonld'
+};
+const CONSTITUTION_SCRIPT_HASH = 'fa24fb305126805cf2164c161d852a0e7330cf988f1fe558cf7d4a64';
+const WITHDRAWAL_AMOUNT = 1000000000000n;
 
 /* DEFINITIONS ****************************************************************/
 
 const monitor = new TerminalProgressMonitor();
 
 /**
- * Sends a specified amount of lovelace to a receiving address using Cometa.
+ * Proposes a treasury withdrawal transaction using Cometa.
  */
-const sendLovelace = async () => {
+const example = async () => {
   await Cometa.ready();
 
   printHeader(
-    'Send lovelace Example',
-    `This example will send ${LOVELACE_TO_SEND} lovelace to the receiving address: ${RECEIVING_ADDRESS}.`
+    'Propose withdrawal Example',
+    `This example will issue a withdrawal proposal to withdraw from treasury ${WITHDRAWAL_AMOUNT}.`
   );
 
   const provider = new Cometa.BlockfrostProvider({
@@ -77,9 +74,31 @@ const sendLovelace = async () => {
    */
   const builder = await wallet.createTransactionBuilder();
 
+  const rewardAddress = (await wallet.getRewardAddresses())[0];
+
+  // We also need to provider the constitution script, either by including it directly
+  // in the witness set or by including a reference input with contains it. Currently (as of epoch 163), the
+  // script is deployed at UTXO: 9aabbac24d1e39cb3e677981c84998a4210bae8d56b0f60908eedb9f59efffc8#0
+  const referenceInput = (
+    await provider.resolveUnspentOutputs([
+      {
+        index: 0,
+        txId: '9aabbac24d1e39cb3e677981c84998a4210bae8d56b0f60908eedb9f59efffc8'
+      }
+    ])
+  )[0];
+
   const unsignedTx = await builder
-    .sendLovelace({ address: RECEIVING_ADDRESS, amount: 12000000n })
-    .setInvalidAfter(getTimeFromNow(HOUR_IN_SECONDS * 2))
+    .addReferenceInput(referenceInput)
+    .proposeTreasuryWithdrawals({
+      anchor: ANCHOR,
+      policyHash: CONSTITUTION_SCRIPT_HASH,
+      rewardAddress,
+      withdrawals: {
+        [rewardAddress.toBech32()]: WITHDRAWAL_AMOUNT
+      }
+    })
+    .expiresIn(HOUR_IN_SECONDS * 2)
     .build();
 
   monitor.endTask('Transaction built successfully.', TaskResult.Success);
@@ -101,4 +120,4 @@ const sendLovelace = async () => {
   }
 };
 
-sendLovelace().catch((error) => monitor.logFailure(`Error in sendLovelace: ${error.message}`));
+example().catch((error) => monitor.logFailure(`Error: ${error.message}`));

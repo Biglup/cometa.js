@@ -40,23 +40,14 @@ import { writeTransactionToCbor } from './transaction';
  * and their corresponding WASM memory representations.
  */
 export const bridgeCallbacks = {
-  get_provider_from_registry(objectId: number) {
-    return getFromInstanceRegistry(InstanceType.Provider, objectId);
-  },
   get_coin_selector_from_registry(objectId: number) {
     return getFromInstanceRegistry(InstanceType.CoinSelector, objectId);
   },
+  get_provider_from_registry(objectId: number) {
+    return getFromInstanceRegistry(InstanceType.Provider, objectId);
+  },
   get_tx_evaluator_from_registry(objectId: number) {
     return getFromInstanceRegistry(InstanceType.TxEvaluator, objectId);
-  },
-  report_provider_bridge_error(objectId: number, exception: any) {
-    return reportBridgeError(InstanceType.Provider, objectId, exception);
-  },
-  report_coin_selector_bridge_error(objectId: number, exception: any) {
-    return reportBridgeError(InstanceType.CoinSelector, objectId, exception);
-  },
-  report_tx_evaluator_bridge_error(objectId: number, exception: any) {
-    return reportBridgeError(InstanceType.TxEvaluator, objectId, exception);
   },
   marshal_blake2b_hash_from_hex(jsHexString: string) {
     return blake2bHashFromHex(jsHexString);
@@ -84,12 +75,21 @@ export const bridgeCallbacks = {
   marshall_asset_id(assetIdPtr: number) {
     return readAssetId(assetIdPtr);
   },
+  report_coin_selector_bridge_error(objectId: number, exception: any) {
+    return reportBridgeError(InstanceType.CoinSelector, objectId, exception);
+  },
   marshall_blake2b_hash(hashPtr: number) {
     return uint8ArrayToHex(readBlake2bHashData(hashPtr, false));
+  },
+  report_provider_bridge_error(objectId: number, exception: any) {
+    return reportBridgeError(InstanceType.Provider, objectId, exception);
   },
   marshall_reward_address(rewardAddressPtr: number) {
     const addr = new RewardAddress(rewardAddressPtr, false);
     return addr.toAddress().toString();
+  },
+  report_tx_evaluator_bridge_error(objectId: number, exception: any) {
+    return reportBridgeError(InstanceType.TxEvaluator, objectId, exception);
   },
   marshall_transaction_to_cbor_hex(txPtr: number) {
     return writeTransactionToCbor(txPtr);

@@ -16,13 +16,13 @@
 
 /* IMPORTS ********************************************************************/
 
+import { Address, RewardAddress } from '../address';
 import { InstanceType, registerInstance, unregisterInstance } from '../instanceRegistry';
 import { NetworkMagic, ProtocolParameters, Redeemer, TxIn, UTxO } from '../common';
 import { Provider } from './Provider';
 import { assertSuccess, unrefObject, utf8ByteLen, writeStringToMemory } from '../marshaling';
 import { asyncifyStateTracker } from '../cometa';
 import { getModule } from '../module';
-import { Address, RewardAddress } from '../address';
 
 /* DEFINITIONS ****************************************************************/
 

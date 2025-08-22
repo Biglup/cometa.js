@@ -95,4 +95,38 @@ export interface Cip30Wallet {
    * @remarks Collateral is required for transactions that interact with Plutus smart contracts to cover potential script execution failure fees.
    */
   getCollateral(): Promise<string[]>;
+
+  /**
+   * Namespace for CIP-142 methods.
+   * @see {@link https://cips.cardano.org/cip/CIP-142}
+   */
+  cip142: {
+    /**
+     * Returns the "network magic," a unique number identifying the Cardano network.
+     * @returns {Promise<number>} A promise that resolves to the network magic number (e.g., Mainnet: `764824073`, Preprod: `1`).
+     */
+    getNetworkMagic: () => Promise<number>;
+  };
+
+  /**
+   * Namespace for CIP-95 governance methods, supporting the Voltaire era.
+   * @see {@link https://cips.cardano.org/cip/CIP-95}
+   */
+  cip95: {
+    /**
+     * Returns the wallet's active public DRep (Delegated Representative) key.
+     * @returns {Promise<string>} A promise that resolves to the hex-encoded public DRep key.
+     */
+    getPubDRepKey: () => Promise<string>;
+    /**
+     * Returns public stake keys from the wallet that are currently registered for on-chain governance voting.
+     * @returns {Promise<string[]>} A promise that resolves to an array of hex-encoded public stake keys.
+     */
+    getRegisteredPubStakeKeys: () => Promise<string[]>;
+    /**
+     * Returns public stake keys from the wallet that are NOT yet registered for on-chain governance voting.
+     * @returns {Promise<string[]>} A promise that resolves to an array of hex-encoded public stake keys.
+     */
+    getUnregisteredPubStakeKeys: () => Promise<string[]>;
+  };
 }

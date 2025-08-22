@@ -25,8 +25,8 @@ import { readExUnitPrices, writeExUnitPrices } from './exUnitPrices';
 import { readExUnits, writeExUnits } from './exUnits';
 import { readPoolVotingThresholds, writePoolVotingThresholds } from './poolVotingThresholds';
 import { readProtocolVersion, writeProtocolVersion } from './protocolVersion';
-import { writeUnitInterval } from './unitInterval';
 import { splitToLowHigh64bit } from './number';
+import { writeUnitInterval } from './unitInterval';
 
 /* DEFINITIONS ****************************************************************/
 

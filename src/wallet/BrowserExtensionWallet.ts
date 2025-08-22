@@ -18,11 +18,16 @@
 
 import { Address, NetworkId, RewardAddress } from '../address';
 import { Cip30Wallet } from './Cip30Wallet';
-import { ProtocolParameters, UTxO, Value, VkeyWitnessSet } from '../common';
+import { NetworkMagic, ProtocolParameters, UTxO, Value, VkeyWitnessSet } from '../common';
 import { Provider } from '../provider';
 import { TransactionBuilder } from '../txBuilder';
 import { Wallet } from './Wallet';
-import { readUTxOtFromCbor, readValueFromCbor, readVkeyWitnessSetFromCbor } from '../marshaling';
+import { readUTxOtFromCbor, readValueFromCbor, readVkeyWitnessSetFromWitnessSetCbor } from '../marshaling';
+
+/* CONSTANTS ******************************************************************/
+
+const CIP_95_ERROR =
+  'CIP-95 extension is not enabled in the wallet. Please enable with `cardano.{wallet-name}.enable({extensions: [{cip: 95}]})`';
 
 /* DEFINITIONS ****************************************************************/
 
@@ -116,7 +121,7 @@ export class BrowserExtensionWallet implements Wallet {
    */
   public async signTransaction(txCbor: string, partialSign: boolean): Promise<VkeyWitnessSet> {
     const witnessSet = await this.cip30Wallet.signTx(txCbor, partialSign);
-    return readVkeyWitnessSetFromCbor(witnessSet);
+    return readVkeyWitnessSetFromWitnessSetCbor(witnessSet);
   }
 
   /**
@@ -147,6 +152,52 @@ export class BrowserExtensionWallet implements Wallet {
   public async getCollateral(): Promise<UTxO[]> {
     const utxos = await this.cip30Wallet.getCollateral();
     return (utxos ?? []).map((utxo) => readUTxOtFromCbor(utxo));
+  }
+
+  /**
+   * Returns the "network magic," a unique number identifying the Cardano network.
+   * @returns {Promise<number>} A promise that resolves to the network magic number (e.g., Mainnet: `764824073`, Preprod: `1`).
+   */
+  public async getNetworkMagic(): Promise<NetworkMagic> {
+    if (!this.cip30Wallet.cip142 || !this.cip30Wallet.cip142.getNetworkMagic) {
+      throw new Error(
+        'CIP-142 extension is not enabled in the wallet. Please enable with `cardano.{wallet-name}.enable({extensions: [{cip: 142}]})`'
+      );
+    }
+    return this.cip30Wallet.cip142.getNetworkMagic();
+  }
+
+  /**
+   * Returns the wallet's active public DRep (Delegated Representative) key.
+   * @returns {Promise<string>} A promise that resolves to the hex-encoded public DRep key.
+   */
+  public async getPubDRepKey(): Promise<string> {
+    if (!this.cip30Wallet.cip95 || !this.cip30Wallet.cip95.getPubDRepKey) {
+      throw new Error(CIP_95_ERROR);
+    }
+    return this.cip30Wallet.cip95.getPubDRepKey();
+  }
+
+  /**
+   * Returns public stake keys from the wallet that are currently registered for on-chain governance voting.
+   * @returns {Promise<string[]>} A promise that resolves to an array of hex-encoded public stake keys.
+   */
+  public async getRegisteredPubStakeKeys(): Promise<string[]> {
+    if (!this.cip30Wallet.cip95 || !this.cip30Wallet.cip95.getRegisteredPubStakeKeys) {
+      throw new Error(CIP_95_ERROR);
+    }
+    return this.cip30Wallet.cip95.getRegisteredPubStakeKeys();
+  }
+
+  /**
+   * Returns public stake keys from the wallet that are NOT yet registered for on-chain governance voting.
+   * @returns {Promise<string[]>} A promise that resolves to an array of hex-encoded public stake keys.
+   */
+  public async getUnregisteredPubStakeKeys(): Promise<string[]> {
+    if (!this.cip30Wallet.cip95 || !this.cip30Wallet.cip95.getUnregisteredPubStakeKeys) {
+      throw new Error(CIP_95_ERROR);
+    }
+    return this.cip30Wallet.cip95.getUnregisteredPubStakeKeys();
   }
 
   /**

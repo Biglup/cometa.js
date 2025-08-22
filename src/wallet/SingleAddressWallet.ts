@@ -17,7 +17,7 @@
 /* IMPORTS ********************************************************************/
 
 import { Address, BaseAddress, CredentialType, EnterpriseAddress, NetworkId, RewardAddress } from '../address';
-import { Bip32PrivateKey, Bip32PublicKey } from '../crypto';
+import { Bip32PrivateKey, Bip32PublicKey, Ed25519PublicKey } from '../crypto';
 import {
   Bip32SecureKeyHandler,
   CoinType,
@@ -30,6 +30,7 @@ import { NetworkMagic, ProtocolParameters, UTxO, Value, VkeyWitnessSet } from '.
 import { Provider } from '../provider';
 import { TransactionBuilder } from '../txBuilder';
 import { Wallet } from './Wallet';
+import { getUniqueSigners } from '../marshaling';
 import { mnemonicToEntropy } from '../bip39';
 
 /* DEFINITIONS ****************************************************************/
@@ -39,11 +40,13 @@ import { mnemonicToEntropy } from '../bip39';
  * @property {number} account - The account index.
  * @property {number} paymentIndex - The address index for the payment key (role 0).
  * @property {number} [stakingIndex] - The address index for the staking key (role 2). If provided, a **Base address** (payment + staking) will be derived. If omitted, an **Enterprise address** (payment only) will be derived.
+ * @property {number} [drepIndex] - The address index for the DRep key (role 3). If not provided, 0 will be assumed.
  */
 export type SingleAddressCredentialsConfig = {
   account: number;
   paymentIndex: number;
   stakingIndex?: number;
+  drepIndex?: number;
 };
 
 /**
@@ -121,6 +124,7 @@ export class SingleAddressWallet implements Wallet {
   private accountRootPublicKey: Bip32PublicKey;
   private paymentAddress: Address | undefined;
   private rewardAddress: RewardAddress | undefined;
+  private drepPubKey: Ed25519PublicKey | undefined;
   private protocolParams: ProtocolParameters | undefined;
 
   /**
@@ -218,6 +222,7 @@ export class SingleAddressWallet implements Wallet {
   /**
    * Fetches and parses all unused addresses controlled by the wallet.
    * @returns {Promise<Address[]>} A promise that resolves to an array of parsed `Address` objects.
+   * @remarks This method is currently not supported and always returns an empty array.
    */
   public async getUnusedAddresses(): Promise<Address[]> {
     return [];
@@ -243,14 +248,30 @@ export class SingleAddressWallet implements Wallet {
   /**
    * Requests a signature for a transaction using the wallet's keys.
    * @param {string} txCbor - The transaction to be signed, provided as a CBOR hex string.
-   * @param {boolean} partialSign - A flag to control which credentials are used for signing.
+   * @param {boolean} _partialSign - A flag to control which credentials are used for signing.
    * @returns {Promise<VkeyWitnessSet>} A promise that resolves to the deserialized `VkeyWitnessSet`.
-   * @remarks
-   * For this type of wallet, we are going to hijack this flag and break the interface contract:
-   * - When `partialSign` is `true`, the transaction is signed **only** with the payment credential.
-   * - When `partialSign` is `false`, the transaction is signed with **both** the payment and staking credentials.
    */
-  public async signTransaction(txCbor: string, partialSign: boolean): Promise<VkeyWitnessSet> {
+  public async signTransaction(txCbor: string, _partialSign: boolean): Promise<VkeyWitnessSet> {
+    const uniqueSigners = getUniqueSigners(txCbor, []);
+    let rewardKeyHash;
+
+    if (!this.drepPubKey) {
+      // If we don't have a DRep key yet, we need to derive it.
+      await this.getPubDRepKey();
+    }
+    const drepKeyHash = this.drepPubKey?.toHashHex();
+
+    if (typeof this.credentialsConfig.stakingIndex === 'number') {
+      const rewardAddress = await this.getRewardAddress();
+      rewardKeyHash = rewardAddress.getCredential().hash;
+    }
+
+    const hashOurRewardAccountKey = uniqueSigners.includes(rewardKeyHash ?? '');
+    const hashOurDRepKey = uniqueSigners.includes(drepKeyHash ?? '');
+
+    // TODO: We are currently not resolving tx inputs to search for our payment key
+    // so for now we will assume we always need to sign with the payment credential,
+    // in the future we will resolve inputs to more accurately determine the required signers.
     const derivationPaths = [
       {
         account: harden(this.credentialsConfig.account),
@@ -261,13 +282,23 @@ export class SingleAddressWallet implements Wallet {
       }
     ];
 
-    if (!partialSign) {
+    if (typeof this.credentialsConfig.stakingIndex === 'number' && hashOurRewardAccountKey) {
       derivationPaths.push({
         account: harden(this.credentialsConfig.account),
         coinType: harden(CoinType.Cardano),
-        index: this.credentialsConfig.paymentIndex,
+        index: this.credentialsConfig.stakingIndex,
         purpose: harden(KeyDerivationPurpose.Standard),
         role: KeyDerivationRole.Staking
+      });
+    }
+
+    if (hashOurDRepKey) {
+      derivationPaths.push({
+        account: harden(this.credentialsConfig.account),
+        coinType: harden(CoinType.Cardano),
+        index: this.credentialsConfig.drepIndex ?? 0,
+        purpose: harden(KeyDerivationPurpose.Standard),
+        role: KeyDerivationRole.DRep
       });
     }
 
@@ -296,9 +327,50 @@ export class SingleAddressWallet implements Wallet {
   /**
    * Fetches and deserializes the wallet's collateral UTxOs.
    * @returns {Promise<TxOut[]>} A promise that resolves to an array of collateral `TxOut` objects.
-   * @remarks Collateral is required for transactions involving Plutus smart contracts.
+   * @remarks This method is currently not supported and always returns an empty array.
    */
   public async getCollateral(): Promise<UTxO[]> {
+    return [];
+  }
+
+  /**
+   * Returns the "network magic," a unique number identifying the Cardano network.
+   * @returns {Promise<number>} A promise that resolves to the network magic number (e.g., Mainnet: `764824073`, Preprod: `1`).
+   */
+  public async getNetworkMagic(): Promise<NetworkMagic> {
+    return this.provider.getNetworkMagic();
+  }
+
+  /**
+   * Returns the wallet's active public DRep (Delegated Representative) key.
+   * @returns {Promise<string>} A promise that resolves to the hex-encoded public DRep key.
+   */
+  public async getPubDRepKey(): Promise<string> {
+    if (this.drepPubKey) {
+      return this.drepPubKey.toHex();
+    }
+
+    const bip32PublicKey = this.accountRootPublicKey.derive([KeyDerivationRole.DRep, 0]);
+    this.drepPubKey = bip32PublicKey.toEd25519Key();
+
+    return this.drepPubKey.toHex();
+  }
+
+  /**
+   * Returns public stake keys from the wallet that are currently registered for on-chain governance voting.
+   * @returns {Promise<string[]>} A promise that resolves to an array of hex-encoded public stake keys.
+   * @remarks This method is currently not supported and always returns an empty array.
+   */
+  public async getRegisteredPubStakeKeys(): Promise<string[]> {
+    return [];
+  }
+
+  /**
+   * Returns public stake keys from the wallet that are NOT yet registered for on-chain governance voting.
+   * @returns {Promise<string[]>} A promise that resolves to an array of hex-encoded public stake keys.
+   * @remarks This method is currently not supported and always returns an empty array.
+   */
+  public async getUnregisteredPubStakeKeys(): Promise<string[]> {
     return [];
   }
 
