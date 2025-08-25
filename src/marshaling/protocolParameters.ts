@@ -27,6 +27,7 @@ import { derefProtocolVersion, readProtocolVersion, writeProtocolVersion } from 
 import { derefUnitInterval, readIntervalComponents, writeUnitInterval } from './unitInterval';
 import { getModule } from '../module';
 import { splitToLowHigh64bit } from './number';
+import { uint8ArrayToHex } from '../cometa';
 
 /* DEFINITIONS ****************************************************************/
 
@@ -329,7 +330,7 @@ export const readProtocolParameters = (ptr: number): ProtocolParameters => {
     let extraEntropy = null;
     obj = module.protocol_parameters_get_extra_entropy(ptr);
     if (obj) {
-      extraEntropy = Buffer.from(readBufferData(obj)).toString('hex');
+      extraEntropy = uint8ArrayToHex(readBufferData(obj));
 
       if (extraEntropy.length === 0) extraEntropy = null;
     }

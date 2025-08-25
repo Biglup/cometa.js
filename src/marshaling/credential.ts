@@ -19,6 +19,7 @@
 import { Credential } from '../address';
 import { assertSuccess } from './object';
 import { getModule } from '../module';
+import { hexToUint8Array } from '../cometa';
 
 /* DEFINITIONS ****************************************************************/
 
@@ -78,7 +79,7 @@ export const readCredential = (credentialPtr: number): Credential => {
 export const writeCredential = (credential: Credential): number => {
   const module = getModule();
   const credentialPtrPtr = module._malloc(4);
-  const hashBytes = new Uint8Array(Buffer.from(credential.hash, 'hex'));
+  const hashBytes = hexToUint8Array(credential.hash);
   const hashPtr = module._malloc(hashBytes.length);
 
   try {

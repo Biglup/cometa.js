@@ -91,6 +91,28 @@ export const utf8ToHex = (str: string): string => uint8ArrayToHex(new TextEncode
 export const uint8ArrayToUtf8 = (uint8Array: Uint8Array): string => new TextDecoder().decode(uint8Array);
 
 /**
+ * Decodes a Base64 encoded string to a Uint8Array.
+ * This function is isomorphic, providing an optimized path for Node.js
+ * and a universal fallback for browsers.
+ *
+ * @param {string} base64 - The Base64 encoded string to decode.
+ * @returns {Uint8Array} A Uint8Array containing the decoded bytes.
+ */
+export const base64ToBytes = (base64: string): Uint8Array => {
+  if (typeof process !== 'undefined' && process.versions?.node) {
+    return Buffer.from(base64, 'base64');
+  }
+
+  const binaryStr = atob(base64);
+  const len = binaryStr.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryStr.charCodeAt(i);
+  }
+  return bytes;
+};
+
+/**
  * A simple state tracker to manually signal when an async operation,
  * callable from WASM, has been initiated.
  */

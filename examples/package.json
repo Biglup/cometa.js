@@ -18,7 +18,7 @@
   ],
   "license": "Apache-2.0",
   "scripts": {
-    "sendLovelace-example": "ts-node src/send-lovelace-example.ts",
+    "send-lovelace-example": "ts-node src/send-lovelace-example.ts",
     "bip39-example": "ts-node src/bip39-example.ts",
     "donate-to-treasury-example": "ts-node src/donate-to-treasury-example.ts",
     "drep-pubkey-example": "ts-node src/drep-pubkey-example.ts",
@@ -35,7 +35,7 @@
     "vote-for-proposal-drep-script-example" : "ts-node src/vote-for-proposal-drep-script-example.ts"
   },
   "dependencies": {
-    "@biglup/cometa": "^1.0.10",
+    "@biglup/cometa": "^1.0.101",
     "chalk": "4.1.2",
     "cli-spinners": "^2.9.0",
     "dotenv": "^17.2.1",

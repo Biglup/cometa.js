@@ -36,6 +36,7 @@ import {
 } from '../common';
 import { Provider } from './Provider';
 import { readRedeemersFromTx, toUnitInterval } from '../marshaling';
+import { hexToUint8Array } from '../cometa';
 
 /* DEFINITIONS ****************************************************************/
 
@@ -652,7 +653,7 @@ export class BlockfrostProvider implements Provider {
   async submitTransaction(tx: string): Promise<string> {
     const query = '/tx/submit';
     const response = await fetch(`${this.url}${query}`, {
-      body: Buffer.from(tx, 'hex'),
+      body: hexToUint8Array(tx),
       headers: {
         'Content-Type': 'application/cbor',
         ...this.headers()

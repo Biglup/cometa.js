@@ -16,7 +16,7 @@
 
 /* IMPORTS *******************************************************************/
 
-import { ProtocolParametersUpdate, readIntervalComponents } from '../';
+import { ProtocolParametersUpdate, readIntervalComponents, uint8ArrayToHex } from '../';
 import { assertSuccess, hexToBufferObject, readBufferData, unrefObject } from './object';
 import { getModule } from '../module';
 import { readCostModels, writeCostModels } from './costmdls';
@@ -218,8 +218,7 @@ export const readProtocolParamUpdate = (ptr: number): ProtocolParametersUpdate =
   result.expansionRate = getObject(module.protocol_param_update_get_expansion_rate, readIntervalComponents);
   result.decentralisationParam = getObject(module.protocol_param_update_get_d, readIntervalComponents);
   result.extraEntropy =
-    getObject(module.protocol_param_update_get_extra_entropy, (p) => Buffer.from(readBufferData(p)).toString('hex')) ||
-    undefined;
+    getObject(module.protocol_param_update_get_extra_entropy, (p) => uint8ArrayToHex(readBufferData(p))) || undefined;
   result.protocolVersion = getObject(module.protocol_param_update_get_protocol_version, readProtocolVersion);
   result.costModels = getObject(module.protocol_param_update_get_cost_models, readCostModels);
   result.executionCosts = getObject(module.protocol_param_update_get_execution_costs, readExUnitPrices);

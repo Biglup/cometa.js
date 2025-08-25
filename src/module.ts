@@ -16,11 +16,11 @@
 
 /* IMPORTS *******************************************************************/
 
-import { Buffer } from 'buffer';
 import { bridgeCallbacks } from './marshaling';
 import { ensureModuleHasRandomValue } from './randomValue';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import pako from 'pako';
+import { base64ToBytes } from './cometa';
 
 /* GLOBALS ********************************************************************/
 
@@ -50,7 +50,7 @@ export const ready = async (): Promise<void> => {
   // @ts-ignore
   const compressedWasmBase64 = EmscriptenModule.compressedWasmBase64;
 
-  const compressedBytes = Buffer.from(compressedWasmBase64, 'base64');
+  const compressedBytes = base64ToBytes(compressedWasmBase64);
   const decompressedWasmBinary = pako.inflate(compressedBytes);
 
   return new Promise<void>((resolve, reject) => {

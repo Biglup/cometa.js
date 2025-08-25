@@ -30,6 +30,7 @@ import {
 } from '../marshaling';
 import { finalizationRegistry } from '../garbageCollection';
 import { getModule } from '../module';
+import { hexToUint8Array, uint8ArrayToHex } from '../cometa';
 
 /* DEFINITIONS ****************************************************************/
 
@@ -88,7 +89,7 @@ export class ByronAddress {
     try {
       blake2bHashPtr = blake2bHashFromHex(root);
 
-      const derivationPathBytes = new Uint8Array(Buffer.from(attributes.derivationPath, 'hex'));
+      const derivationPathBytes = hexToUint8Array(attributes.derivationPath);
       module.HEAPU8.set(derivationPathBytes, attributesPtr);
 
       const sizeOffset = attributesPtr + 64;
@@ -215,7 +216,7 @@ export class ByronAddress {
       const magic = module.getValue(attributesPtr + 72, 'i32');
 
       return {
-        derivationPath: Buffer.from(derivationPathBytes).toString('hex'),
+        derivationPath: uint8ArrayToHex(derivationPathBytes),
         magic
       };
     } finally {
@@ -257,7 +258,7 @@ export class ByronAddress {
       assertSuccess(result, 'Failed to get Byron address root hash.');
       const hashPtr = module.getValue(hashPtrPtr, 'i32');
 
-      return Buffer.from(readBlake2bHashData(hashPtr)).toString('hex');
+      return uint8ArrayToHex(readBlake2bHashData(hashPtr));
     } finally {
       module._free(hashPtrPtr);
     }
