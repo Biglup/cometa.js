@@ -24,13 +24,13 @@
 
 <hr>
 
-Cometa.js is a lightweight, high-performance JavaScript library binding for the [libcardano-c](https://github.com/Biglup/cardano-c) library, designed to simplify blockchain development on Cardano. Because it executes the operations mostly in WebAssembly, it offers near-native speed. Built on the foundations of [libcardano-c](https://github.com/Biglup/cardano-c), Cometa.js inherits its commercial-grade quality and rigorous testing, making it ideal for reliable and secure, mission-critical blockchain applications.
+Cometa.js is a lightweight, high-performance JavaScript library binding for the [libcardano-c](https://github.com/Biglup/cardano-c) library, designed to simplify blockchain development on Cardano.
 
 Cometa.js packages [libcardano-c](https://github.com/Biglup/cardano-c), compiling, compressing and inlining it into a single JavaScript module, it works consistently in Node.js and browser environments. The result is an extremely compact, single-file distribution of about **~350kb**.
 
-Furthermore, this package comes with three module variants: CommonJS, ESM, and a browser-ready IIFE build for direct CDN use. On top of this, the library provides a fully documented high-level, developer-friendly API with full TypeScript support.
+Furthermore, this package comes with three module variants: CommonJS, ESM, and a browser-ready IIFE build for direct CDN use. On top of this, the library provides a fully documented high-level, developer-friendly API with TypeScript support.
 
-All in all, this package is a "fire and forget" solution for Cardano development that works in all JavaScript environments and with all modern bundlers and ecosystems, including Rollup, Webpack, and Node.js projects.
+This package works in all JavaScript environments and with all modern bundlers and ecosystems, including Rollup, Webpack, and Node.js projects.
 
 Example:
 
@@ -98,7 +98,7 @@ Cometa.ready().then(() => {
 For use directly in an HTML file without a build step, you can include the library from a CDN like UNPKG. This is ideal for simple tests, online playgrounds, or quick integrations.
 
 ```html
-<script src="https://unpkg.com/@biglup/cometa@1.1.901/dist/iife/index.global.js"></script>
+<script src="https://unpkg.com/@biglup/cometa@1.1.10/dist/iife/index.global.js"></script>
 ```
 
 The library will then be available on the global Cometa object.
@@ -224,7 +224,7 @@ You can see the full capabilities of the transaction builder here: [TransactionB
 
 WebAssembly is fundamentally synchronous, while many JavaScript operations, like fetching data in a custom provider or evaluator, are asynchronous (async/await).
 
-Cometa.js bridges this gap using black magic (Asyncify). This allows the synchronous Wasm code to "pause," hand control back to the JavaScript event loop to wait for your Promise to resolve, and then "resume" the Wasm execution exactly where it left off with the result.
+Cometa.js bridges this gap using Asyncify. This allows the synchronous Wasm code to "pause," hand control back to the JavaScript event loop to wait for your Promise to resolve, and then "resume" the Wasm execution exactly where it left off with the result.
 
 This means you can simply write your select and evaluate methods with standard async/await syntax, and Cometa.js will handle the complex underlying state management for you.
 
@@ -272,6 +272,10 @@ builder.setCoinSelector(myCustomSelector);
 The transaction evaluator is responsible for calculating the execution units (ExUnits) for any Plutus scripts in a transaction. By default, this is done by a remote service. For local evaluation or to use a different service, you can provide a custom implementation of the TxEvaluator interface.
 
 ```typescript
+/**
+ * Interface for transaction evaluation strategies. This will compute the required
+ * execution units for each redeemer in a transaction.
+ */
 export interface TxEvaluator {
   /**
    * Gets the human-readable name of the transaction evaluator.
