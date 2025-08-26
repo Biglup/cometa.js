@@ -35,8 +35,8 @@ import {
   plutusDataToCbor
 } from '../common';
 import { Provider } from './Provider';
-import { readRedeemersFromTx, toUnitInterval } from '../marshaling';
 import { hexToUint8Array } from '../cometa';
+import { readRedeemersFromTx, toUnitInterval } from '../marshaling';
 
 /* DEFINITIONS ****************************************************************/
 
@@ -201,6 +201,18 @@ const outputFromUtxo = (address: string, utxo: any, script: Script | undefined):
 };
 
 /**
+ * Configuration options for the BlockfrostProvider.
+ */
+export type BlockfrostProviderConfig = {
+  /** The network identifier (e.g., Mainnet, Preprod). This is ignored if a custom `url` is provided. */
+  network: NetworkMagic;
+  /** The Blockfrost project ID for authentication. */
+  projectId: string;
+  /** An optional, custom base URL for the Blockfrost API. Overrides the `network` setting for URL construction. */
+  baseUrl?: string;
+};
+
+/**
  * BlockfrostProvider is a provider for interacting with the Blockfrost API.
  *
  * It extends the BaseProvider class and implements methods to fetch protocol parameters,
@@ -214,13 +226,20 @@ export class BlockfrostProvider implements Provider {
   /**
    * Creates an instance of BlockfrostProvider.
    *
-   * @param {NetworkMagic} network The network magic number (e.g., MAINNET, PREPROD).
-   * @param {string} projectId The Blockfrost project ID.
+   * @param {BlockfrostProviderConfig} config - The configuration object for the provider.
+   * @param {string} config.projectId - The Blockfrost project ID for authentication.
+   * @param {string} [config.baseUrl] - An optional, custom base URL for the API. If provided, this URL is used directly and the `network` parameter is ignored for URL construction.
+   * @param {NetworkMagic} [config.network] - The network identifier (e.g., Mainnet, Preprod). This is required if a custom `url` is not provided.
    */
-  constructor({ network, projectId }: { network: NetworkMagic; projectId: string }) {
-    this.url = `https://${networkMagicBlockfrostPrefix(network)}.blockfrost.io/api/v0/`;
+  constructor({ network, projectId = '', baseUrl }: BlockfrostProviderConfig) {
     this.projectId = projectId;
     this.networkMagic = network;
+
+    if (baseUrl) {
+      this.url = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+    } else {
+      this.url = `https://${networkMagicBlockfrostPrefix(network)}.blockfrost.io/api/v0/`;
+    }
   }
 
   /**
@@ -229,7 +248,7 @@ export class BlockfrostProvider implements Provider {
    * @returns {Object} An object containing the project ID header.
    */
   headers() {
-    return { project_id: this.projectId };
+    return { Origin: 'http://localhost', project_id: this.projectId };
   }
 
   /**
@@ -260,7 +279,7 @@ export class BlockfrostProvider implements Provider {
     });
 
     if (!response.ok) {
-      throw new Error(`getParameters: Network request failed with status ${response.status}`);
+      throw new Error(`getParameters: Network request failed with status ${response.status}. ${await response.text()}`);
     }
 
     const json = await response.json();
@@ -364,7 +383,9 @@ export class BlockfrostProvider implements Provider {
     }
 
     if (!response.ok) {
-      throw new Error(`getRewardsBalance: Network request failed with status ${response.status}`);
+      throw new Error(
+        `getRewardsBalance: Network request failed with status ${response.status}. ${await response.text()}`
+      );
     }
 
     const json = await response.json();
@@ -409,6 +430,12 @@ export class BlockfrostProvider implements Provider {
 
       if (response.status === 404) {
         return [];
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          `getUnspentOutputs: Network request failed with status ${response.status}. ${await response.text()}`
+        );
       }
 
       const json = await response.json();
@@ -469,7 +496,9 @@ export class BlockfrostProvider implements Provider {
       }
 
       if (!response.ok) {
-        throw new Error(`getUnspentOutputsWithAsset: Network request failed with status ${response.status}`);
+        throw new Error(
+          `getUnspentOutputsWithAsset: Network request failed with status ${response.status}. ${await response.text()}`
+        );
       }
       const json = await response.json();
 
@@ -510,7 +539,9 @@ export class BlockfrostProvider implements Provider {
     });
 
     if (!response.ok) {
-      throw new Error(`getUnspentOutputByNFT: Failed to fetch asset addresses. Status: ${response.status}`);
+      throw new Error(
+        `getUnspentOutputByNFT: Failed to fetch asset addresses. Status: ${response.status}. ${await response.text()}`
+      );
     }
     const json = await response.json();
 
@@ -552,7 +583,11 @@ export class BlockfrostProvider implements Provider {
       });
 
       if (!response.ok) {
-        throw new Error(`resolveUnspentOutputs: Failed to fetch tx utxos for ${txIn.txId}. Status: ${response.status}`);
+        throw new Error(
+          `resolveUnspentOutputs: Failed to fetch tx utxos for ${txIn.txId}. Status: ${
+            response.status
+          }. ${await response.text()}`
+        );
       }
       const json = await response.json();
 
@@ -587,21 +622,25 @@ export class BlockfrostProvider implements Provider {
    */
   async resolveDatum(datumHash: string): Promise<string> {
     const query = `/scripts/datum/${datumHash}/cbor`;
-    const json = await fetch(`${this.url}${query}`, {
+    const response = await fetch(`${this.url}${query}`, {
       headers: this.headers()
-    }).then((resp) => resp.json());
+    });
+
+    if (!response.ok) {
+      throw new Error(`resolveDatum: Network request failed with status ${response.status}. ${await response.text()}`);
+    }
+
+    const json = await response.json();
 
     if (!json) {
       throw new Error('resolveDatum: Could not parse response json');
     }
 
-    const response = json;
-
-    if ('message' in response) {
-      throw new Error(`resolveDatum: Blockfrost threw "${response.message}"`);
+    if ('message' in json) {
+      throw new Error(`resolveDatum: Blockfrost threw "${json.message}"`);
     }
 
-    return response.cbor;
+    return json.cbor;
   }
 
   /**
