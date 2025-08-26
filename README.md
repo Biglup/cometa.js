@@ -98,7 +98,7 @@ Cometa.ready().then(() => {
 For use directly in an HTML file without a build step, you can include the library from a CDN like UNPKG. This is ideal for simple tests, online playgrounds, or quick integrations.
 
 ```html
-<script src="https://unpkg.com/@biglup/cometa@1.1.10/dist/iife/index.global.js"></script>
+<script src="https://unpkg.com/@biglup/cometa@1.1.102/dist/iife/index.global.js"></script>
 ```
 
 The library will then be available on the global Cometa object.
