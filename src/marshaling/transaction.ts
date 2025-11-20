@@ -154,3 +154,43 @@ export const getUniqueSigners = (transactionCbor: string, utxos: UTxO[]): string
     module._free(signersSetPtrPtr);
   }
 };
+
+/**
+ * @brief Inspects a Cardano transaction CBOR string and converts it into a structured JavaScript object (JSON).
+ *
+ * This function takes a hexadecimal CBOR representation of a Cardano transaction and then serializes it
+ * into a CIP-116 compliant JSON string. Finally, it parses the JSON string into a native JavaScript object.
+ *
+ * @param {string} transactionCbor The hexadecimal string representation of the Cardano transaction CBOR.
+ * @returns {any} A JavaScript object representing the decoded Cardano transaction structure (CIP-116 JSON format).
+ * @throws {Error} If CBOR reading fails, JSON encoding fails, or memory allocation fails.
+ */
+export const inspectTx = (transactionCbor: string): any => {
+  let txPtr = 0;
+  let jsonWriter = 0;
+  let jsonPtr = 0;
+  try {
+    txPtr = readTransactionFromCbor(transactionCbor);
+    jsonWriter = getModule().json_writer_new(0); // CARDANO_JSON_FORMAT_COMPACT
+
+    getModule().transaction_to_cip116_json(txPtr, jsonWriter);
+
+    const jsonSize = getModule().json_writer_get_encoded_size(jsonWriter);
+    jsonPtr = getModule()._malloc(jsonSize ? jsonSize : 1);
+
+    if (jsonSize !== 0) {
+      const result = getModule().json_writer_encode(jsonWriter, jsonPtr, jsonSize);
+      assertSuccess(result, 'Failed to encode transaction JSON');
+    } else {
+      getModule().HEAPU8[jsonPtr] = 0;
+    }
+
+    const jsonString = getModule().UTF8ToString(jsonPtr);
+
+    return JSON.parse(jsonString);
+  } finally {
+    unrefObject(txPtr);
+    unrefObject(jsonWriter);
+    getModule()._free(jsonPtr);
+  }
+};
