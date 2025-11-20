@@ -16,7 +16,7 @@
 
 /* IMPORTS ********************************************************************/
 
-import { UTxO } from '../../common';
+import { UTxO, Value } from '../../common';
 
 /* DEFINITIONS ****************************************************************/
 
@@ -50,9 +50,9 @@ export interface CoinSelectorParams {
   availableUtxo: UTxO[];
 
   /**
-   * The target amount of lovelace that the selection must cover.
+   * The target value that the selection must cover.
    */
-  targetValue: bigint;
+  targetValue: Value;
 }
 
 /**

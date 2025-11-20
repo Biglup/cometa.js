@@ -81,6 +81,9 @@ const sendLovelaceExample = async () => {
   const witnessSet = await wallet.signTransaction(unsignedTx, true);
   const signedTx = Cometa.applyVkeyWitnessSet(unsignedTx, witnessSet);
 
+  monitor.logInfo('Signed transaction:');
+  monitor.logInfo(JSON.stringify(Cometa.inspectTx(signedTx), null, 2));
+
   monitor.startTask('Submitting transaction...');
   const txId = await wallet.submitTransaction(signedTx);
   monitor.endTask(`Transaction submitted successfully with ID: ${txId}`, TaskResult.Success);
