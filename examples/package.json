@@ -36,7 +36,7 @@
     "vote-for-proposal-drep-script-example" : "ts-node src/vote-for-proposal-drep-script-example.ts"
   },
   "dependencies": {
-    "@biglup/cometa": "^1.0.111",
+    "@biglup/cometa": "^1.0.112",
     "chalk": "4.1.2",
     "cli-spinners": "^2.9.0",
     "dotenv": "^17.2.1",
