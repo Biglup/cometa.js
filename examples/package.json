@@ -19,6 +19,7 @@
   "license": "Apache-2.0",
   "scripts": {
     "send-lovelace-example": "ts-node src/send-lovelace-example.ts",
+    "sign-data-example": "ts-node src/sign-data-example.ts",
     "bip39-example": "ts-node src/bip39-example.ts",
     "donate-to-treasury-example": "ts-node src/donate-to-treasury-example.ts",
     "drep-pubkey-example": "ts-node src/drep-pubkey-example.ts",

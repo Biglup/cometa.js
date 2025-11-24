@@ -16,7 +16,7 @@
 
 /* IMPORTS *******************************************************************/
 
-import { Bip32PublicKey, Ed25519PublicKey } from '../crypto';
+import { Bip32PublicKey, Ed25519PrivateKey, Ed25519PublicKey } from '../crypto';
 import { VkeyWitnessSet } from '../common';
 
 /* DEFINITIONS ****************************************************************/
@@ -93,6 +93,27 @@ export interface Bip32SecureKeyHandler {
   signTransaction(txCbor: string, derivationPaths: DerivationPath[]): Promise<VkeyWitnessSet>;
 
   /**
+   * Signs arbitrary data using a BIP32-derived key.
+   * @param data - The hex-encoded data to be signed.
+   * @param derivationPath - The derivation path specifying which key to use for signing.
+   *
+   * @returns {Promise<{ signature: string; key: string }>} A promise that resolves with an object containing the signature and the public key.
+   */
+  signData(data: string, derivationPath: DerivationPath): Promise<{ signature: string; key: string }>;
+
+  /**
+   * Retrieves the securely stored private key.
+   *
+   * @param derivationPath - The derivation path specifying which key to retrieve.
+   *
+   * @warning This operation exposes the private key in memory and should be used with extreme caution.
+   * The caller is responsible for securely handling and wiping the key from memory after use.
+   *
+   * @returns {Promise<Ed25519PrivateKey>} A promise that resolves with the private key.
+   */
+  getPrivateKey(derivationPath: DerivationPath): Promise<Ed25519PrivateKey>;
+
+  /**
    * Derives and returns an extended account public key from the root key.
    *
    * @param {AccountDerivationPath} path - The derivation path for the account (purpose and account index).
@@ -125,6 +146,24 @@ export interface Ed25519SecureKeyHandler {
    * @returns {Promise<VkeyWitnessSet>} A promise that resolves with the `VkeyWitnessSet` containing the signature.
    */
   signTransaction(transaction: string): Promise<VkeyWitnessSet>;
+
+  /**
+   * Signs arbitrary data using the securely stored Ed25519 private key.
+   * @param data - The hex-encoded data to be signed.
+   *
+   * @returns {Promise<{ signature: string; key: string }>} A promise that resolves with an object containing the signature and the public key.
+   */
+  signData(data: string): Promise<{ signature: string; key: string }>;
+
+  /**
+   * Retrieves the securely stored private key.
+   *
+   * @warning This operation exposes the private key in memory and should be used with extreme caution.
+   * The caller is responsible for securely handling and wiping the key from memory after use.
+   *
+   * @returns {Promise<Ed25519PrivateKey>} A promise that resolves with the private key.
+   */
+  getPrivateKey(): Promise<Ed25519PrivateKey>;
 
   /**
    * Retrieves the public key corresponding to the securely stored private key.

@@ -17,9 +17,10 @@
 /* IMPORTS ********************************************************************/
 
 import { AccountDerivationPath, Bip32SecureKeyHandler, DerivationPath } from './SecureKeyHandler';
-import { Bip32PrivateKey, Bip32PublicKey, Crc32, Emip003 } from '../crypto';
+import { Bip32PrivateKey, Bip32PublicKey, Crc32, Ed25519PrivateKey, Emip003 } from '../crypto';
 import { VkeyWitness, VkeyWitnessSet } from '../common';
 import { getModule } from '../module';
+import { hexToUint8Array } from '../cometa';
 import { readBlake2bHashData, readTransactionFromCbor, unrefObject } from '../marshaling';
 
 /* DEFINITIONS ****************************************************************/
@@ -207,6 +208,64 @@ export class SoftwareBip32SecureKeyHandler implements Bip32SecureKeyHandler {
     }
 
     return witnesses;
+  }
+
+  /**
+   * Signs arbitrary data using a BIP32-derived key.
+   * @param data - The hex-encoded data to be signed.
+   * @param path - The derivation path specifying which key to use for signing.
+   *
+   * @returns {Promise<{ signature: string; key: string }>} A promise that resolves with an object containing the signature and the public key.
+   */
+  public async signData(data: string, path: DerivationPath): Promise<{ signature: string; key: string }> {
+    const entropy = await this.getDecryptedSeed();
+
+    try {
+      const rootKey = Bip32PrivateKey.fromBip39Entropy(new Uint8Array(), entropy);
+
+      const pathIndices = [path.purpose, path.coinType, path.account, path.role, path.index];
+      const signingKey = rootKey.derive(pathIndices);
+      const publicKey = signingKey.getPublicKey();
+      const signature = signingKey.toEd25519Key().sign(hexToUint8Array(data));
+
+      return {
+        key: publicKey.toEd25519Key().toHex(),
+        signature: signature.toHex()
+      };
+    } finally {
+      entropy.fill(0);
+    }
+  }
+
+  /**
+   * Retrieves the securely stored private key.
+   *
+   * @param derivationPath - The derivation path specifying which key to retrieve.
+   *
+   * @warning This operation exposes the private key in memory and should be used with extreme caution.
+   * The caller is responsible for securely handling and wiping the key from memory after use.
+   *
+   * @returns {Promise<Ed25519PrivateKey>} A promise that resolves with the private key.
+   */
+  public async getPrivateKey(derivationPath: DerivationPath): Promise<Ed25519PrivateKey> {
+    const entropy = await this.getDecryptedSeed();
+
+    try {
+      const rootKey = Bip32PrivateKey.fromBip39Entropy(new Uint8Array(), entropy);
+
+      const pathIndices = [
+        derivationPath.purpose,
+        derivationPath.coinType,
+        derivationPath.account,
+        derivationPath.role,
+        derivationPath.index
+      ];
+      const signingKey = rootKey.derive(pathIndices);
+
+      return signingKey.toEd25519Key();
+    } finally {
+      entropy.fill(0);
+    }
   }
 
   /**
