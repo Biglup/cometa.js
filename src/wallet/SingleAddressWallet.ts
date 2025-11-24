@@ -539,7 +539,6 @@ export class SingleAddressWallet implements Wallet {
     }
 
     if (cred.hash === this.drepPubKey?.toHashHex()) {
-      console.error('Signing with DRep key');
       const privateKey = await this.secureKeyHandler.getPrivateKey({
         account: harden(this.credentialsConfig.account),
         coinType: harden(CoinType.Cardano),
