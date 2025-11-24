@@ -16,7 +16,15 @@
 
 /* IMPORTS ********************************************************************/
 
-import { Address, BaseAddress, CredentialType, EnterpriseAddress, NetworkId, RewardAddress } from '../address';
+import {
+  Address,
+  AddressType,
+  BaseAddress,
+  CredentialType,
+  EnterpriseAddress,
+  NetworkId,
+  RewardAddress
+} from '../address';
 import { Bip32PrivateKey, Bip32PublicKey, Ed25519PublicKey } from '../crypto';
 import {
   Bip32SecureKeyHandler,
@@ -26,11 +34,13 @@ import {
   SoftwareBip32SecureKeyHandler,
   harden
 } from '../keyHandlers';
+import { Cip8 } from '../messageSigning';
 import { NetworkMagic, ProtocolParameters, UTxO, Value, VkeyWitnessSet } from '../common';
 import { Provider } from '../provider';
 import { TransactionBuilder } from '../txBuilder';
 import { Wallet } from './Wallet';
 import { getUniqueSigners } from '../marshaling';
+import { hexToUint8Array, uint8ArrayToHex } from '../cometa';
 import { mnemonicToEntropy } from '../bip39';
 
 /* DEFINITIONS ****************************************************************/
@@ -307,12 +317,26 @@ export class SingleAddressWallet implements Wallet {
 
   /**
    * Requests a CIP-8 compliant data signature from the wallet.
-   * @param {Address | string} _address - The address to sign with (as an `Address` object or Bech32 string).
-   * @param {string} _payload - The hex-encoded data payload to be signed.
+   * @param {Address | string} address - The address to sign with (as an `Address` object or Bech32 string).
+   * @param {string} payload - The hex-encoded data payload to be signed.
    * @returns {Promise<{ signature: string; key: string }>} A promise that resolves to the signature and public key.
    */
-  public async signData(_address: Address | string, _payload: string): Promise<{ signature: string; key: string }> {
-    throw new Error('SingleAddressWallet: signData is not implemented.');
+  public async signData(address: Address | string, payload: string): Promise<{ signature: string; key: string }> {
+    const signWith = typeof address === 'string' ? Address.fromString(address) : address;
+    const message = hexToUint8Array(payload);
+
+    if (signWith.getType() === AddressType.RewardKey) {
+      return this.signWithRewardKey(signWith, message);
+    }
+
+    if (signWith.getType() === AddressType.EnterpriseKey) {
+      const result = await this.signWithDRepKey(signWith, message);
+      if (result) {
+        return result;
+      }
+    }
+
+    return this.signWithPaymentKey(signWith, message);
   }
 
   /**
@@ -350,7 +374,11 @@ export class SingleAddressWallet implements Wallet {
       return this.drepPubKey.toHex();
     }
 
-    const bip32PublicKey = this.accountRootPublicKey.derive([KeyDerivationRole.DRep, 0]);
+    const bip32PublicKey = this.accountRootPublicKey.derive([
+      KeyDerivationRole.DRep,
+      this.credentialsConfig.drepIndex ?? 0
+    ]);
+
     this.drepPubKey = bip32PublicKey.toEd25519Key();
 
     return this.drepPubKey.toHex();
@@ -461,5 +489,110 @@ export class SingleAddressWallet implements Wallet {
     });
 
     return this.rewardAddress;
+  }
+
+  /**
+   * Helper to sign data using the STAKING key associated with a Reward Address.
+   */
+  private async signWithRewardKey(signWith: Address, message: Uint8Array): Promise<{ signature: string; key: string }> {
+    if (typeof this.credentialsConfig.stakingIndex !== 'number') {
+      throw new TypeError('SingleAddressWallet: Staking index was not provided.');
+    }
+
+    const walletRewardAddress = await this.getRewardAddress();
+
+    if (walletRewardAddress.toBech32() !== signWith.toString()) {
+      throw new Error('SingleAddressWallet: The provided reward address does not belong to this wallet.');
+    }
+
+    const privateKey = await this.secureKeyHandler.getPrivateKey({
+      account: harden(this.credentialsConfig.account),
+      coinType: harden(CoinType.Cardano),
+      index: this.credentialsConfig.stakingIndex,
+      purpose: harden(KeyDerivationPurpose.Standard),
+      role: KeyDerivationRole.Staking
+    });
+
+    const { coseKey, coseSign1 } = Cip8.sign(message, signWith, privateKey);
+
+    return {
+      key: uint8ArrayToHex(coseKey),
+      signature: uint8ArrayToHex(coseSign1)
+    };
+  }
+
+  /**
+   * Helper to sign data using the DREP key associated with an Enterprise Address.
+   */
+  private async signWithDRepKey(
+    signWith: Address,
+    message: Uint8Array
+  ): Promise<{ signature: string; key: string } | undefined> {
+    const cred = signWith.asEnterprise()?.getCredential();
+
+    if (!cred) {
+      return undefined;
+    }
+
+    if (!this.drepPubKey) {
+      await this.getPubDRepKey();
+    }
+
+    if (cred.hash === this.drepPubKey?.toHashHex()) {
+      console.error('Signing with DRep key');
+      const privateKey = await this.secureKeyHandler.getPrivateKey({
+        account: harden(this.credentialsConfig.account),
+        coinType: harden(CoinType.Cardano),
+        index: this.credentialsConfig.drepIndex ?? 0,
+        purpose: harden(KeyDerivationPurpose.Standard),
+        role: KeyDerivationRole.DRep
+      });
+
+      const { coseKey, coseSign1 } = Cip8.signEx(message, hexToUint8Array(cred.hash), privateKey);
+
+      return {
+        key: uint8ArrayToHex(coseKey),
+        signature: uint8ArrayToHex(coseSign1)
+      };
+    }
+  }
+
+  /**
+   * Helper to sign data using the PAYMENT key associated with Base or Enterprise Address.
+   */
+  private async signWithPaymentKey(
+    signWith: Address,
+    message: Uint8Array
+  ): Promise<{ signature: string; key: string }> {
+    const paymentAddress = await this.getAddress();
+
+    const walletPaymentCred =
+      paymentAddress.getType() === AddressType.EnterpriseKey
+        ? paymentAddress.asEnterprise()?.getCredential()
+        : paymentAddress.asBase()?.getPaymentCredential();
+
+    const signWithPaymentCred =
+      signWith.getType() === AddressType.EnterpriseKey
+        ? signWith.asEnterprise()?.getCredential()
+        : signWith.asBase()?.getPaymentCredential();
+
+    if (walletPaymentCred && signWithPaymentCred && walletPaymentCred.hash === signWithPaymentCred.hash) {
+      const privateKey = await this.secureKeyHandler.getPrivateKey({
+        account: harden(this.credentialsConfig.account),
+        coinType: harden(CoinType.Cardano),
+        index: this.credentialsConfig.paymentIndex,
+        purpose: harden(KeyDerivationPurpose.Standard),
+        role: KeyDerivationRole.External
+      });
+
+      const { coseKey, coseSign1 } = Cip8.sign(message, signWith, privateKey);
+
+      return {
+        key: uint8ArrayToHex(coseKey),
+        signature: uint8ArrayToHex(coseSign1)
+      };
+    }
+
+    throw new Error('SingleAddressWallet: The provided address does not belong to this wallet.');
   }
 }

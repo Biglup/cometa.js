@@ -20,6 +20,7 @@ import { Crc32, Ed25519PrivateKey, Ed25519PublicKey, Emip003 } from '../crypto';
 import { Ed25519SecureKeyHandler } from './SecureKeyHandler';
 import { VkeyWitness, VkeyWitnessSet } from '../common';
 import { getModule } from '../module';
+import { hexToUint8Array } from '../cometa';
 import { readBlake2bHashData, readTransactionFromCbor, unrefObject } from '../marshaling';
 
 /* DEFINITIONS ****************************************************************/
@@ -196,6 +197,46 @@ export class SoftwareEd25519SecureKeyHandler implements Ed25519SecureKeyHandler 
     } finally {
       decryptedKey.fill(0);
     }
+  }
+
+  /**
+   * Signs arbitrary data using the securely stored Ed25519 private key.
+   * @param data - The hex-encoded data to be signed.
+   *
+   * @returns {Promise<{ signature: string; key: string }>} A promise that resolves with an object containing the signature and the public key.
+   */
+  public async signData(data: string): Promise<{ signature: string; key: string }> {
+    const decryptedKey = await this.getDecryptedKey();
+
+    try {
+      const privateKey = Ed25519PrivateKey.fromExtendedBytes(decryptedKey);
+      const publicKey = privateKey.getPublicKey();
+      const signature = privateKey.sign(hexToUint8Array(data));
+
+      return {
+        key: publicKey.toHex(),
+        signature: signature.toHex()
+      };
+    } finally {
+      decryptedKey.fill(0);
+    }
+  }
+
+  /**
+   * Retrieves the securely stored private key.
+   *
+   * @warning This operation exposes the private key in memory and should be used with extreme caution.
+   * The caller is responsible for securely handling and wiping the key from memory after use.
+   *
+   * @returns {Promise<Ed25519PrivateKey>} A promise that resolves with the private key.
+   */
+  public async getPrivateKey(): Promise<Ed25519PrivateKey> {
+    const decryptedKey = await this.getDecryptedKey();
+
+    const privateKey = Ed25519PrivateKey.fromExtendedBytes(decryptedKey);
+    decryptedKey.fill(0);
+
+    return privateKey;
   }
 
   /**
