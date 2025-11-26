@@ -7,10 +7,16 @@ build:
   os: ubuntu-22.04
   tools:
     nodejs: "18"
+  jobs:
+    post_create_environment:
+      - pip install sphinx sphinx-immaterial breathe
+    post_install:
+      - ./scripts/create-docs-makefiles.sh
+    post_build:
+      - find ./_readthedocs/html -type f -exec sed -i 's|<a href="[^"]*"><img src="[^"]*badge[^"]*" alt="Documentation Status"></a>||g' {} \;
   commands:
     - npm install --global yarn
     - yarn install
     - yarn docs
-    - find ./docs/html -type f -exec sed -i 's|<a href="[^"]*"><img src="[^"]*badge[^"]*" alt="Documentation Status"></a>||g' {} \;
     - mkdir --parents _readthedocs/html/
     - cp --recursive docs/html/* _readthedocs/html/
