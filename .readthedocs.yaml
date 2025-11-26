@@ -13,3 +13,4 @@ build:
     - yarn docs
     - mkdir --parents _readthedocs/html/
     - cp --recursive docs/html/* _readthedocs/html/
+    - find ./_readthedocs/html -type f -exec sed -i 's|<a href="[^"]*"><img src="[^"]*badge[^"]*" alt="Documentation Status"></a>||g' {} \;
