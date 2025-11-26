@@ -8,7 +8,7 @@ build:
   tools:
     nodejs: "18"
   commands:
-    - node -e "const fs = require('fs'); fs.writeFileSync('README.md', fs.readFileSync('README.md', 'utf8').split('\n').filter(l => !l.includes('Documentation Status')).join('\n'));"
+    - node -e "const fs = require('fs'); fs.writeFileSync('README.md', fs.readFileSync('README.md', 'utf8').split(String.fromCharCode(10)).filter(l => !l.includes('Documentation Status')).join(String.fromCharCode(10)));"
     - npm install --global yarn
     - yarn install
     - yarn docs
