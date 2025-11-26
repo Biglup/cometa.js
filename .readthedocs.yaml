@@ -8,7 +8,10 @@ build:
   tools:
     nodejs: "18"
   commands:
-    - python3 -c "lines = open('README.md').readlines(); open('README.md', 'w').writelines([l for l in lines if 'Documentation Status' not in l])"
+    - which sed
+    - sed --version
+    - cat README.md
+    - sed -i '/Documentation Status/d' README.md
     - npm install --global yarn
     - yarn install
     - yarn docs
