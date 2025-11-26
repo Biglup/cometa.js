@@ -7,10 +7,8 @@ build:
   os: ubuntu-22.04
   tools:
     nodejs: "18"
-  jobs:
-    post_build:
-      - find ./_readthedocs/html -type f -exec sed -i 's|<a href="[^"]*"><img src="[^"]*badge[^"]*" alt="Documentation Status"></a>||g' {} \;
   commands:
+    - sed -i '/Documentation Status/d' README.md
     - npm install --global yarn
     - yarn install
     - yarn docs
