@@ -8,10 +8,6 @@ build:
   tools:
     nodejs: "18"
   jobs:
-    post_create_environment:
-      - pip install sphinx sphinx-immaterial breathe
-    post_install:
-      - ./scripts/create-docs-makefiles.sh
     post_build:
       - find ./_readthedocs/html -type f -exec sed -i 's|<a href="[^"]*"><img src="[^"]*badge[^"]*" alt="Documentation Status"></a>||g' {} \;
   commands:
