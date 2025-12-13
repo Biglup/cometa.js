@@ -43,3 +43,4 @@ export * from './Value';
 export * from './Voting';
 export * from './VkeyWitness';
 export * from './Withdrawals';
+export * from './Transaction';
