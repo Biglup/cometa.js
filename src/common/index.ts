@@ -35,6 +35,7 @@ export * from './ProtocolVersion';
 export * from './ProtocolVersion';
 export * from './Redeemer';
 export * from './Script';
+export * from './SlotConfig';
 export * from './TxIn';
 export * from './TxOut';
 export * from './UTxO';

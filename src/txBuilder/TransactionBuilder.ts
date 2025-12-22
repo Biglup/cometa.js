@@ -26,7 +26,6 @@ import {
   CredentialSet,
   Datum,
   EmscriptenCoinSelector,
-  EmscriptenProvider,
   EmscriptenTxEvaluator,
   GovernanceActionId,
   InstanceType,
@@ -37,6 +36,7 @@ import {
   ProtocolVersion,
   RewardAddress,
   Script,
+  SlotConfig,
   TxEvaluator,
   TxOut,
   UTxO,
@@ -64,6 +64,7 @@ import {
   writeProtocolParameters,
   writeProtocolVersion,
   writeScript,
+  writeSlotConfig,
   writeStringToMemory,
   writeTransactionToCbor,
   writeTxOut,
@@ -75,7 +76,6 @@ import {
   writeVotingProcedure,
   writeWithdrawalMap
 } from '../';
-import { Provider } from '../provider';
 
 /* DEFINITIONS ****************************************************************/
 
@@ -99,11 +99,10 @@ const builderFinalizer = new FinalizationRegistry(
  * the complexities of transaction assembly, fee calculation, and balancing.
  */
 export class TransactionBuilder {
-  // We need to keep these references to the Emscripten provider, coin selector, and evaluator
+  // We need to keep these references to the Emscripten coin selector and evaluator
   // to ensure they are not garbage collected while the TransactionBuilder is in use.
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  private provider: EmscriptenProvider | undefined;
   private coinSelector: EmscriptenCoinSelector | undefined;
   private txEvaluator: EmscriptenTxEvaluator | undefined;
   private registeredHandlers: Array<{ type: InstanceType; id: number }> = [];
@@ -128,44 +127,41 @@ export class TransactionBuilder {
    *
    * @param {object} config - The configuration object for the builder.
    * @param {ProtocolParameters} config.params - The protocol parameters for the network.
-   * @param {Provider} config.provider - A provider instance for fetching on-chain data.
+   * @param {SlotConfig} config.slotConfig - The slot timing configuration for the network.
    * @returns {TransactionBuilder} A new, configured TransactionBuilder instance.
    * @throws {Error} If the native builder instance could not be created.
    */
-  public static create({ params, provider }: { params: ProtocolParameters; provider: Provider }): TransactionBuilder {
+  public static create({
+    params,
+    slotConfig
+  }: {
+    params: ProtocolParameters;
+    slotConfig: SlotConfig;
+  }): TransactionBuilder {
     if (!params) {
       throw new Error('Protocol parameters are required to create a TransactionBuilder.');
     }
 
-    if (!provider) {
-      throw new Error('A provider is required to create a TransactionBuilder.');
+    if (!slotConfig) {
+      throw new Error('Slot configuration is required to create a TransactionBuilder.');
     }
 
     const protocolParamsPtr = writeProtocolParameters(params);
-    const emscriptenProvider = new EmscriptenProvider(provider);
-    const ptr = getModule().tx_builder_new(protocolParamsPtr, emscriptenProvider.providerPtr);
 
-    unrefObject(protocolParamsPtr);
+    const slotConfigPtr = writeSlotConfig(slotConfig);
 
-    if (!ptr) {
-      throw new Error('Failed to create TransactionBuilder: The native pointer is null.');
-    }
-    const builder = new TransactionBuilder(ptr);
+    try {
+      const ptr = getModule().tx_builder_new(protocolParamsPtr, slotConfigPtr);
 
-    builder.provider = emscriptenProvider;
-
-    registerBridgeErrorHandler(InstanceType.Provider, emscriptenProvider.objectId, (exception: any) => {
-      const errorMessage = exception.message || 'Error in Provider';
-      const errorPtr = writeStringToMemory(errorMessage);
-      try {
-        getModule().tx_builder_set_last_error(builder.ptr, errorPtr);
-      } finally {
-        getModule()._free(errorPtr);
+      if (!ptr) {
+        throw new Error('Failed to create TransactionBuilder: The native pointer is null.');
       }
-    });
-    builder.registeredHandlers.push({ id: emscriptenProvider.objectId, type: InstanceType.CoinSelector });
 
-    return builder;
+      return new TransactionBuilder(ptr);
+    } finally {
+      unrefObject(protocolParamsPtr);
+      getModule()._free(slotConfigPtr);
+    }
   }
 
   /**

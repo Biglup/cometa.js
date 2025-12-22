@@ -17,8 +17,17 @@
 /* IMPORTS ********************************************************************/
 
 import { Address, NetworkId, RewardAddress } from '../address';
+import {
+  CARDANO_MAINNET_SLOT_CONFIG,
+  CARDANO_PREPROD_SLOT_CONFIG,
+  CARDANO_PREVIEW_SLOT_CONFIG,
+  NetworkMagic,
+  ProtocolParameters,
+  UTxO,
+  Value,
+  VkeyWitnessSet
+} from '../common';
 import { Cip30Wallet } from './Cip30Wallet';
-import { NetworkMagic, ProtocolParameters, UTxO, Value, VkeyWitnessSet } from '../common';
 import { Provider } from '../provider';
 import { TransactionBuilder } from '../txBuilder';
 import { Wallet } from './Wallet';
@@ -224,7 +233,29 @@ export class BrowserExtensionWallet implements Wallet {
       this.protocolParams = await this.provider.getParameters();
     }
 
-    return TransactionBuilder.create({ params: this.protocolParams, provider: this.provider })
+    const network = this.provider.getNetworkMagic();
+
+    let slotConfig;
+
+    switch (network) {
+      case NetworkMagic.Mainnet:
+        slotConfig = CARDANO_MAINNET_SLOT_CONFIG;
+        break;
+      case NetworkMagic.Preprod:
+        slotConfig = CARDANO_PREPROD_SLOT_CONFIG;
+        break;
+      case NetworkMagic.Preview:
+        slotConfig = CARDANO_PREVIEW_SLOT_CONFIG;
+        break;
+      default:
+        throw new Error(`Unsupported network magic: ${network}`);
+    }
+
+    return TransactionBuilder.create({ params: this.protocolParams, slotConfig })
+      .setTxEvaluator({
+        evaluate: this.provider.evaluateTransaction.bind(this.provider),
+        getName: () => 'Provider Tx Evaluator'
+      })
       .setChangeAddress(ownAddress[0])
       .setCollateralChangeAddress(ownAddress[0])
       .setCollateralUtxos(ownUtxos)

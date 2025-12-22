@@ -50,3 +50,4 @@ export * from './value';
 export * from './voting';
 export * from './vkeyWitness';
 export * from './withdrawalMap';
+export * from './slotConfig';
