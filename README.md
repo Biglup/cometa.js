@@ -13,6 +13,7 @@
 ![node-current](https://img.shields.io/node/v/@biglup/cometa)
 [![Documentation Status](https://app.readthedocs.org/projects/cometajs/badge/?version=latest)](https://cometajs.readthedocs.io/en/latest/?badge=latest)
 [![Twitter Follow](https://img.shields.io/twitter/follow/BiglupLabs?style=social)](https://x.com/BiglupLabs)
+[![npm version](https://img.shields.io/npm/v/@biglup/cometa.svg)](https://www.npmjs.com/package/@biglup/cometa)
 
 </div>
 
