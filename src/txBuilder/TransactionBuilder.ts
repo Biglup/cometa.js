@@ -169,7 +169,7 @@ export class TransactionBuilder {
    *
    * The coin selector determines how UTxOs are chosen to cover the transaction's
    * required value. If this method is not called, the builder will use a default
-   * coin selection strategy ('largest-first').
+   * coin selection strategy ('round-robin random-improve').
    *
    * @param {CoinSelector} coinSelector The coin selection strategy to use.
    * @returns {TransactionBuilder} The builder instance for chaining.
@@ -197,7 +197,7 @@ export class TransactionBuilder {
    *
    * The evaluator is responsible for calculating the execution units (memory and steps)
    * required for any Plutus scripts in the transaction. If this method is not called,
-   * the builder will use a default evaluator that relies on the configured provider.
+   * the builder will use the native Plutus evaluator.
    *
    * @param {TxEvaluator} txEvaluator The transaction evaluator to use.
    * @returns {TransactionBuilder} The builder instance for chaining.

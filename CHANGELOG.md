@@ -1,3 +1,12 @@
+V2.0.0-rc.1
+---------------------
+
+- Bundle cardano-c 2.0.0-rc.2. Publish this candidate under the npm `next` tag; the stable 1.2 release remains on `latest`.
+- Add custom coin-selector inputs `outputsToCover`, `changeAddress` and `coinsPerUtxoByte`, and optional `changeOutputs` results. Existing selectors may omit change outputs to let the native library generate them.
+- Transaction builders now default to native Plutus evaluation and Round-Robin Random-Improve coin selection. Explicit evaluator and selector overrides still take precedence; wallet helpers retain their provider evaluator.
+- **Behavior changes inherited from cardano-c:** negative CBOR bignums use `-1 - n`, transaction bodies must contain inputs, outputs and fee, and key-hash CIP-8 signatures use the `address` protected header. Serialized bytes and hashes affected by these fixes can differ from 1.2.
+- Dedicated Dijkstra transaction APIs are not yet exposed by this binding.
+
 Next (V1.0.8)
 ---------------------
 

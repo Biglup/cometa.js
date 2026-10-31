@@ -27,7 +27,7 @@
 
 Cometa.js is a lightweight, high-performance JavaScript library binding for the [libcardano-c](https://github.com/Biglup/cardano-c) library, designed to simplify blockchain development on Cardano.
 
-Cometa.js packages [libcardano-c](https://github.com/Biglup/cardano-c), compiling, compressing and inlining it into a single JavaScript module, it works consistently in Node.js and browser environments. The result is an extremely compact, single-file distribution of about **~350kb**.
+Cometa.js packages [libcardano-c](https://github.com/Biglup/cardano-c), compiling, compressing and inlining it into a single JavaScript module, it works consistently in Node.js and browser environments.
 
 Furthermore, this package comes with three module variants: CommonJS, ESM, and a browser-ready IIFE build for direct CDN use. On top of this, the library provides a fully documented high-level, developer-friendly API with TypeScript support.
 
@@ -44,6 +44,12 @@ const unsignedTx = await builder
   .build();
 ```
 <hr>
+
+## Release candidate
+
+`2.0.0-rc.1` bundles cardano-c `2.0.0-rc.2`, including native Plutus evaluation and the latest transaction-building fixes. Install it with `npm install @biglup/cometa@next`. The default npm release remains on the stable 1.2 series.
+
+This candidate retains the existing Conway API. Dedicated JavaScript APIs for Dijkstra transactions are not included yet. See the [changelog](CHANGELOG.md) for migration notes.
 
 ## **Conway Era Support**
 

@@ -233,8 +233,8 @@ describe('PlutusData Marshalling & Unmarshalling', () => {
       expect(Cometa.plutusDataToCbor(data)).toEqual('c249010000000000000000');
     });
 
-    it('can encode a negative integer bigger than unsigned 64bits', () => {
-      const data = -18_446_744_073_709_551_616n;
+    it('can encode a negative integer below the CBOR major type 1 range', () => {
+      const data = -18_446_744_073_709_551_617n;
       expect(Cometa.plutusDataToCbor(data)).toEqual('c349010000000000000000');
     });
 
@@ -255,7 +255,7 @@ describe('PlutusData Marshalling & Unmarshalling', () => {
 
     it('can decode a negative integer bigger than unsigned 64bits', () => {
       const data = Cometa.cborToPlutusData('c349010000000000000000');
-      expect(data).toEqual(-18_446_744_073_709_551_616n);
+      expect(data).toEqual(-18_446_744_073_709_551_617n);
     });
 
     it('can decode a positive tagged indefinite length unbounded int', () => {

@@ -16,7 +16,7 @@
 
 /* IMPORTS ********************************************************************/
 
-import { UTxO, Value } from '../../common';
+import { TxOut, UTxO, Value } from '../../common';
 
 /* DEFINITIONS ****************************************************************/
 
@@ -33,6 +33,9 @@ export interface CoinSelectorResult {
    * The remaining UTxOs from the original available set that were not selected.
    */
   remaining: UTxO[];
+
+  /** Optional change outputs. When omitted, the native selector generates change. */
+  changeOutputs?: TxOut[];
 }
 
 /**
@@ -53,6 +56,15 @@ export interface CoinSelectorParams {
    * The target value that the selection must cover.
    */
   targetValue: Value;
+
+  /** Output shapes used when generating change. */
+  outputsToCover?: TxOut[];
+
+  /** Address that receives change. */
+  changeAddress: string;
+
+  /** Minimum lovelace per UTxO byte. */
+  coinsPerUtxoByte: number;
 }
 
 /**
