@@ -35,6 +35,7 @@
     "build:shake": "node ./scripts/tree-shake-bindings.mjs",
     "build": "yarn build:shake && yarn build:compress && yarn build:js && yarn build:clean-dts",
     "generate-symbols-module": "node ./scripts/generate-wasm-module.mjs",
+    "test:memory": "bash ./scripts/test-memory.sh",
     "test": "yarn build && node --expose-gc ./node_modules/.bin/jest -c ./jest.config.js",
     "cleanup:dist": "rm -rf dist",
     "cleanup:nm": "rm -rf node_modules",

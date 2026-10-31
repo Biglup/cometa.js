@@ -49,6 +49,15 @@ export const ready = (): Promise<void> => {
     const wasmBinary = pako.inflate(base64ToBytes(factory.compressedWasmBase64));
     Object.assign(globalThis, bridgeCallbacks);
     const options = { wasmBinary };
+    if (typeof process !== 'undefined' && process.versions?.node) {
+      try {
+        Object.assign(options, { nodeFS: require('fs'), nodePath: require('path') });
+      } catch {
+        // Native ESM has no require; load the same Node builtins asynchronously.
+        const [nodeFS, nodePath] = await Promise.all([import('fs'), import('path')]);
+        Object.assign(options, { nodeFS, nodePath });
+      }
+    }
     await ensureModuleHasRandomValue(options);
     _Module = await factory(options);
     _isReady = true;

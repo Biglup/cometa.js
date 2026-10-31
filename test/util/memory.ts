@@ -31,10 +31,15 @@ const collect = async (): Promise<void> => {
 
 /** Measures live WASM allocator bytes after JavaScript finalizers have run. */
 export class MemoryLeakDetector {
+  private readonly enabled: boolean;
   private startBytes: number | null = null;
   private endBytes: number | null = null;
 
-  constructor(private readonly module: any) {}
+  constructor(private readonly module: any) {
+    this.enabled = typeof module._mallinfo === 'function';
+    if (process.env.COMETA_CHECK_LEAKS === '1' && !this.enabled)
+      throw new Error('Leak checks require a WASM build with CARDANO_WASM_ALLOCATOR_STATS=ON.');
+  }
 
   private allocatedBytes(): number {
     const info = this.module._malloc(40);
@@ -48,11 +53,13 @@ export class MemoryLeakDetector {
   }
 
   public async start(): Promise<void> {
+    if (!this.enabled) return;
     await collect();
     this.startBytes = this.allocatedBytes();
   }
 
   public async stop(): Promise<void> {
+    if (!this.enabled) return;
     await collect();
     this.endBytes = this.allocatedBytes();
   }
@@ -63,6 +70,7 @@ export class MemoryLeakDetector {
   }
 
   public detect(): void {
+    if (!this.enabled) return;
     if (this.startBytes === null || this.endBytes === null)
       throw new Error('Call start and stop before checking for leaks.');
     expect(this.endBytes).toBeLessThanOrEqual(this.startBytes);

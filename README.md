@@ -47,7 +47,7 @@ const unsignedTx = await builder
 
 ## Release candidate
 
-`2.0.0-rc.1` bundles cardano-c `2.0.0-rc.2`, including native Plutus evaluation and the latest transaction-building fixes. Install it with `npm install @biglup/cometa@next`. The default npm release remains on the stable 1.2 series.
+`2.0.0-rc.1` bundles cardano-c `2.0.0-rc.4`, including native Plutus evaluation and the latest transaction-building fixes. Install it with `npm install @biglup/cometa@next`. The default npm release remains on the stable 1.2 series.
 
 This candidate adds Plutus V4, key and script guards, direct deposits, account-balance constraints, deferred redeemers, and standalone sub-transactions that can be combined into a batch. Dijkstra support is experimental. Use protocol parameters for the network you target.
 

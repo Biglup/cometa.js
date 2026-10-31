@@ -27,7 +27,7 @@ describe('distribution initialization', () => {
   const iife = JSON.stringify(resolve('dist/iife/index.global.js'));
   const check = `
     await Promise.all([api.ready(), api.ready()]);
-    if (api.getLibCardanoCVersion() !== '2.0.0-rc.2') throw new Error('Wrong native release');
+    if (api.getLibCardanoCVersion() !== '2.0.0-rc.4') throw new Error('Wrong native release');
     if (typeof api.SubTransactionBuilder !== 'function') throw new Error('Missing builder');
     const random = api.getModule().getRandomValue();
     if (!Number.isInteger(random) || random < 0 || random > 0xffffffff) throw new Error('Invalid randomness');
@@ -54,7 +54,11 @@ describe('distribution initialization', () => {
   ])('%s initializes with secure randomness', (_name, setup) => {
     const result = spawnSync(
       process.execPath,
-      ['-e', `(async () => { ${setup} ${check} })().catch(error => { console.error(error); process.exitCode = 1; });`],
+      [
+        ...(_name === 'ESM' ? ['--input-type=module'] : []),
+        '-e',
+        `(async () => { ${setup} ${check} })().catch(error => { console.error(error); process.exitCode = 1; });`
+      ],
       { encoding: 'utf8' }
     );
     expect(result.stderr).toBe('');
