@@ -45,17 +45,64 @@ const unsignedTx = await builder
 ```
 <hr>
 
-## Release candidate
+## Releases
 
-`2.0.0-rc.1` bundles cardano-c `2.0.0-rc.4`, including native Plutus evaluation and the latest transaction-building fixes. Install it with `npm install @biglup/cometa@next`. The default npm release remains on the stable 1.2 series.
+| Version | Status | cardano-c |
+| --- | --- | --- |
+| [1.2.0](https://github.com/Biglup/cometa.js/releases/tag/v1.2.0) | Stable | [1.2 series](https://github.com/Biglup/cardano-c/releases/tag/v1.2.1) |
+| [2.0.0-rc.1](https://github.com/Biglup/cometa.js/pull/17) | Release candidate (pending publication) | [2.0.0-rc.4](https://github.com/Biglup/cardano-c/releases/tag/v2.0.0-rc.4) |
 
-This candidate adds Plutus V4, key and script guards, direct deposits, account-balance constraints, deferred redeemers, and standalone sub-transactions that can be combined into a batch. Dijkstra support is experimental. Use protocol parameters for the network you target.
+See the [changelog](CHANGELOG.md) for migration notes.
 
-`SubTransactionBuilder` shares the transaction builder's input, output, minting, staking and governance methods. It builds a fee-free sub-transaction; `TransactionBuilder.addSubTransaction(cbor, resolvedUtxos)` includes it in the enclosing transaction and balances the batch. Software key handlers provide `signSubTransaction()`, and `applySubTransactionWitnesses()` attaches the resulting witnesses.
+## Dijkstra Era Support
 
-Deferred methods such as `addInputWithDeferredRedeemer(utxo, callback)` receive a synchronous callback `(draftCbor, resolvedInputs) => PlutusData`. It runs on each balancing iteration and must be pure and deterministic. `applyParamsToScript(script, params)` applies script parameters using the native VM.
+The 2.0 candidate adds experimental Dijkstra support:
 
-Builders provide `dispose()` for immediate cleanup. Call it after `build()` finishes, and await each build before starting another. See the [changelog](CHANGELOG.md) for migration notes.
+- Plutus V4 and key or script guards.
+- Direct deposits and account-balance constraints.
+- Fee-free sub-transactions that can be signed independently and combined into a batch.
+
+`SubTransactionBuilder` shares the transaction builder's input, output, minting, staking and governance methods. Pass its result to `TransactionBuilder.addSubTransaction(cbor, resolvedUtxos)` to include it in an enclosing transaction and balance the batch. Software key handlers provide `signSubTransaction()`, and `applySubTransactionWitnesses()` attaches the resulting witnesses.
+
+Use protocol parameters for the network you target. Dijkstra features require a network that supports them.
+
+## Deferred Redeemers
+
+A redeemer may depend on input ordering that is only known after balancing. Deferred redeemers let the builder calculate that data from each balanced draft.
+
+For a validator that expects its spending input's index as an integer, add the script UTxO to a configured builder like this:
+
+```typescript
+builder.addInputWithDeferredRedeemer(scriptUtxo, (_draftCbor, resolvedInputs) => {
+  const index = resolvedInputs.findIndex(
+    ({ input }) => input.txId === scriptUtxo.input.txId && input.index === scriptUtxo.input.index
+  );
+  if (index < 0) throw new Error('Script input missing from draft');
+  return BigInt(index);
+});
+```
+
+The callback receives transaction CBOR and canonically ordered resolved inputs, and returns `PlutusData`. It must be synchronous, pure and deterministic: balancing can call it more than once. Supply the validator script and any required datum as usual. Deferred methods also cover minting, withdrawals, certificates and votes, and are available on both builders.
+
+## Native Plutus Evaluation
+
+Transaction builders evaluate Plutus scripts locally using cardano-c's virtual machine compiled to WASM. This is the default for both `TransactionBuilder.create()` and `wallet.createTransactionBuilder()`; no provider evaluation service is needed. Providers still supply network data and submit transactions.
+
+Provide current protocol parameters, including cost models, and the UTxOs and scripts needed by the transaction. To use a custom evaluator, call `setTxEvaluator()` explicitly.
+
+Builders provide `dispose()` for immediate cleanup. Call it after `build()` finishes, and await each build before starting another.
+
+### Applying Script Parameters
+
+`applyParamsToScript()` applies parameters locally through cardano-c and returns a new `PlutusScript`, leaving the original unchanged:
+
+```typescript
+// validator is a PlutusScript whose first parameter is an integer.
+const appliedValidator = Cometa.applyParamsToScript(validator, [42n]);
+builder.addScript(appliedValidator);
+```
+
+Pass parameters as Cometa `PlutusData` values in the order and types expected by the validator. The script's `bytes` field must contain a single CBOR wrapper around the flat-encoded program.
 
 ## **Conway Era Support**
 

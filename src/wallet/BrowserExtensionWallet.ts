@@ -252,10 +252,6 @@ export class BrowserExtensionWallet implements Wallet {
     }
 
     return TransactionBuilder.create({ params: this.protocolParams, slotConfig })
-      .setTxEvaluator({
-        evaluate: this.provider.evaluateTransaction.bind(this.provider),
-        getName: () => 'Provider Tx Evaluator'
-      })
       .setChangeAddress(ownAddress[0])
       .setCollateralChangeAddress(ownAddress[0])
       .setCollateralUtxos(ownUtxos)
