@@ -1,6 +1,6 @@
 {
   "name": "@biglup/cometa",
-  "version": "1.2.0",
+  "version": "2.0.0-rc.1",
   "description": "Cometa JS is a lightweight and high performance library designed to streamline transaction building and smart contract interactions on the Cardano blockchain",
   "engines": {
     "node": ">=16.0.0",
@@ -21,7 +21,8 @@
     "url": "git+https://github.com/Biglup/cometa.js.git"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "next"
   },
   "contributors": [
     "Angel Castillo <angel.castillob@prototnmail.io>"
@@ -34,6 +35,7 @@
     "build:shake": "node ./scripts/tree-shake-bindings.mjs",
     "build": "yarn build:shake && yarn build:compress && yarn build:js && yarn build:clean-dts",
     "generate-symbols-module": "node ./scripts/generate-wasm-module.mjs",
+    "test:memory": "bash ./scripts/test-memory.sh",
     "test": "yarn build && node --expose-gc ./node_modules/.bin/jest -c ./jest.config.js",
     "cleanup:dist": "rm -rf dist",
     "cleanup:nm": "rm -rf node_modules",

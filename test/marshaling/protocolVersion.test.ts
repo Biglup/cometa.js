@@ -24,13 +24,13 @@ import { MemoryLeakDetector } from '../util/memory';
 describe('ProtocolVersion', () => {
   let detector: MemoryLeakDetector;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     detector = new MemoryLeakDetector(Cometa.getModule());
-    detector.start();
+    await detector.start();
   });
 
-  afterEach(() => {
-    detector.stop();
+  afterEach(async () => {
+    await detector.stop();
     detector.detect();
   });
 

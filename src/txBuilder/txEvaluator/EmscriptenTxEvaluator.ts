@@ -63,6 +63,7 @@ const createEmscriptenTxEvaluator = (name: string, objectId: number): number => 
     assertSuccess(rc, 'create_emscripten_tx_evaluator failed');
     return m.getValue(txEvaluatorPtrPtr, 'i32');
   } finally {
+    m._free(namePtr);
     m._free(txEvaluatorPtrPtr);
   }
 };
@@ -74,6 +75,7 @@ const createEmscriptenTxEvaluator = (name: string, objectId: number): number => 
  */
 export class EmscriptenTxEvaluator implements TxEvaluator {
   readonly objectId: number;
+  private disposed = false;
   readonly txEvaluatorPtr: number;
   private readonly txEvaluator: TxEvaluator;
 
@@ -86,17 +88,22 @@ export class EmscriptenTxEvaluator implements TxEvaluator {
     this.objectId = nextId++;
     this.txEvaluator = txEvaluator;
 
-    registerInstance(InstanceType.TxEvaluator, this.objectId, this);
     this.txEvaluatorPtr = createEmscriptenTxEvaluator(txEvaluator.getName(), this.objectId);
 
     if (!this.txEvaluatorPtr) {
       throw new Error('create_emscripten_tx_evaluator failed');
     }
 
-    finalizationRegistry.register(this, {
-      objectId: this.objectId,
-      ptr: this.txEvaluatorPtr
-    });
+    registerInstance(InstanceType.TxEvaluator, this.objectId, this);
+
+    finalizationRegistry.register(
+      this,
+      {
+        objectId: this.objectId,
+        ptr: this.txEvaluatorPtr
+      },
+      this
+    );
   }
 
   /**
@@ -123,5 +130,13 @@ export class EmscriptenTxEvaluator implements TxEvaluator {
     } finally {
       asyncifyStateTracker.isAsyncActive = false;
     }
+  }
+  /** Release this adapter after its native owner has released it. */
+  public dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    finalizationRegistry.unregister(this);
+    unregisterInstance(InstanceType.TxEvaluator, this.objectId);
+    unrefObject(this.txEvaluatorPtr);
   }
 }

@@ -24,13 +24,13 @@ import { MemoryLeakDetector } from '../util/memory';
 describe('UnitInterval', () => {
   let detector: MemoryLeakDetector;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     detector = new MemoryLeakDetector(Cometa.getModule());
-    detector.start();
+    await detector.start();
   });
 
-  afterEach(() => {
-    detector.stop();
+  afterEach(async () => {
+    await detector.stop();
     detector.detect();
   });
 
@@ -44,6 +44,7 @@ describe('UnitInterval', () => {
       const ptr = Cometa.writeUnitIntervalAsDouble(value);
       const result = Cometa.readUnitIntervalAsDouble(ptr);
       expect(result).toBe(value);
+      Cometa.derefUnitInterval(ptr);
     });
 
     it('should throw an error for null pointer', () => {
@@ -58,6 +59,7 @@ describe('UnitInterval', () => {
       expect(ptr).toBeGreaterThan(0);
       const result = Cometa.readUnitIntervalAsDouble(ptr);
       expect(result).toBe(0.75);
+      Cometa.derefUnitInterval(ptr);
     });
 
     it('should create a UnitInterval from a valid number value', () => {
@@ -66,6 +68,7 @@ describe('UnitInterval', () => {
       expect(ptr).toBeGreaterThan(0);
       const result = Cometa.readUnitIntervalAsDouble(ptr);
       expect(result).toBe(value);
+      Cometa.derefUnitInterval(ptr);
     });
 
     it('should throw an error for invalid string value', () => {
@@ -79,12 +82,12 @@ describe('UnitInterval', () => {
     });
 
     it('should handle edge cases correctly', () => {
-      expect(() => Cometa.writeUnitIntervalAsDouble('0')).not.toThrow();
-      expect(() => Cometa.writeUnitIntervalAsDouble('1')).not.toThrow();
-      expect(() => Cometa.writeUnitIntervalAsDouble('0.5')).not.toThrow();
-      expect(() => Cometa.writeUnitIntervalAsDouble(0)).not.toThrow();
-      expect(() => Cometa.writeUnitIntervalAsDouble(1)).not.toThrow();
-      expect(() => Cometa.writeUnitIntervalAsDouble(0.5)).not.toThrow();
+      expect(() => Cometa.derefUnitInterval(Cometa.writeUnitIntervalAsDouble('0'))).not.toThrow();
+      expect(() => Cometa.derefUnitInterval(Cometa.writeUnitIntervalAsDouble('1'))).not.toThrow();
+      expect(() => Cometa.derefUnitInterval(Cometa.writeUnitIntervalAsDouble('0.5'))).not.toThrow();
+      expect(() => Cometa.derefUnitInterval(Cometa.writeUnitIntervalAsDouble(0))).not.toThrow();
+      expect(() => Cometa.derefUnitInterval(Cometa.writeUnitIntervalAsDouble(1))).not.toThrow();
+      expect(() => Cometa.derefUnitInterval(Cometa.writeUnitIntervalAsDouble(0.5))).not.toThrow();
     });
   });
 

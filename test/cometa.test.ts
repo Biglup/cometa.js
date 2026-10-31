@@ -26,7 +26,7 @@ describe('Cometa', () => {
   });
 
   it('getLibCardanoCVersion', () => {
-    expect(Cometa.getLibCardanoCVersion()).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(Cometa.getLibCardanoCVersion()).toBe('2.0.0-rc.4');
   });
 
   describe('hexToUint8Array', () => {
@@ -38,9 +38,7 @@ describe('Cometa', () => {
 
     test('throws an error for hex strings with an odd length', () => {
       const hexString = 'deadbee';
-      expect(() => Cometa.hexToUint8Array(hexString)).toThrowError(
-        'Invalid hex string: length must be even.'
-      );
+      expect(() => Cometa.hexToUint8Array(hexString)).toThrowError('Invalid hex string: length must be even.');
     });
 
     test('throws an error for hex strings with invalid characters', () => {

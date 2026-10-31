@@ -18,7 +18,7 @@
 
 import { Crc32, Ed25519PrivateKey, Ed25519PublicKey, Emip003 } from '../crypto';
 import { Ed25519SecureKeyHandler } from './SecureKeyHandler';
-import { VkeyWitness, VkeyWitnessSet } from '../common';
+import { VkeyWitness, VkeyWitnessSet, getSubTransactionId } from '../common';
 import { getModule } from '../module';
 import { hexToUint8Array } from '../cometa';
 import { readBlake2bHashData, readTransactionFromCbor, unrefObject } from '../marshaling';
@@ -254,5 +254,10 @@ export class SoftwareEd25519SecureKeyHandler implements Ed25519SecureKeyHandler 
     } finally {
       decryptedKey.fill(0);
     }
+  }
+  /** Sign the identifier of a Dijkstra sub-transaction. */
+  public async signSubTransaction(cbor: string): Promise<VkeyWitnessSet> {
+    const { key, signature } = await this.signData(getSubTransactionId(cbor));
+    return [{ vkey: key, signature }];
   }
 }

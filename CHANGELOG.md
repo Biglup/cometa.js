@@ -1,3 +1,19 @@
+V2.0.0-rc.1
+---------------------
+
+- Bundle cardano-c 2.0.0-rc.4. Publish this candidate under the npm `next` tag; the stable 1.2 release remains on `latest`.
+- Add custom coin-selector inputs `outputsToCover`, `changeAddress` and `coinsPerUtxoByte`, and optional `changeOutputs` results. Existing selectors may omit change outputs to let the native library generate them.
+- Transaction builders now default to native Plutus evaluation and Round-Robin Random-Improve coin selection. Explicit evaluator and selector overrides still take precedence; wallet helpers retain their provider evaluator.
+- **Behavior changes inherited from cardano-c:** negative CBOR bignums use `-1 - n`, transaction bodies must contain inputs, outputs and fee, and key-hash CIP-8 signatures use the `address` protected header. Serialized bytes and hashes affected by these fixes can differ from 1.2.
+- Add Plutus V4 scripts and cost models, native guard scripts and guard redeemers, direct deposits, account-balance constraints, and new protocol parameters.
+- Add `SubTransactionBuilder`, batch inclusion, sub-transaction identifiers and witness application, and software key-handler signing.
+- Add deferred redeemers for spending, minting, withdrawals, certificates and votes, plus native `applyParamsToScript`.
+- Add deterministic builder disposal and reject overlapping builds and disposal while a build is active.
+- Fix `updateDRep` calling deregistration, preserve zero-valued redeemers, and read 64-bit protocol parameters without truncating their high word.
+- Fix certificate wrapping and ownership, native-script hash ownership and slot buffers, pool-relay ownership, mnemonic entropy cleanup, evaluator name allocation, and allocation cleanup on invalid inputs.
+- Fix ESM loading and secure-random initialization, concurrent module initialization, and callback-registry retention. Leak tests now measure live WASM allocations after finalizers run.
+- Use the official C release WASM artifact with callback registration exports. Allocation checks run separately with `yarn test:memory /path/to/cardano-c`; the instrumented payload is restored to the release payload afterward. Unused JS export wrappers are removed before compression and bundling.
+
 Next (V1.0.8)
 ---------------------
 

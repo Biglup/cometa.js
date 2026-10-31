@@ -64,6 +64,30 @@ export interface ProtocolParameters {
   drepDeposit: number;
   drepInactivityPeriod: number;
   refScriptCostPerByte: UnitInterval;
+  /** Optional Dijkstra and subsequent protocol parameters. */
+  maxRefScriptSizePerBlock?: number;
+  maxRefScriptSizePerTx?: number;
+  refScriptCostStride?: number;
+  refScriptCostMultiplier?: UnitInterval;
+  maxPledgeLeverage?: UnitInterval | null;
+  minPoolMargin?: UnitInterval;
+  leiosAnnouncementPeriodLength?: number;
+  leiosVotePeriodLength?: number;
+  leiosDiffusionPeriodLength?: number;
+  leiosCommitteeSize?: number;
+  leiosQuorumStakeThreshold?: UnitInterval;
+  maxEndorserBlockReferencesSize?: number;
+  maxEndorserBlockTxsSize?: number;
+  maxEndorserBlockExecutionUnits?: ExUnits;
+  maxRefScriptSizePerEndorserBlock?: number;
+  perasMinCandidateBlockAge?: number;
+  perasHealingFactor?: UnitInterval;
+  perasCertBoost?: number;
+  perasTargetCommitteeSize?: number;
+  perasBootstrapRound?: number | null;
+  perasQuorumThresholdSafetyMargin?: UnitInterval;
+  refInputsCostPerMultiAssetPolicy?: number;
+  refInputsCostPerDatumByte?: number;
 }
 
 /**

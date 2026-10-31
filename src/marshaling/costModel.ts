@@ -30,6 +30,7 @@ import { splitToLowHigh64bit } from './number';
 const LANGUAGE_MAP: Record<string, number> = {
   PlutusV1: 0, // CARDANO_PLUTUS_LANGUAGE_VERSION_V1
   PlutusV2: 1, // CARDANO_PLUTUS_LANGUAGE_VERSION_V2
+  PlutusV4: 3,
   PlutusV3: 2 // CARDANO_PLUTUS_LANGUAGE_VERSION_V3
 };
 
@@ -40,7 +41,8 @@ const LANGUAGE_MAP: Record<string, number> = {
 const LANGUAGE_MAP_REVERSE: Record<number, string> = {
   0: 'PlutusV1',
   1: 'PlutusV2',
-  2: 'PlutusV3'
+  2: 'PlutusV3',
+  3: 'PlutusV4'
 };
 
 /**

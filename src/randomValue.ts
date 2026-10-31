@@ -21,9 +21,9 @@
  */
 export const getRandomValue = (): number => {
   // Prefer browser crypto if available
-  if (typeof window !== 'undefined' && window.crypto?.getRandomValues) {
+  if (globalThis.crypto?.getRandomValues) {
     const buf = new Uint8Array(4);
-    window.crypto.getRandomValues(buf);
+    globalThis.crypto.getRandomValues(buf);
     return ((buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3]) >>> 0;
   }
 
@@ -38,8 +38,12 @@ export const getRandomValue = (): number => {
 /**
  * Ensure the module has a getRandomValue function.
  */
-export const ensureModuleHasRandomValue = (moduleInst: any) => {
-  if (typeof moduleInst.getRandomValue === 'undefined') {
+export const ensureModuleHasRandomValue = async (moduleInst: any): Promise<void> => {
+  if (typeof moduleInst.getRandomValue !== 'undefined') return;
+  if (globalThis.crypto?.getRandomValues) {
     moduleInst.getRandomValue = getRandomValue;
+    return;
   }
+  const nodeCrypto = await import('crypto');
+  moduleInst.getRandomValue = (): number => nodeCrypto.randomBytes(4).readUInt32LE(0);
 };

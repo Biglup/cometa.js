@@ -116,9 +116,10 @@ export const writeStakeRegistrationCertificate = (cert: StakeRegistrationCertifi
   const genericCertPtrPtr = module._malloc(4);
   const specificCertPtrPtr = module._malloc(4);
   let specificCertPtr = 0;
-  const credPtr = writeCredential(cert.stakeCredential);
+  let credPtr = 0;
 
   try {
+    credPtr = writeCredential(cert.stakeCredential);
     assertSuccess(
       module.stake_registration_cert_new(credPtr, specificCertPtrPtr),
       'Failed to create specific StakeRegistrationCertificate'
@@ -195,9 +196,10 @@ export const writeStakeDeregistrationCertificate = (cert: StakeDeregistrationCer
   const genericCertPtrPtr = module._malloc(4);
   const specificCertPtrPtr = module._malloc(4);
   let specificCertPtr = 0;
-  const credPtr = writeCredential(cert.stakeCredential);
+  let credPtr = 0;
 
   try {
+    credPtr = writeCredential(cert.stakeCredential);
     assertSuccess(
       module.stake_deregistration_cert_new(credPtr, specificCertPtrPtr),
       'Failed to create specific StakeDeregistrationCertificate'
@@ -285,10 +287,12 @@ export const writeStakeDelegationCertificate = (cert: StakeDelegationCertificate
   const specificCertPtrPtr = module._malloc(4);
   let specificCertPtr = 0;
 
-  const credPtr = writeCredential(cert.stakeCredential);
-  const poolHashPtr = blake2bHashFromHex(cert.poolId);
+  let credPtr = 0;
+  let poolHashPtr = 0;
 
   try {
+    credPtr = writeCredential(cert.stakeCredential);
+    poolHashPtr = blake2bHashFromHex(cert.poolId);
     assertSuccess(
       module.stake_delegation_cert_new(credPtr, poolHashPtr, specificCertPtrPtr),
       'Failed to create specific StakeDelegationCertificate'
@@ -370,9 +374,10 @@ export const writePoolRegistrationCertificate = (cert: PoolRegistrationCertifica
   const specificCertPtrPtr = module._malloc(4);
   let specificCertPtr = 0;
 
-  const paramsPtr = writePoolParameters(cert.poolParameters);
+  let paramsPtr = 0;
 
   try {
+    paramsPtr = writePoolParameters(cert.poolParameters);
     assertSuccess(
       module.pool_registration_cert_new(paramsPtr, specificCertPtrPtr),
       'Failed to create specific PoolRegistrationCertificate'
@@ -453,10 +458,11 @@ export const writePoolRetirementCertificate = (cert: PoolRetirementCertificate):
   const specificCertPtrPtr = module._malloc(4);
   let specificCertPtr = 0;
 
-  const poolHashPtr = blake2bHashFromHex(cert.poolId);
+  let poolHashPtr = 0;
   const epochParts = splitToLowHigh64bit(cert.epoch);
 
   try {
+    poolHashPtr = blake2bHashFromHex(cert.poolId);
     assertSuccess(
       module.pool_retirement_cert_new(poolHashPtr, epochParts.low, epochParts.high, specificCertPtrPtr),
       'Failed to create specific PoolRetirementCertificate'
@@ -539,11 +545,14 @@ export const writeGenesisKeyDelegationCertificate = (cert: GenesisKeyDelegationC
   const specificCertPtrPtr = module._malloc(4);
   let specificCertPtr = 0;
 
-  const genesisHashPtr = blake2bHashFromHex(cert.genesisHash);
-  const delegateHashPtr = blake2bHashFromHex(cert.genesisDelegateHash);
-  const vrfHashPtr = blake2bHashFromHex(cert.vrfKeyHash);
+  let genesisHashPtr = 0;
+  let delegateHashPtr = 0;
+  let vrfHashPtr = 0;
 
   try {
+    genesisHashPtr = blake2bHashFromHex(cert.genesisHash);
+    delegateHashPtr = blake2bHashFromHex(cert.genesisDelegateHash);
+    vrfHashPtr = blake2bHashFromHex(cert.vrfKeyHash);
     assertSuccess(
       module.genesis_key_delegation_cert_new(genesisHashPtr, delegateHashPtr, vrfHashPtr, specificCertPtrPtr),
       'Failed to create specific GenesisKeyDelegationCertificate'
@@ -771,10 +780,11 @@ export const writeRegistrationCertificate = (cert: RegistrationCertificate): num
   const specificCertPtrPtr = module._malloc(4);
   let specificCertPtr = 0;
 
-  const credPtr = writeCredential(cert.stakeCredential);
+  let credPtr = 0;
   const depositParts = splitToLowHigh64bit(cert.deposit);
 
   try {
+    credPtr = writeCredential(cert.stakeCredential);
     assertSuccess(
       module.registration_cert_new(credPtr, depositParts.low, depositParts.high, specificCertPtrPtr),
       'Failed to create specific RegistrationCertificate'
@@ -855,10 +865,11 @@ export const writeUnregistrationCertificate = (cert: UnregistrationCertificate):
   const specificCertPtrPtr = module._malloc(4);
   let specificCertPtr = 0;
 
-  const credPtr = writeCredential(cert.stakeCredential);
+  let credPtr = 0;
   const depositParts = splitToLowHigh64bit(cert.deposit);
 
   try {
+    credPtr = writeCredential(cert.stakeCredential);
     assertSuccess(
       module.unregistration_cert_new(credPtr, depositParts.low, depositParts.high, specificCertPtrPtr),
       'Failed to create specific UnregistrationCertificate'
@@ -888,29 +899,33 @@ export const writeUnregistrationCertificate = (cert: UnregistrationCertificate):
 const readDRep = (drepPtr: number): DRep => {
   const module = getModule();
   const typePtr = module._malloc(4);
-  assertSuccess(module.drep_get_type(drepPtr, typePtr), 'Failed to get DRep type');
+  try {
+    assertSuccess(module.drep_get_type(drepPtr, typePtr), 'Failed to get DRep type');
 
-  const kind = module.getValue(typePtr, 'i32');
+    const kind = module.getValue(typePtr, 'i32');
 
-  switch (kind) {
-    case 0:
-    case 1: {
-      const credPtrPtr = module._malloc(4);
-      assertSuccess(module.drep_get_credential(drepPtr, credPtrPtr), 'Failed to get DRep credential');
-      const credPtr = module.getValue(credPtrPtr, 'i32');
-      try {
-        return readCredential(credPtr);
-      } finally {
-        module._free(credPtrPtr);
-        unrefObject(credPtr);
+    switch (kind) {
+      case 0:
+      case 1: {
+        const credPtrPtr = module._malloc(4);
+        assertSuccess(module.drep_get_credential(drepPtr, credPtrPtr), 'Failed to get DRep credential');
+        const credPtr = module.getValue(credPtrPtr, 'i32');
+        try {
+          return readCredential(credPtr);
+        } finally {
+          module._free(credPtrPtr);
+          unrefObject(credPtr);
+        }
       }
+      case 2:
+        return { type: 'AlwaysAbstain' };
+      case 3:
+        return { type: 'AlwaysNoConfidence' };
+      default:
+        throw new Error(`Unknown DRep kind: ${kind}`);
     }
-    case 2:
-      return { type: 'AlwaysAbstain' };
-    case 3:
-      return { type: 'AlwaysNoConfidence' };
-    default:
-      throw new Error(`Unknown DRep kind: ${kind}`);
+  } finally {
+    module._free(typePtr);
   }
 };
 
@@ -1013,10 +1028,12 @@ export const writeVoteDelegationCertificate = (cert: VoteDelegationCertificate):
   const specificCertPtrPtr = module._malloc(4);
   let specificCertPtr = 0;
 
-  const credPtr = writeCredential(cert.stakeCredential);
-  const drepPtr = writeDRep(cert.dRep);
+  let credPtr = 0;
+  let drepPtr = 0;
 
   try {
+    credPtr = writeCredential(cert.stakeCredential);
+    drepPtr = writeDRep(cert.dRep);
     assertSuccess(
       module.vote_delegation_cert_new(credPtr, drepPtr, specificCertPtrPtr),
       'Failed to create specific VoteDelegationCertificate'
@@ -1100,11 +1117,14 @@ export const writeStakeVoteDelegationCertificate = (cert: StakeVoteDelegationCer
   const specificCertPtrPtr = module._malloc(4);
   let specificCertPtr = 0;
 
-  const credPtr = writeCredential(cert.stakeCredential);
-  const poolHashPtr = blake2bHashFromHex(cert.poolId);
-  const drepPtr = writeDRep(cert.dRep);
+  let credPtr = 0;
+  let poolHashPtr = 0;
+  let drepPtr = 0;
 
   try {
+    credPtr = writeCredential(cert.stakeCredential);
+    poolHashPtr = blake2bHashFromHex(cert.poolId);
+    drepPtr = writeDRep(cert.dRep);
     assertSuccess(
       module.stake_vote_delegation_cert_new(credPtr, poolHashPtr, drepPtr, specificCertPtrPtr),
       'Failed to create specific StakeVoteDelegationCertificate'
@@ -1187,11 +1207,13 @@ export const writeStakeRegistrationDelegationCertificate = (cert: StakeRegistrat
   const specificCertPtrPtr = module._malloc(4);
   let specificCertPtr = 0;
 
-  const credPtr = writeCredential(cert.stakeCredential);
-  const poolHashPtr = blake2bHashFromHex(cert.poolId);
+  let credPtr = 0;
+  let poolHashPtr = 0;
   const depositParts = splitToLowHigh64bit(cert.deposit);
 
   try {
+    credPtr = writeCredential(cert.stakeCredential);
+    poolHashPtr = blake2bHashFromHex(cert.poolId);
     assertSuccess(
       module.stake_registration_delegation_cert_new(
         credPtr,
@@ -1279,11 +1301,13 @@ export const writeVoteRegistrationDelegationCertificate = (cert: VoteRegistratio
   const specificCertPtrPtr = module._malloc(4);
   let specificCertPtr = 0;
 
-  const credPtr = writeCredential(cert.stakeCredential);
-  const drepPtr = writeDRep(cert.dRep);
+  let credPtr = 0;
+  let drepPtr = 0;
   const depositParts = splitToLowHigh64bit(cert.deposit);
 
   try {
+    credPtr = writeCredential(cert.stakeCredential);
+    drepPtr = writeDRep(cert.dRep);
     assertSuccess(
       module.vote_registration_delegation_cert_new(
         credPtr,
@@ -1379,12 +1403,15 @@ export const writeStakeVoteRegistrationDelegationCertificate = (
   const specificCertPtrPtr = module._malloc(4);
   let specificCertPtr = 0;
 
-  const credPtr = writeCredential(cert.stakeCredential);
-  const poolHashPtr = blake2bHashFromHex(cert.poolId);
-  const drepPtr = writeDRep(cert.dRep);
+  let credPtr = 0;
+  let poolHashPtr = 0;
+  let drepPtr = 0;
   const depositParts = splitToLowHigh64bit(cert.deposit);
 
   try {
+    credPtr = writeCredential(cert.stakeCredential);
+    poolHashPtr = blake2bHashFromHex(cert.poolId);
+    drepPtr = writeDRep(cert.dRep);
     assertSuccess(
       module.stake_vote_registration_delegation_cert_new(
         credPtr,
@@ -1481,10 +1508,12 @@ export const writeAuthCommitteeHotCertificate = (cert: AuthCommitteeHotCertifica
   const specificCertPtrPtr = module._malloc(4);
   let specificCertPtr = 0;
 
-  const coldCredPtr = writeCredential(cert.coldCredential);
-  const hotCredPtr = writeCredential(cert.hotCredential);
+  let coldCredPtr = 0;
+  let hotCredPtr = 0;
 
   try {
+    coldCredPtr = writeCredential(cert.coldCredential);
+    hotCredPtr = writeCredential(cert.hotCredential);
     assertSuccess(
       module.auth_committee_hot_cert_new(coldCredPtr, hotCredPtr, specificCertPtrPtr),
       'Failed to create specific AuthCommitteeHotCertificate'
@@ -1564,10 +1593,11 @@ export const writeResignCommitteeColdCertificate = (cert: ResignCommitteeColdCer
   const specificCertPtrPtr = module._malloc(4);
   let specificCertPtr = 0;
 
-  const credPtr = writeCredential(cert.coldCredential);
+  let credPtr = 0;
   const anchorPtr = cert.anchor ? writeAnchor(cert.anchor) : 0;
 
   try {
+    credPtr = writeCredential(cert.coldCredential);
     assertSuccess(
       module.resign_committee_cold_cert_new(credPtr, anchorPtr, specificCertPtrPtr),
       'Failed to create specific ResignCommitteeColdCertificate'
@@ -1651,11 +1681,12 @@ export const writeDRepRegistrationCertificate = (cert: DRepRegistrationCertifica
   const specificCertPtrPtr = module._malloc(4);
   let specificCertPtr = 0;
 
-  const credPtr = writeCredential(cert.dRepCredential);
+  let credPtr = 0;
   const depositParts = splitToLowHigh64bit(cert.deposit);
   const anchorPtr = cert.anchor ? writeAnchor(cert.anchor) : 0;
 
   try {
+    credPtr = writeCredential(cert.dRepCredential);
     assertSuccess(
       module.register_drep_cert_new(credPtr, depositParts.low, depositParts.high, anchorPtr, specificCertPtrPtr),
       'Failed to create specific DRepRegistrationCertificate'
@@ -1735,10 +1766,11 @@ export const writeDRepUnregistrationCertificate = (cert: DRepUnregistrationCerti
   const specificCertPtrPtr = module._malloc(4);
   let specificCertPtr = 0;
 
-  const credPtr = writeCredential(cert.dRepCredential);
+  let credPtr = 0;
   const depositParts = splitToLowHigh64bit(cert.deposit);
 
   try {
+    credPtr = writeCredential(cert.dRepCredential);
     assertSuccess(
       module.unregister_drep_cert_new(credPtr, depositParts.low, depositParts.high, specificCertPtrPtr),
       'Failed to create specific DRepUnregistrationCertificate'
@@ -1817,10 +1849,11 @@ export const writeUpdateDRepCertificate = (cert: UpdateDRepCertificate): number 
   const specificCertPtrPtr = module._malloc(4);
   let specificCertPtr = 0;
 
-  const credPtr = writeCredential(cert.dRepCredential);
+  let credPtr = 0;
   const anchorPtr = cert.anchor ? writeAnchor(cert.anchor) : 0;
 
   try {
+    credPtr = writeCredential(cert.dRepCredential);
     assertSuccess(
       module.update_drep_cert_new(credPtr, anchorPtr, specificCertPtrPtr),
       'Failed to create specific UpdateDRepCertificate'
@@ -1860,172 +1893,49 @@ export const writeUpdateDRepCertificate = (cert: UpdateDRepCertificate): number 
 export const readCertificate = (ptr: number): Certificate => {
   const module = getModule();
   const typePtr = module._malloc(4);
-
   try {
     assertSuccess(module.cert_get_type(ptr, typePtr), 'Failed to get certificate type');
-    const type: CertificateType = module.getValue(typePtr, 'i32');
-    const specificCertPtrPtr = module._malloc(4);
-    const specificCertPtr = 0;
-
-    try {
-      switch (type) {
-        case CertificateType.StakeRegistration: {
-          assertSuccess(
-            module.certificate_to_stake_registration(ptr, specificCertPtrPtr),
-            'Failed to cast to StakeRegistrationCertificate'
-          );
-          const stakeCertPtr = module.getValue(specificCertPtrPtr, 'i32');
-          return readStakeRegistrationCertificate(stakeCertPtr);
-        }
-        case CertificateType.StakeDeregistration: {
-          assertSuccess(
-            module.certificate_to_stake_deregistration(ptr, specificCertPtrPtr),
-            'Failed to cast to StakeDeregistrationCertificate'
-          );
-          const stakeCertPtr = module.getValue(specificCertPtrPtr, 'i32');
-          return readStakeDeregistrationCertificate(stakeCertPtr);
-        }
-        case CertificateType.StakeDelegation: {
-          assertSuccess(
-            module.certificate_to_stake_delegation(ptr, specificCertPtrPtr),
-            'Failed to cast to StakeDelegationCertificate'
-          );
-          const stakeCertPtr = module.getValue(specificCertPtrPtr, 'i32');
-          return readStakeDelegationCertificate(stakeCertPtr);
-        }
-        case CertificateType.PoolRegistration: {
-          assertSuccess(
-            module.certificate_to_pool_registration(ptr, specificCertPtrPtr),
-            'Failed to cast to PoolRegistrationCertificate'
-          );
-          const poolCertPtr = module.getValue(specificCertPtrPtr, 'i32');
-          return readPoolRegistrationCertificate(poolCertPtr);
-        }
-        case CertificateType.PoolRetirement: {
-          assertSuccess(
-            module.certificate_to_pool_retirement(ptr, specificCertPtrPtr),
-            'Failed to cast to PoolRetirementCertificate'
-          );
-          const poolCertPtr = module.getValue(specificCertPtrPtr, 'i32');
-          return readPoolRetirementCertificate(poolCertPtr);
-        }
-        case CertificateType.GenesisKeyDelegation: {
-          assertSuccess(
-            module.certificate_to_genesis_key_delegation(ptr, specificCertPtrPtr),
-            'Failed to cast to GenesisKeyDelegationCertificate'
-          );
-          const genesisCertPtr = module.getValue(specificCertPtrPtr, 'i32');
-          return readGenesisKeyDelegationCertificate(genesisCertPtr);
-        }
-        case CertificateType.MoveInstantaneousRewards: {
-          assertSuccess(module.certificate_to_mir(ptr, specificCertPtrPtr), 'Failed to cast to MirCertificate');
-          const mirCertPtr = module.getValue(specificCertPtrPtr, 'i32');
-          return readMoveInstantaneousRewardsCertificate(mirCertPtr);
-        }
-        case CertificateType.Registration: {
-          assertSuccess(
-            module.certificate_to_registration(ptr, specificCertPtrPtr),
-            'Failed to cast to RegistrationCertificate'
-          );
-          const regCertPtr = module.getValue(specificCertPtrPtr, 'i32');
-          return readRegistrationCertificate(regCertPtr);
-        }
-        case CertificateType.Unregistration: {
-          assertSuccess(
-            module.certificate_to_unregistration(ptr, specificCertPtrPtr),
-            'Failed to cast to UnregistrationCertificate'
-          );
-          const unregCertPtr = module.getValue(specificCertPtrPtr, 'i32');
-          return readUnregistrationCertificate(unregCertPtr);
-        }
-        case CertificateType.VoteDelegation: {
-          assertSuccess(
-            module.certificate_to_vote_delegation(ptr, specificCertPtrPtr),
-            'Failed to cast to VoteDelegationCertificate'
-          );
-          const voteDelegationCertPtr = module.getValue(specificCertPtrPtr, 'i32');
-          return readVoteDelegationCertificate(voteDelegationCertPtr);
-        }
-        case CertificateType.StakeVoteDelegation: {
-          assertSuccess(
-            module.certificate_to_stake_vote_delegation(ptr, specificCertPtrPtr),
-            'Failed to cast to StakeVoteDelegationCertificate'
-          );
-          const stakeVoteDelegationCertPtr = module.getValue(specificCertPtrPtr, 'i32');
-          return readStakeVoteDelegationCertificate(stakeVoteDelegationCertPtr);
-        }
-        case CertificateType.StakeRegistrationDelegation: {
-          assertSuccess(
-            module.certificate_to_stake_registration_delegation(ptr, specificCertPtrPtr),
-            'Failed to cast to StakeRegistrationDelegationCertificate'
-          );
-          const stakeRegDelegationCertPtr = module.getValue(specificCertPtrPtr, 'i32');
-          return readStakeRegistrationDelegationCertificate(stakeRegDelegationCertPtr);
-        }
-        case CertificateType.VoteRegistrationDelegation: {
-          assertSuccess(
-            module.certificate_to_vote_registration_delegation(ptr, specificCertPtrPtr),
-            'Failed to cast to VoteRegistrationDelegationCertificate'
-          );
-          const voteRegDelegationCertPtr = module.getValue(specificCertPtrPtr, 'i32');
-          return readVoteRegistrationDelegationCertificate(voteRegDelegationCertPtr);
-        }
-        case CertificateType.StakeVoteRegistrationDelegation: {
-          assertSuccess(
-            module.certificate_to_stake_vote_registration_delegation(ptr, specificCertPtrPtr),
-            'Failed to cast to StakeVoteRegistrationDelegationCertificate'
-          );
-          const stakeVoteRegDelegationCertPtr = module.getValue(specificCertPtrPtr, 'i32');
-          return readStakeVoteRegistrationDelegationCertificate(stakeVoteRegDelegationCertPtr);
-        }
-        case CertificateType.AuthCommitteeHot: {
-          assertSuccess(
-            module.certificate_to_auth_committee_hot(ptr, specificCertPtrPtr),
-            'Failed to cast to AuthCommitteeHotCertificate'
-          );
-          const authCommitteeHotCertPtr = module.getValue(specificCertPtrPtr, 'i32');
-          return readAuthCommitteeHotCertificate(authCommitteeHotCertPtr);
-        }
-        case CertificateType.ResignCommitteeCold: {
-          assertSuccess(
-            module.certificate_to_resign_committee_cold(ptr, specificCertPtrPtr),
-            'Failed to cast to ResignCommitteeColdCertificate'
-          );
-          const resignCommitteeColdCertPtr = module.getValue(specificCertPtrPtr, 'i32');
-          return readResignCommitteeColdCertificate(resignCommitteeColdCertPtr);
-        }
-        case CertificateType.DRepRegistration: {
-          assertSuccess(
-            module.certificate_to_register_drep(ptr, specificCertPtrPtr),
-            'Failed to cast to DRepRegistrationCertificate'
-          );
-          const drepRegCertPtr = module.getValue(specificCertPtrPtr, 'i32');
-          return readDRepRegistrationCertificate(drepRegCertPtr);
-        }
-        case CertificateType.DRepUnregistration: {
-          assertSuccess(
-            module.certificate_to_unregister_drep(ptr, specificCertPtrPtr),
-            'Failed to cast to DRepUnregistrationCertificate'
-          );
-          const drepUnregCertPtr = module.getValue(specificCertPtrPtr, 'i32');
-          return readDRepUnregistrationCertificate(drepUnregCertPtr);
-        }
-        case CertificateType.UpdateDRep: {
-          assertSuccess(
-            module.certificate_to_update_drep(ptr, specificCertPtrPtr),
-            'Failed to cast to UpdateDRepCertificate'
-          );
-          const updateDRepCertPtr = module.getValue(specificCertPtrPtr, 'i32');
-          return readUpdateDRepCertificate(updateDRepCertPtr);
-        }
-        default:
-          throw new Error(`Unsupported certificate type for reading: ${CertificateType[type]}`);
-      }
-    } finally {
-      if (specificCertPtr) {
-        unrefObject(specificCertPtr);
-      }
-      module._free(specificCertPtrPtr);
+    switch (module.getValue(typePtr, 'i32') as CertificateType) {
+      case CertificateType.StakeRegistration:
+        return readStakeRegistrationCertificate(ptr);
+      case CertificateType.StakeDeregistration:
+        return readStakeDeregistrationCertificate(ptr);
+      case CertificateType.StakeDelegation:
+        return readStakeDelegationCertificate(ptr);
+      case CertificateType.PoolRegistration:
+        return readPoolRegistrationCertificate(ptr);
+      case CertificateType.PoolRetirement:
+        return readPoolRetirementCertificate(ptr);
+      case CertificateType.GenesisKeyDelegation:
+        return readGenesisKeyDelegationCertificate(ptr);
+      case CertificateType.MoveInstantaneousRewards:
+        return readMoveInstantaneousRewardsCertificate(ptr);
+      case CertificateType.Registration:
+        return readRegistrationCertificate(ptr);
+      case CertificateType.Unregistration:
+        return readUnregistrationCertificate(ptr);
+      case CertificateType.VoteDelegation:
+        return readVoteDelegationCertificate(ptr);
+      case CertificateType.StakeVoteDelegation:
+        return readStakeVoteDelegationCertificate(ptr);
+      case CertificateType.StakeRegistrationDelegation:
+        return readStakeRegistrationDelegationCertificate(ptr);
+      case CertificateType.VoteRegistrationDelegation:
+        return readVoteRegistrationDelegationCertificate(ptr);
+      case CertificateType.StakeVoteRegistrationDelegation:
+        return readStakeVoteRegistrationDelegationCertificate(ptr);
+      case CertificateType.AuthCommitteeHot:
+        return readAuthCommitteeHotCertificate(ptr);
+      case CertificateType.ResignCommitteeCold:
+        return readResignCommitteeColdCertificate(ptr);
+      case CertificateType.DRepRegistration:
+        return readDRepRegistrationCertificate(ptr);
+      case CertificateType.DRepUnregistration:
+        return readDRepUnregistrationCertificate(ptr);
+      case CertificateType.UpdateDRep:
+        return readUpdateDRepCertificate(ptr);
+      default:
+        throw new Error('Unsupported certificate type');
     }
   } finally {
     module._free(typePtr);
@@ -2042,197 +1952,46 @@ export const readCertificate = (ptr: number): Certificate => {
  */
 // eslint-disable-next-line max-statements,complexity
 export const writeCertificate = (cert: Certificate): number => {
-  const module = getModule();
-  const certPtrPtr = module._malloc(4);
-  let specificCertPtr = 0;
-
-  try {
-    switch (cert.type) {
-      case CertificateType.StakeRegistration: {
-        const stakeCertPtr = writeStakeRegistrationCertificate(cert as StakeRegistrationCertificate);
-        assertSuccess(
-          module.certificate_new_stake_registration(stakeCertPtr, certPtrPtr),
-          'Failed to create StakeRegistrationCertificate'
-        );
-        specificCertPtr = module.getValue(certPtrPtr, 'i32');
-        break;
-      }
-      case CertificateType.StakeDeregistration: {
-        const stakeCertPtr = writeStakeDeregistrationCertificate(cert as StakeDeregistrationCertificate);
-        assertSuccess(
-          module.certificate_new_stake_deregistration(stakeCertPtr, certPtrPtr),
-          'Failed to create StakeDeregistrationCertificate'
-        );
-        specificCertPtr = module.getValue(certPtrPtr, 'i32');
-        break;
-      }
-      case CertificateType.StakeDelegation: {
-        const stakeCertPtr = writeStakeDelegationCertificate(cert as StakeDelegationCertificate);
-        assertSuccess(
-          module.certificate_new_stake_delegation(stakeCertPtr, certPtrPtr),
-          'Failed to create StakeDelegationCertificate'
-        );
-        specificCertPtr = module.getValue(certPtrPtr, 'i32');
-        break;
-      }
-      case CertificateType.PoolRegistration: {
-        const poolCertPtr = writePoolRegistrationCertificate(cert as PoolRegistrationCertificate);
-        assertSuccess(
-          module.certificate_new_pool_registration(poolCertPtr, certPtrPtr),
-          'Failed to create PoolRegistrationCertificate'
-        );
-        specificCertPtr = module.getValue(certPtrPtr, 'i32');
-        break;
-      }
-      case CertificateType.PoolRetirement: {
-        const poolCertPtr = writePoolRetirementCertificate(cert as PoolRetirementCertificate);
-        assertSuccess(
-          module.certificate_new_pool_retirement(poolCertPtr, certPtrPtr),
-          'Failed to create PoolRetirementCertificate'
-        );
-        specificCertPtr = module.getValue(certPtrPtr, 'i32');
-        break;
-      }
-      case CertificateType.GenesisKeyDelegation: {
-        const genesisCertPtr = writeGenesisKeyDelegationCertificate(cert as GenesisKeyDelegationCertificate);
-        assertSuccess(
-          module.certificate_new_genesis_key_delegation(genesisCertPtr, certPtrPtr),
-          'Failed to create GenesisKeyDelegationCertificate'
-        );
-        specificCertPtr = module.getValue(certPtrPtr, 'i32');
-        break;
-      }
-      case CertificateType.MoveInstantaneousRewards: {
-        const mirCertPtr = writeMoveInstantaneousRewardsCertificate(cert as MirCertificate);
-        assertSuccess(
-          module.certificate_new_mir(mirCertPtr, certPtrPtr),
-          'Failed to create MoveInstantaneousRewardsCertificate'
-        );
-        specificCertPtr = module.getValue(certPtrPtr, 'i32');
-        break;
-      }
-      case CertificateType.Registration: {
-        const regCertPtr = writeRegistrationCertificate(cert as RegistrationCertificate);
-        assertSuccess(
-          module.certificate_new_registration(regCertPtr, certPtrPtr),
-          'Failed to create RegistrationCertificate'
-        );
-        specificCertPtr = module.getValue(certPtrPtr, 'i32');
-        break;
-      }
-      case CertificateType.Unregistration: {
-        const unregCertPtr = writeUnregistrationCertificate(cert as UnregistrationCertificate);
-        assertSuccess(
-          module.certificate_new_unregistration(unregCertPtr, certPtrPtr),
-          'Failed to create UnregistrationCertificate'
-        );
-        specificCertPtr = module.getValue(certPtrPtr, 'i32');
-        break;
-      }
-      case CertificateType.VoteDelegation: {
-        const voteDelegationCertPtr = writeVoteDelegationCertificate(cert as VoteDelegationCertificate);
-        assertSuccess(
-          module.certificate_new_vote_delegation(voteDelegationCertPtr, certPtrPtr),
-          'Failed to create VoteDelegationCertificate'
-        );
-        specificCertPtr = module.getValue(certPtrPtr, 'i32');
-        break;
-      }
-      case CertificateType.StakeVoteDelegation: {
-        const stakeVoteDelegationCertPtr = writeStakeVoteDelegationCertificate(cert as StakeVoteDelegationCertificate);
-        assertSuccess(
-          module.certificate_new_stake_vote_delegation(stakeVoteDelegationCertPtr, certPtrPtr),
-          'Failed to create StakeVoteDelegationCertificate'
-        );
-        specificCertPtr = module.getValue(certPtrPtr, 'i32');
-        break;
-      }
-      case CertificateType.StakeRegistrationDelegation: {
-        const stakeRegDelegationCertPtr = writeStakeRegistrationDelegationCertificate(
-          cert as StakeRegistrationDelegationCertificate
-        );
-        assertSuccess(
-          module.certificate_new_stake_registration_delegation(stakeRegDelegationCertPtr, certPtrPtr),
-          'Failed to create StakeRegistrationDelegationCertificate'
-        );
-        specificCertPtr = module.getValue(certPtrPtr, 'i32');
-        break;
-      }
-      case CertificateType.VoteRegistrationDelegation: {
-        const voteRegDelegationCertPtr = writeVoteRegistrationDelegationCertificate(
-          cert as VoteRegistrationDelegationCertificate
-        );
-        assertSuccess(
-          module.certificate_new_vote_registration_delegation(voteRegDelegationCertPtr, certPtrPtr),
-          'Failed to create VoteRegistrationDelegationCertificate'
-        );
-        specificCertPtr = module.getValue(certPtrPtr, 'i32');
-        break;
-      }
-      case CertificateType.StakeVoteRegistrationDelegation: {
-        const stakeVoteRegDelegationCertPtr = writeStakeVoteRegistrationDelegationCertificate(
-          cert as StakeVoteRegistrationDelegationCertificate
-        );
-        assertSuccess(
-          module.certificate_new_stake_vote_registration_delegation(stakeVoteRegDelegationCertPtr, certPtrPtr),
-          'Failed to create StakeVoteRegistrationDelegationCertificate'
-        );
-        specificCertPtr = module.getValue(certPtrPtr, 'i32');
-        break;
-      }
-      case CertificateType.AuthCommitteeHot: {
-        const authCommitteeHotCertPtr = writeAuthCommitteeHotCertificate(cert as AuthCommitteeHotCertificate);
-        assertSuccess(
-          module.certificate_new_auth_committee_hot(authCommitteeHotCertPtr, certPtrPtr),
-          'Failed to create AuthCommitteeHotCertificate'
-        );
-        specificCertPtr = module.getValue(certPtrPtr, 'i32');
-        break;
-      }
-      case CertificateType.ResignCommitteeCold: {
-        const resignCommitteeColdCertPtr = writeResignCommitteeColdCertificate(cert as ResignCommitteeColdCertificate);
-        assertSuccess(
-          module.certificate_new_resign_committee_cold(resignCommitteeColdCertPtr, certPtrPtr),
-          'Failed to create ResignCommitteeColdCertificate'
-        );
-        specificCertPtr = module.getValue(certPtrPtr, 'i32');
-        break;
-      }
-      case CertificateType.DRepRegistration: {
-        const dRepRegCertPtr = writeDRepRegistrationCertificate(cert as DRepRegistrationCertificate);
-        assertSuccess(
-          module.certificate_new_register_drep(dRepRegCertPtr, certPtrPtr),
-          'Failed to create DRepRegistrationCertificate'
-        );
-        specificCertPtr = module.getValue(certPtrPtr, 'i32');
-        break;
-      }
-      case CertificateType.DRepUnregistration: {
-        const dRepUnregCertPtr = writeDRepUnregistrationCertificate(cert as DRepUnregistrationCertificate);
-        assertSuccess(
-          module.certificate_new_unregister_drep(dRepUnregCertPtr, certPtrPtr),
-          'Failed to create DRepUnregistrationCertificate'
-        );
-        specificCertPtr = module.getValue(certPtrPtr, 'i32');
-        break;
-      }
-      case CertificateType.UpdateDRep: {
-        const updateDRepCertPtr = writeUpdateDRepCertificate(cert as UpdateDRepCertificate);
-        assertSuccess(
-          module.certificate_new_update_drep(updateDRepCertPtr, certPtrPtr),
-          'Failed to create UpdateDRepCertificate'
-        );
-        specificCertPtr = module.getValue(certPtrPtr, 'i32');
-        break;
-      }
-      default:
-        throw new Error('Unsupported certificate type');
-    }
-    return module.getValue(certPtrPtr, 'i32');
-  } finally {
-    if (specificCertPtr) {
-      unrefObject(specificCertPtr);
-    }
-    module._free(certPtrPtr);
+  switch (cert.type) {
+    case CertificateType.StakeRegistration:
+      return writeStakeRegistrationCertificate(cert as StakeRegistrationCertificate);
+    case CertificateType.StakeDeregistration:
+      return writeStakeDeregistrationCertificate(cert as StakeDeregistrationCertificate);
+    case CertificateType.StakeDelegation:
+      return writeStakeDelegationCertificate(cert as StakeDelegationCertificate);
+    case CertificateType.PoolRegistration:
+      return writePoolRegistrationCertificate(cert as PoolRegistrationCertificate);
+    case CertificateType.PoolRetirement:
+      return writePoolRetirementCertificate(cert as PoolRetirementCertificate);
+    case CertificateType.GenesisKeyDelegation:
+      return writeGenesisKeyDelegationCertificate(cert as GenesisKeyDelegationCertificate);
+    case CertificateType.MoveInstantaneousRewards:
+      return writeMoveInstantaneousRewardsCertificate(cert as MirCertificate);
+    case CertificateType.Registration:
+      return writeRegistrationCertificate(cert as RegistrationCertificate);
+    case CertificateType.Unregistration:
+      return writeUnregistrationCertificate(cert as UnregistrationCertificate);
+    case CertificateType.VoteDelegation:
+      return writeVoteDelegationCertificate(cert as VoteDelegationCertificate);
+    case CertificateType.StakeVoteDelegation:
+      return writeStakeVoteDelegationCertificate(cert as StakeVoteDelegationCertificate);
+    case CertificateType.StakeRegistrationDelegation:
+      return writeStakeRegistrationDelegationCertificate(cert as StakeRegistrationDelegationCertificate);
+    case CertificateType.VoteRegistrationDelegation:
+      return writeVoteRegistrationDelegationCertificate(cert as VoteRegistrationDelegationCertificate);
+    case CertificateType.StakeVoteRegistrationDelegation:
+      return writeStakeVoteRegistrationDelegationCertificate(cert as StakeVoteRegistrationDelegationCertificate);
+    case CertificateType.AuthCommitteeHot:
+      return writeAuthCommitteeHotCertificate(cert as AuthCommitteeHotCertificate);
+    case CertificateType.ResignCommitteeCold:
+      return writeResignCommitteeColdCertificate(cert as ResignCommitteeColdCertificate);
+    case CertificateType.DRepRegistration:
+      return writeDRepRegistrationCertificate(cert as DRepRegistrationCertificate);
+    case CertificateType.DRepUnregistration:
+      return writeDRepUnregistrationCertificate(cert as DRepUnregistrationCertificate);
+    case CertificateType.UpdateDRep:
+      return writeUpdateDRepCertificate(cert as UpdateDRepCertificate);
+    default:
+      throw new Error('Unsupported certificate type');
   }
 };

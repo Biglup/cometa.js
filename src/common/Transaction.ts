@@ -16,8 +16,19 @@
 
 /* IMPORTS *******************************************************************/
 
-import { assertSuccess, readTransactionFromCbor, unrefObject } from '../marshaling';
+import {
+  assertSuccess,
+  readTransactionFromCbor,
+  unrefObject,
+  readSubTransactionFromCbor,
+  writeSubTransactionToCbor,
+  readBlake2bHashData,
+  writeVkeyWitnessSet
+} from '../marshaling';
 import { getModule } from '../module';
+
+import { uint8ArrayToHex } from '../cometa';
+import { VkeyWitnessSet } from './VkeyWitness';
 
 /* DEFINITIONS ****************************************************************/
 
@@ -58,5 +69,30 @@ export const inspectTx = (transactionCbor: string): any => {
     unrefObject(txPtr);
     unrefObject(jsonWriter);
     getModule()._free(jsonPtr);
+  }
+};
+
+/** Compute the identifier to sign for a serialized sub-transaction. */
+export const getSubTransactionId = (cbor: string): string => {
+  const tx = readSubTransactionFromCbor(cbor);
+  try {
+    return uint8ArrayToHex(readBlake2bHashData(getModule().sub_transaction_get_id(tx)));
+  } finally {
+    unrefObject(tx);
+  }
+};
+
+/** Apply key witnesses to a sub-transaction and return its updated CBOR. */
+export const applySubTransactionWitnesses = (cbor: string, witnesses: VkeyWitnessSet): string => {
+  let tx = 0;
+  let set = 0;
+  try {
+    tx = readSubTransactionFromCbor(cbor);
+    set = writeVkeyWitnessSet(witnesses);
+    assertSuccess(getModule().sub_transaction_apply_vkey_witnesses(tx, set));
+    return writeSubTransactionToCbor(tx);
+  } finally {
+    unrefObject(tx);
+    unrefObject(set);
   }
 };

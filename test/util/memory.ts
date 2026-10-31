@@ -21,62 +21,58 @@ import { expect } from '@jest/globals';
 
 /* EXPORTS *******************************************************************/
 
+const collect = async (): Promise<void> => {
+  if (!global.gc) throw new Error('Memory checks require node --expose-gc.');
+  for (let i = 0; i < 3; i++) {
+    global.gc();
+    await new Promise<void>((resolve) => setImmediate(resolve));
+  }
+};
+
+/** Measures live WASM allocator bytes after JavaScript finalizers have run. */
 export class MemoryLeakDetector {
-  private module: any;
-  private startAddress: number | null = null;
-  private endAddress: number | null = null;
+  private readonly enabled: boolean;
+  private startBytes: number | null = null;
+  private endBytes: number | null = null;
 
-  constructor(module: any) {
-    this.module = module;
+  constructor(private readonly module: any) {
+    this.enabled = typeof module._mallinfo === 'function';
+    if (process.env.COMETA_CHECK_LEAKS === '1' && !this.enabled)
+      throw new Error('Leak checks require a WASM build with CARDANO_WASM_ALLOCATOR_STATS=ON.');
   }
 
-  /**
-   * Initializes the memory leak detector.
-   * This function should be called in a `beforeEach` block in your test file.
-   * It captures the current top of the WebAssembly stack.
-   */
-  public start(): void {
-    if (global.gc) {
-      global.gc();
+  private allocatedBytes(): number {
+    const info = this.module._malloc(40);
+    try {
+      // wasm32 dlmalloc's mallinfo contains ten uint32 fields; uordblks is field 7.
+      this.module._mallinfo(info);
+      return this.module.HEAPU32[(info >>> 2) + 7];
+    } finally {
+      this.module._free(info);
     }
-
-    this.startAddress = this.module._malloc(1);
-    this.module._free(this.startAddress);
   }
 
-  public stop(): void {
-    if (this.startAddress === null) {
-      throw new Error('Memory leak detector was not started. Please call detector.start() in beforeEach().');
-    }
+  public async start(): Promise<void> {
+    if (!this.enabled) return;
+    await collect();
+    this.startBytes = this.allocatedBytes();
+  }
 
-    if (global.gc) {
-      global.gc();
-    }
-
-    this.endAddress = this.module._malloc(1);
-    this.module._free(this.endAddress);
+  public async stop(): Promise<void> {
+    if (!this.enabled) return;
+    await collect();
+    this.endBytes = this.allocatedBytes();
   }
 
   public reset(): void {
-    this.startAddress = null;
-    this.endAddress = null;
+    this.startBytes = null;
+    this.endBytes = null;
   }
 
-  /**
-   * Asserts that no memory has been leaked during a test.
-   * This function should be called in an `afterEach` block.
-   * It compares the current stack state to the initial state captured by
-   * `init()` and fails the test if they do not match.
-   */
   public detect(): void {
-    if (this.startAddress === null) {
-      throw new Error('Memory leak detector was not started. Please call detector.start() in beforeEach().');
-    }
-
-    if (this.endAddress === null) {
-      throw new Error('Memory leak detector was not stopped. Please call detector.stop() in afterEach().');
-    }
-
-    expect(this.startAddress).toBeLessThanOrEqual(this.endAddress);
+    if (!this.enabled) return;
+    if (this.startBytes === null || this.endBytes === null)
+      throw new Error('Call start and stop before checking for leaks.');
+    expect(this.endBytes).toBeLessThanOrEqual(this.startBytes);
   }
 }

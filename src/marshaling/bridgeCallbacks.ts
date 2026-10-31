@@ -18,11 +18,12 @@
 
 import { Address, RewardAddress } from '../address';
 import { InstanceType, getFromInstanceRegistry, reportBridgeError } from '../instanceRegistry';
-import { ProtocolParameters, UTxO, cborToPlutusData } from '../common';
+import { ProtocolParameters, TxOut, UTxO, cborToPlutusData } from '../common';
 import { blake2bHashFromHex, readBlake2bHashData } from './blake2b';
 import { readAssetId } from './assetId';
 import { readInputSet } from './txIn';
 import { readUtxoList, writeUtxo, writeUtxoList } from './utxo';
+import { readTxOutList, writeTxOutList } from './txOut';
 import { readValue } from './value';
 import { uint8ArrayToHex } from '../cometa';
 import { writePlutusData } from './plutusData';
@@ -61,6 +62,12 @@ export const bridgeCallbacks = {
   },
   marshal_redeemer_list(jsRedeemerArray: any[]) {
     return writeRedeemerList(jsRedeemerArray);
+  },
+  marshal_transaction_output_list(outputs: TxOut[]) {
+    return writeTxOutList(outputs);
+  },
+  marshall_transaction_output_list_to_js(ptr: number) {
+    return readTxOutList(ptr);
   },
   marshal_utxo(jsUtxoObj: UTxO) {
     return writeUtxo(jsUtxoObj);

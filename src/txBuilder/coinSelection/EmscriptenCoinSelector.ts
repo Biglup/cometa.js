@@ -71,6 +71,7 @@ const createEmscriptenCoinSelector = (name: string, objectId: number): number =>
  */
 export class EmscriptenCoinSelector implements CoinSelector {
   readonly objectId: number;
+  private disposed = false;
   readonly coinSelectorPtr: number;
   readonly coinSelector: CoinSelector;
 
@@ -82,15 +83,20 @@ export class EmscriptenCoinSelector implements CoinSelector {
     this.objectId = nextId++;
     this.coinSelector = coinSelector;
 
-    registerInstance(InstanceType.CoinSelector, this.objectId, this);
     this.coinSelectorPtr = createEmscriptenCoinSelector(coinSelector.getName(), this.objectId);
 
     if (!this.coinSelectorPtr) throw new Error('create_emscripten_coinSelector failed');
 
-    finalizationRegistry.register(this, {
-      objectId: this.objectId,
-      ptr: this.coinSelectorPtr
-    });
+    registerInstance(InstanceType.CoinSelector, this.objectId, this);
+
+    finalizationRegistry.register(
+      this,
+      {
+        objectId: this.objectId,
+        ptr: this.coinSelectorPtr
+      },
+      this
+    );
   }
 
   /**
@@ -115,5 +121,13 @@ export class EmscriptenCoinSelector implements CoinSelector {
     } finally {
       asyncifyStateTracker.isAsyncActive = false;
     }
+  }
+  /** Release this adapter after its native owner has released it. */
+  public dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    finalizationRegistry.unregister(this);
+    unregisterInstance(InstanceType.CoinSelector, this.objectId);
+    unrefObject(this.coinSelectorPtr);
   }
 }

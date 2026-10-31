@@ -18,7 +18,7 @@
 
 import { AccountDerivationPath, Bip32SecureKeyHandler, DerivationPath } from './SecureKeyHandler';
 import { Bip32PrivateKey, Bip32PublicKey, Crc32, Ed25519PrivateKey, Emip003 } from '../crypto';
-import { VkeyWitness, VkeyWitnessSet } from '../common';
+import { VkeyWitness, VkeyWitnessSet, getSubTransactionId } from '../common';
 import { getModule } from '../module';
 import { hexToUint8Array } from '../cometa';
 import { readBlake2bHashData, readTransactionFromCbor, unrefObject } from '../marshaling';
@@ -284,5 +284,17 @@ export class SoftwareBip32SecureKeyHandler implements Bip32SecureKeyHandler {
     } finally {
       entropy.fill(0);
     }
+  }
+  /** Sign the identifier of a Dijkstra sub-transaction. */
+  public async signSubTransaction(cbor: string, derivationPaths: DerivationPath[]): Promise<VkeyWitnessSet> {
+    if (!derivationPaths?.length)
+      throw new Error('Derivation paths are required for signing with a BIP32 key handler.');
+    const hash = getSubTransactionId(cbor);
+    const witnesses: VkeyWitness[] = [];
+    for (const path of derivationPaths) {
+      const { key, signature } = await this.signData(hash, path);
+      witnesses.push({ vkey: key, signature });
+    }
+    return witnesses;
   }
 }

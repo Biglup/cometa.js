@@ -51,3 +51,6 @@ export * from './voting';
 export * from './vkeyWitness';
 export * from './withdrawalMap';
 export * from './slotConfig';
+
+export * from './accountBalanceInterval';
+export * from './subTransaction';

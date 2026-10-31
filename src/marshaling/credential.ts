@@ -78,8 +78,8 @@ export const readCredential = (credentialPtr: number): Credential => {
  */
 export const writeCredential = (credential: Credential): number => {
   const module = getModule();
-  const credentialPtrPtr = module._malloc(4);
   const hashBytes = hexToUint8Array(credential.hash);
+  const credentialPtrPtr = module._malloc(4);
   const hashPtr = module._malloc(hashBytes.length);
 
   try {

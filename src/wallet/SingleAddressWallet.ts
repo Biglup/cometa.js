@@ -450,10 +450,6 @@ export class SingleAddressWallet implements Wallet {
     }
 
     return TransactionBuilder.create({ params: this.protocolParams, slotConfig })
-      .setTxEvaluator({
-        evaluate: this.provider.evaluateTransaction.bind(this.provider),
-        getName: () => 'Provider Tx Evaluator'
-      })
       .setChangeAddress(ownAddress)
       .setCollateralChangeAddress(ownAddress)
       .setCollateralUtxos(ownUtxos)

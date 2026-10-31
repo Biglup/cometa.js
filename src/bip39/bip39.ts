@@ -101,6 +101,7 @@ export const mnemonicToEntropy = (mnemonic: string[]): Uint8Array => {
       module.HEAPU8.fill(0, entropyBufferPtr, entropyBufferPtr + actualEntropySize);
     }
 
+    module._free(entropyBufferPtr);
     module._free(entropySizePtr);
   }
 };

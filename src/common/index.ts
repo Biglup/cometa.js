@@ -45,3 +45,6 @@ export * from './Voting';
 export * from './VkeyWitness';
 export * from './Withdrawals';
 export * from './Transaction';
+
+export * from './AccountBalanceInterval';
+export * from './DeferredRedeemer';

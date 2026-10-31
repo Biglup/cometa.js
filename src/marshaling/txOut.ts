@@ -265,3 +265,96 @@ export const readTxOutFromCbor = (txOutCbor: string): TxOut => {
     module._free(valuePtrPtr);
   }
 };
+
+/**
+ * @hidden
+ * Converts a JavaScript array of TxOut objects into a C `cardano_transaction_output_list_t`
+ * object in WASM memory and returns a pointer to it.
+ *
+ * @param {TxOut[]} outputs The JavaScript array of TxOut objects.
+ * @returns {number} A pointer to the C `cardano_transaction_output_list_t`. The caller is responsible for freeing this object.
+ */
+export const writeTxOutList = (outputs: TxOut[]): number => {
+  const module = getModule();
+  let listPtr = 0;
+  let listPtrPtr = 0;
+
+  try {
+    listPtrPtr = module._malloc(4);
+    const result = module.transaction_output_list_new(listPtrPtr);
+    if (result !== 0) {
+      throw new Error(`Failed to create TxOut list, error code: ${result}`);
+    }
+    listPtr = module.getValue(listPtrPtr, 'i32');
+    module._free(listPtrPtr);
+    listPtrPtr = 0;
+
+    for (const output of outputs) {
+      let outputPtr = 0;
+      try {
+        outputPtr = writeTxOut(output);
+        assertSuccess(module.transaction_output_list_add(listPtr, outputPtr), 'Failed to add transaction output');
+      } finally {
+        if (outputPtr !== 0) {
+          unrefObject(outputPtr);
+        }
+      }
+    }
+
+    return listPtr;
+  } catch (error) {
+    if (listPtr !== 0) {
+      unrefObject(listPtr);
+    }
+    throw error;
+  } finally {
+    if (listPtrPtr !== 0) {
+      module._free(listPtrPtr);
+    }
+  }
+};
+
+/**
+ * @hidden
+ * Reads a pointer to a C `cardano_transaction_output_list_t` object and converts it into a
+ * JavaScript array of TxOut objects.
+ *
+ * @param {number} ptr A pointer to the C `cardano_transaction_output_list_t` object.
+ * @returns {TxOut[]} The JavaScript representation of the TxOut list.
+ */
+export const readTxOutList = (ptr: number): TxOut[] => {
+  if (ptr === 0) {
+    return [];
+  }
+
+  const module = getModule();
+  const jsArray: TxOut[] = [];
+  const len = module.transaction_output_list_get_length(ptr);
+
+  for (let i = 0; i < len; i++) {
+    let outputPtr = 0;
+    let outputPtrPtr = 0;
+
+    try {
+      outputPtrPtr = module._malloc(4);
+      const result = module.transaction_output_list_get(ptr, i, outputPtrPtr);
+      if (result !== 0) {
+        throw new Error(`Failed to get TxOut at index ${i}, error code: ${result}`);
+      }
+      outputPtr = module.getValue(outputPtrPtr, 'i32');
+      module._free(outputPtrPtr);
+      outputPtrPtr = 0;
+
+      jsArray.push(readTxOut(outputPtr));
+    } finally {
+      if (outputPtr !== 0) {
+        unrefObject(outputPtr);
+      }
+      if (outputPtrPtr !== 0) {
+        module._free(outputPtrPtr);
+      }
+    }
+  }
+
+  return jsArray;
+};

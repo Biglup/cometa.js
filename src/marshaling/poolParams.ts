@@ -66,6 +66,27 @@ const enum RelayType {
  * @hidden
  * Deserializes a native `cardano_relay_t` into a JavaScript `Relay` object.
  */
+const readIp = (
+  relay: number,
+  getter: (ptr: number, out: number) => number,
+  toString: (ptr: number) => number
+): string | undefined => {
+  const m = getModule();
+  const out = m._malloc(4);
+  let ip = 0;
+  try {
+    const result = getter(relay, out);
+    if (result === 9) return undefined;
+    assertSuccess(result);
+    ip = m.getValue(out, 'i32');
+    if (!ip) return undefined;
+    return m.UTF8ToString(toString(ip));
+  } finally {
+    unrefObject(ip);
+    m._free(out);
+  }
+};
+
 // eslint-disable-next-line max-statements
 const readRelay = (relayPtr: number): Relay => {
   const module = getModule();
@@ -89,30 +110,11 @@ const readRelay = (relayPtr: number): Relay => {
 
         const portPtr = module.single_host_addr_relay_get_port(specificRelayPtr);
         if (portPtr) {
-          try {
-            result.port = module.getValue(portPtr, 'i16');
-          } finally {
-            module._free(portPtr);
-          }
+          result.port = module.getValue(portPtr, 'i16') & 0xffff;
         }
 
-        const ipv4ObjPtrPtr = module._malloc(4);
-        let ipv4ObjPtr = 0;
-        if (module.single_host_addr_relay_get_ipv4(specificRelayPtr, ipv4ObjPtrPtr) === 0) {
-          ipv4ObjPtr = module.getValue(ipv4ObjPtrPtr, 'i32');
-          const ipv4StrPtr = module.ipv4_get_string(ipv4ObjPtr);
-          result.ipv4 = ipv4StrPtr !== 0 ? module.UTF8ToString(ipv4StrPtr) : undefined;
-        }
-        module._free(ipv4ObjPtrPtr);
-
-        const ipv6ObjPtrPtr = module._malloc(4);
-        let ipv6ObjPtr = 0;
-        if (module.single_host_addr_relay_get_ipv6(specificRelayPtr, ipv6ObjPtrPtr) === 0) {
-          ipv6ObjPtr = module.getValue(ipv6ObjPtrPtr, 'i32');
-          const ipv6StrPtr = module.ipv6_get_string(ipv6ObjPtr);
-          result.ipv6 = ipv6StrPtr !== 0 ? module.UTF8ToString(ipv6StrPtr) : undefined;
-        }
-        module._free(ipv6ObjPtrPtr);
+        result.ipv4 = readIp(specificRelayPtr, module.single_host_addr_relay_get_ipv4, module.ipv4_get_string);
+        result.ipv6 = readIp(specificRelayPtr, module.single_host_addr_relay_get_ipv6, module.ipv6_get_string);
 
         return result;
       }
@@ -127,11 +129,7 @@ const readRelay = (relayPtr: number): Relay => {
 
         const portPtr = module.single_host_name_relay_get_port(specificRelayPtr);
         if (portPtr) {
-          try {
-            result.port = module.getValue(portPtr, 'i16');
-          } finally {
-            module._free(portPtr);
-          }
+          result.port = module.getValue(portPtr, 'i16') & 0xffff;
         }
 
         const hostnamePtr = module.single_host_name_relay_get_dns(specificRelayPtr);
@@ -179,7 +177,7 @@ const writeRelay = (relay: Relay): number => {
       let ipv6ObjPtr = 0;
 
       try {
-        if (port !== null) {
+        if (port !== null && port !== undefined) {
           portPtr = module._malloc(2);
           module.setValue(portPtr, port, 'i16');
         }
@@ -227,7 +225,7 @@ const writeRelay = (relay: Relay): number => {
       let portPtr = 0;
 
       try {
-        if (port !== null) {
+        if (port !== null && port !== undefined) {
           portPtr = module._malloc(2);
           module.setValue(portPtr, port, 'i16');
         }
@@ -313,16 +311,21 @@ const writeRelays = (relays: Relay[]): number => {
   const relaysPtr = module.getValue(relaysPtrPtr, 'i32');
   module._free(relaysPtrPtr);
 
-  for (const relay of relays) {
-    const relayPtr = writeRelay(relay);
-    try {
-      assertSuccess(module.relays_add(relaysPtr, relayPtr), 'Failed to add relay to list');
-    } finally {
-      unrefObject(relayPtr);
+  try {
+    for (const relay of relays) {
+      const relayPtr = writeRelay(relay);
+      try {
+        assertSuccess(module.relays_add(relaysPtr, relayPtr), 'Failed to add relay to list');
+      } finally {
+        unrefObject(relayPtr);
+      }
     }
-  }
 
-  return relaysPtr;
+    return relaysPtr;
+  } catch (error) {
+    unrefObject(relaysPtr);
+    throw error;
+  }
 };
 
 /**
@@ -361,16 +364,21 @@ const writeOwners = (owners: string[]): number => {
   const ownersPtr = module.getValue(ownersPtrPtr, 'i32');
   module._free(ownersPtrPtr);
 
-  for (const ownerHex of owners) {
-    const ownerPtr = blake2bHashFromHex(ownerHex);
-    try {
-      assertSuccess(module.pool_owners_add(ownersPtr, ownerPtr), `Failed to add owner ${ownerHex} to list`);
-    } finally {
-      unrefObject(ownerPtr);
+  try {
+    for (const ownerHex of owners) {
+      const ownerPtr = blake2bHashFromHex(ownerHex);
+      try {
+        assertSuccess(module.pool_owners_add(ownersPtr, ownerPtr), `Failed to add owner ${ownerHex} to list`);
+      } finally {
+        unrefObject(ownerPtr);
+      }
     }
-  }
 
-  return ownersPtr;
+    return ownersPtr;
+  } catch (error) {
+    unrefObject(ownersPtr);
+    throw error;
+  }
 };
 
 /**
@@ -518,17 +526,24 @@ export const writePoolParameters = (params: PoolParameters): number => {
   const module = getModule();
   const poolParamsPtrPtr = module._malloc(4);
 
-  const operatorKeyHashPtr = blake2bHashFromHex(params.id);
-  const vrfVkHashPtr = blake2bHashFromHex(params.vrf);
-  const pledgeParts = splitToLowHigh64bit(params.pledge);
-  const costParts = splitToLowHigh64bit(params.cost);
-  const marginPtr = writeUnitIntervalAsDouble(params.margin);
-  const rewardAccountObj = RewardAddress.fromBech32(params.rewardAccount);
-  const ownersPtr = writeOwners(params.owners);
-  const relaysPtr = writeRelays(params.relays);
-  const metadataPtr = params.metadataJson ? writePoolMetadata(params.metadataJson) : 0;
+  let operatorKeyHashPtr = 0;
+  let vrfVkHashPtr = 0;
+  let marginPtr = 0;
+  let ownersPtr = 0;
+  let relaysPtr = 0;
+  let metadataPtr = 0;
 
   try {
+    operatorKeyHashPtr = blake2bHashFromHex(params.id);
+    vrfVkHashPtr = blake2bHashFromHex(params.vrf);
+    const pledgeParts = splitToLowHigh64bit(params.pledge);
+    const costParts = splitToLowHigh64bit(params.cost);
+    marginPtr = writeUnitIntervalAsDouble(params.margin);
+    const rewardAccountObj = RewardAddress.fromBech32(params.rewardAccount);
+    ownersPtr = writeOwners(params.owners);
+    relaysPtr = writeRelays(params.relays);
+    metadataPtr = params.metadataJson ? writePoolMetadata(params.metadataJson) : 0;
+
     assertSuccess(
       module.pool_params_new(
         operatorKeyHashPtr,

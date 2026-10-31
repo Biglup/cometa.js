@@ -36,13 +36,13 @@ describe('Transaction Output (TxOut)', () => {
     await Cometa.ready();
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     detector = new MemoryLeakDetector(Cometa.getModule());
-    detector.start();
+    await detector.start();
   });
 
-  afterEach(() => {
-    detector.stop();
+  afterEach(async () => {
+    await detector.stop();
     detector.detect();
   });
 

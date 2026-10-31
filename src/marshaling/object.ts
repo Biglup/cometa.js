@@ -34,6 +34,7 @@ import { getModule } from '../module';
  * allocated and managed by the Cardano WASM runtime.
  */
 export const unrefObject = (ptr: number): void => {
+  if (!ptr) return;
   const ptrPtr = getModule()._malloc(4);
   try {
     getModule().setValue(ptrPtr, ptr, 'i32');
