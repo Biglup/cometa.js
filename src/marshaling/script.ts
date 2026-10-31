@@ -29,6 +29,7 @@ import {
 } from '../common';
 import { assertSuccess, unrefObject } from './object';
 import { getModule } from '../module';
+import { readCredential, writeCredential } from './credential';
 import { readBlake2bHashData } from './blake2b';
 import { readI64, splitToLowHigh64bit } from './number';
 import { uint8ArrayToHex } from '../cometa';
@@ -68,6 +69,22 @@ const writeNativeScript = (script: NativeScript): number => {
 
   try {
     switch (script.kind) {
+      case NativeScriptKind.RequireGuard: {
+        const credentialPtr = writeCredential(script.credential);
+        const guardPtrPtr = allocPtr();
+        let guardPtr = 0;
+        try {
+          assertSuccess(m.script_require_guard_new(credentialPtr, guardPtrPtr));
+          guardPtr = readPtr(guardPtrPtr);
+          assertSuccess(m.native_script_new_require_guard(guardPtr, outPtr));
+          nativeScriptPtr = readPtr(outPtr);
+        } finally {
+          unrefObject(credentialPtr);
+          unrefObject(guardPtr);
+          m._free(guardPtrPtr);
+        }
+        break;
+      }
       case NativeScriptKind.RequireSignature: {
         const outKeyHashPtr = allocPtr();
         let strPtr = 0;
@@ -225,6 +242,10 @@ const writePlutusScript = (script: PlutusScript): number => {
       newSpecificScriptFn = m.plutus_v3_script_new_bytes_from_hex;
       wrapInGenericScriptFn = m.script_new_plutus_v3;
       break;
+    case PlutusLanguageVersion.V4:
+      newSpecificScriptFn = m.plutus_v4_script_new_bytes_from_hex;
+      wrapInGenericScriptFn = m.script_new_plutus_v4;
+      break;
     default:
       throw new Error(`Unsupported Plutus language version: ${script.version}`);
   }
@@ -312,6 +333,24 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
     const kind = readPtr(typePtr) as NativeScriptKind;
 
     switch (kind) {
+      case NativeScriptKind.RequireGuard: {
+        const guardPtrPtr = allocPtr();
+        const credentialPtrPtr = allocPtr();
+        let guardPtr = 0;
+        let credentialPtr = 0;
+        try {
+          assertSuccess(m.native_script_to_require_guard(nativeScriptPtr, guardPtrPtr));
+          guardPtr = readPtr(guardPtrPtr);
+          assertSuccess(m.script_require_guard_get_credential(guardPtr, credentialPtrPtr));
+          credentialPtr = readPtr(credentialPtrPtr);
+          return { credential: readCredential(credentialPtr), kind, type: ScriptType.Native };
+        } finally {
+          unrefObject(credentialPtr);
+          unrefObject(guardPtr);
+          m._free(credentialPtrPtr);
+          m._free(guardPtrPtr);
+        }
+      }
       case NativeScriptKind.RequireSignature: {
         let pubkeyScriptPtr = 0;
         let keyHashPtr = 0;
@@ -323,7 +362,7 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
           assertSuccess(m.script_pubkey_get_key_hash(pubkeyScriptPtr, keyHashPtrPtr));
           keyHashPtr = readPtr(keyHashPtrPtr);
           return {
-            keyHash: uint8ArrayToHex(readBlake2bHashData(keyHashPtr)),
+            keyHash: uint8ArrayToHex(readBlake2bHashData(keyHashPtr, false)),
             kind: NativeScriptKind.RequireSignature,
             type: ScriptType.Native
           };
@@ -340,7 +379,7 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
         try {
           assertSuccess(m.native_script_to_invalid_before(nativeScriptPtr, invalidBeforePtrPtr));
           invalidBeforePtr = readPtr(invalidBeforePtrPtr);
-          const slotPtr = allocPtr();
+          const slotPtr = m._malloc(8);
           try {
             if (m.script_invalid_before_get_slot(invalidBeforePtr, slotPtr) !== 0)
               throw new Error('Failed to get slot');
@@ -363,7 +402,7 @@ const readNativeScript = (nativeScriptPtr: number): NativeScript => {
         try {
           assertSuccess(m.native_script_to_invalid_after(nativeScriptPtr, invalidAfterPtrPtr));
           invalidAfterPtr = readPtr(invalidAfterPtrPtr);
-          const slotPtr = allocPtr();
+          const slotPtr = m._malloc(8);
           try {
             if (m.script_invalid_after_get_slot(invalidAfterPtr, slotPtr) !== 0) throw new Error('Failed to get slot');
             return {
@@ -466,6 +505,10 @@ const readPlutusScript = (scriptPtr: number, language: PlutusLanguageVersion): P
       toSpecificScriptFn = m.script_to_plutus_v3;
       toRawBytesFn = m.plutus_v3_script_to_raw_bytes;
       break;
+    case PlutusLanguageVersion.V4:
+      toSpecificScriptFn = m.script_to_plutus_v4;
+      toRawBytesFn = m.plutus_v4_script_to_raw_bytes;
+      break;
     default:
       throw new Error(`Cannot read unknown Plutus language version: ${language}`);
   }
@@ -540,6 +583,8 @@ export const readScript = (ptr: number): Script => {
         return readPlutusScript(ptr, PlutusLanguageVersion.V2);
       case 3:
         return readPlutusScript(ptr, PlutusLanguageVersion.V3);
+      case 4:
+        return readPlutusScript(ptr, PlutusLanguageVersion.V4);
       default:
         throw new Error(`Unsupported script language enum: ${language}`);
     }

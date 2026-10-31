@@ -71,7 +71,7 @@ export const readCostModels = (ptr: number): CostModel[] => {
   const module = getModule();
   const costModels = [];
 
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 4; i++) {
     if (module.costmdls_has(ptr, i)) {
       const costModelPtrPtr = module._malloc(4);
       try {

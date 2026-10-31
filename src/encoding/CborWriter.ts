@@ -17,7 +17,7 @@
 /* IMPORTS ********************************************************************/
 
 import { CborTag } from './CborTag';
-import { assertSuccess, splitToLowHigh64bit, writeStringToMemory } from '../marshaling';
+import { unrefObject, assertSuccess, splitToLowHigh64bit, writeStringToMemory } from '../marshaling';
 import { finalizationRegistry } from '../garbageCollection/finalizationRegistry';
 import { getModule } from '../module';
 
@@ -50,10 +50,14 @@ export class CborWriter {
       throw new Error('Failed to create CborWriter.');
     }
 
-    finalizationRegistry.register(this, {
-      freeFunc: module.cbor_writer_unref,
-      ptr: this.ptr
-    });
+    finalizationRegistry.register(
+      this,
+      {
+        freeFunc: module.cbor_writer_unref,
+        ptr: this.ptr
+      },
+      this
+    );
   }
 
   /**
@@ -502,5 +506,12 @@ export class CborWriter {
    */
   getRefCount(): number {
     return getModule().cbor_writer_refcount(this.ptr);
+  }
+  /** Release native storage immediately. Safe to call repeatedly. */
+  public dispose(): void {
+    if (!this.ptr) return;
+    finalizationRegistry.unregister(this);
+    unrefObject(this.ptr);
+    this.ptr = 0;
   }
 }

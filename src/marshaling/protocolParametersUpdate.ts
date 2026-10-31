@@ -28,6 +28,7 @@ import { readProtocolVersion, writeProtocolVersion } from './protocolVersion';
 import { splitToLowHigh64bit } from './number';
 import { writeUnitInterval } from './unitInterval';
 
+import { readExtendedProtocolParameters, writeExtendedProtocolParameters } from './extendedProtocolParameters';
 /* DEFINITIONS ****************************************************************/
 
 /**
@@ -125,6 +126,7 @@ export const writeProtocolParamUpdate = (params: ProtocolParametersUpdate): numb
         writeUnitInterval
       );
 
+      writeExtendedProtocolParameters(updatePtr, params, true);
       return updatePtr;
     } catch (error) {
       unrefObject(updatePtr);
@@ -156,8 +158,10 @@ export const readProtocolParamUpdate = (ptr: number): ProtocolParametersUpdate =
       const res = getter(ptr, outPtr);
       if (res === CARDANO_SUCCESS) {
         const low = module.getValue(outPtr, 'i32') >>> 0;
-        const high = module.getValue(outPtr + 4, 'i32');
-        return (high << 32) | low;
+        const high = module.getValue(outPtr + 4, 'i32') >>> 0;
+        const value = high * 0x100000000 + low;
+        if (!Number.isSafeInteger(value)) throw new RangeError('Protocol parameter exceeds safe integer range.');
+        return value;
       }
       if (res !== CARDANO_ERROR_ELEMENT_NOT_FOUND) assertSuccess(res, `Failed to get value from ${getter.name}`);
       return undefined;
@@ -237,5 +241,6 @@ export const readProtocolParamUpdate = (ptr: number): ProtocolParametersUpdate =
     readIntervalComponents
   );
 
+  Object.assign(result, readExtendedProtocolParameters(ptr, true));
   return result;
 };

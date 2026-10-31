@@ -27,7 +27,7 @@ console.log(`Optimizing WASM in: ${filePath}`);
 
 let content = fs.readFileSync(filePath, 'utf8');
 
-const wasmRegex = /="data:application\/octet-stream;base64,([^"]+)"/;
+const wasmRegex = /=\s*(["'])data:application\/octet-stream;base64,([^"']+)\1/;
 const match = content.match(wasmRegex);
 
 if (!match) {
@@ -35,12 +35,16 @@ if (!match) {
   process.exit(1);
 }
 
-const originalBase64 = match[1];
+const originalBase64 = match[2];
 const wasmBytes = Buffer.from(originalBase64, 'base64');
 const compressedBytes = zlib.gzipSync(wasmBytes, { level: 9 });
 const compressedBase64 = compressedBytes.toString('base64');
 
-console.log(`WASM size reduced from ${(wasmBytes.length / 1024).toFixed(2)} KB to ${(compressedBytes.length / 1024).toFixed(2)} KB`);
+console.log(
+  `WASM size reduced from ${(wasmBytes.length / 1024).toFixed(2)} KB to ${(compressedBytes.length / 1024).toFixed(
+    2
+  )} KB`
+);
 
 content = content.replace(wasmRegex, `=''`);
 

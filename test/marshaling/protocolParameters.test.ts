@@ -24,13 +24,13 @@ import { MemoryLeakDetector } from '../util/memory';
 describe('Protocol Parameters', () => {
   let detector: MemoryLeakDetector;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     detector = new MemoryLeakDetector(Cometa.getModule());
-    detector.start();
+    await detector.start();
   });
 
-  afterEach(() => {
-    detector.stop();
+  afterEach(async () => {
+    await detector.stop();
     detector.detect();
   });
 
@@ -108,7 +108,7 @@ describe('Protocol Parameters', () => {
     const ptr = Cometa.writeProtocolParameters(params);
     try {
       const readParams = Cometa.readProtocolParameters(ptr);
-      expect(readParams).toEqual(params);
+      expect(readParams).toMatchObject(params);
     } finally {
       Cometa.derefProtocolParameters(ptr);
     }
@@ -184,7 +184,7 @@ describe('Protocol Parameters', () => {
     const ptr = Cometa.writeProtocolParameters(params);
     try {
       const readParams = Cometa.readProtocolParameters(ptr);
-      expect(readParams).toEqual(params);
+      expect(readParams).toMatchObject(params);
     } finally {
       Cometa.derefProtocolParameters(ptr);
     }
@@ -260,7 +260,7 @@ describe('Protocol Parameters', () => {
     const ptr = Cometa.writeProtocolParameters(params);
     try {
       const readParams = Cometa.readProtocolParameters(ptr);
-      expect(readParams).toEqual(params);
+      expect(readParams).toMatchObject(params);
     } finally {
       Cometa.derefProtocolParameters(ptr);
     }
@@ -336,7 +336,7 @@ describe('Protocol Parameters', () => {
     const ptr = Cometa.writeProtocolParameters(params);
     try {
       const readParams = Cometa.readProtocolParameters(ptr);
-      expect(readParams).toEqual(params);
+      expect(readParams).toMatchObject(params);
     } finally {
       Cometa.derefProtocolParameters(ptr);
     }
@@ -412,7 +412,7 @@ describe('Protocol Parameters', () => {
     const ptr = Cometa.writeProtocolParameters(params);
     try {
       const readParams = Cometa.readProtocolParameters(ptr);
-      expect(readParams).toEqual(params);
+      expect(readParams).toMatchObject(params);
     } finally {
       Cometa.derefProtocolParameters(ptr);
     }
@@ -488,7 +488,7 @@ describe('Protocol Parameters', () => {
     const ptr = Cometa.writeProtocolParameters(params);
     try {
       const readParams = Cometa.readProtocolParameters(ptr);
-      expect(readParams).toEqual(params);
+      expect(readParams).toMatchObject(params);
     } finally {
       Cometa.derefProtocolParameters(ptr);
     }
@@ -639,8 +639,8 @@ describe('Protocol Parameters', () => {
       const readParams1 = Cometa.readProtocolParameters(ptr1);
       const readParams2 = Cometa.readProtocolParameters(ptr2);
 
-      expect(readParams1).toEqual(params1);
-      expect(readParams2).toEqual(params2);
+      expect(readParams1).toMatchObject(params1);
+      expect(readParams2).toMatchObject(params2);
     } finally {
       Cometa.derefProtocolParameters(ptr1);
       Cometa.derefProtocolParameters(ptr2);
@@ -720,9 +720,9 @@ describe('Protocol Parameters', () => {
       const readParams2 = Cometa.readProtocolParameters(ptr);
       const readParams3 = Cometa.readProtocolParameters(ptr);
 
-      expect(readParams1).toEqual(params);
-      expect(readParams2).toEqual(params);
-      expect(readParams3).toEqual(params);
+      expect(readParams1).toMatchObject(params);
+      expect(readParams2).toMatchObject(params);
+      expect(readParams3).toMatchObject(params);
     } finally {
       Cometa.derefProtocolParameters(ptr);
     }
@@ -798,7 +798,7 @@ describe('Protocol Parameters', () => {
     const ptr = Cometa.writeProtocolParameters(params);
     try {
       const readParams = Cometa.readProtocolParameters(ptr);
-      expect(readParams).toEqual(params);
+      expect(readParams).toMatchObject(params);
     } finally {
       Cometa.derefProtocolParameters(ptr);
     }

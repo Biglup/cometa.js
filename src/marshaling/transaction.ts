@@ -43,18 +43,22 @@ export const writeTransactionToCbor = (transactionPtr: number): string => {
 
   const cborWriter = new CborWriter();
 
-  const result = module.transaction_to_cbor(transactionPtr, cborWriter.ptr);
+  try {
+    const result = module.transaction_to_cbor(transactionPtr, cborWriter.ptr);
 
-  if (result !== 0) {
-    const errorCString = module.transaction_get_last_error(cborWriter.ptr);
-    const codeCString = module.error_to_string(result);
+    if (result !== 0) {
+      const errorCString = module.transaction_get_last_error(transactionPtr);
+      const codeCString = module.error_to_string(result);
 
-    const errorMessage = module.UTF8ToString(errorCString);
-    const codeMessage = module.UTF8ToString(codeCString);
-    throw new Error(`Failed to marshal transaction to CBOR: ${codeMessage} - ${errorMessage}`);
+      const errorMessage = module.UTF8ToString(errorCString);
+      const codeMessage = module.UTF8ToString(codeCString);
+      throw new Error(`Failed to marshal transaction to CBOR: ${codeMessage} - ${errorMessage}`);
+    }
+
+    return cborWriter.encodeHex();
+  } finally {
+    cborWriter.dispose();
   }
-
-  return cborWriter.encodeHex();
 };
 
 /**
@@ -82,6 +86,7 @@ export const readTransactionFromCbor = (transactionCbor: string): number => {
     return module.getValue(txPtrPtr, 'i32');
   } finally {
     module._free(txPtrPtr);
+    cborReader.dispose();
   }
 };
 

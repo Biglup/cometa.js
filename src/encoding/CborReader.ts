@@ -19,7 +19,7 @@
 import { CborReaderState } from './CborReaderState';
 import { CborSimpleValue } from './CborSimpleValue';
 import { CborTag } from './CborTag';
-import { assertSuccess, readBufferData, readI64, writeStringToMemory } from '../marshaling';
+import { unrefObject, assertSuccess, readBufferData, readI64, writeStringToMemory } from '../marshaling';
 import { finalizationRegistry } from '../garbageCollection';
 import { getModule } from '../module';
 
@@ -43,10 +43,14 @@ export class CborReader {
    */
   private constructor(ptr: any) {
     this.ptr = ptr;
-    finalizationRegistry.register(this, {
-      freeFunc: getModule().cbor_reader_unref,
-      ptr: this.ptr
-    });
+    finalizationRegistry.register(
+      this,
+      {
+        freeFunc: getModule().cbor_reader_unref,
+        ptr: this.ptr
+      },
+      this
+    );
   }
 
   /**
@@ -296,6 +300,7 @@ export class CborReader {
   public readBigInt(): BigInt {
     const module = getModule();
     const bigintPtrPtr = module._malloc(4);
+    module.setValue(bigintPtrPtr, 0, 'i32');
 
     try {
       const result = module.cbor_reader_read_bigint(this.ptr, bigintPtrPtr);
@@ -324,9 +329,7 @@ export class CborReader {
         module._free(stringBuffer);
       }
     } finally {
-      const bigintPtr = module.getValue(bigintPtrPtr, '*');
-
-      module.bigint_unref(bigintPtr);
+      module.bigint_unref(bigintPtrPtr);
 
       module._free(bigintPtrPtr);
     }
@@ -643,5 +646,12 @@ export class CborReader {
    */
   public getRefCount(): number {
     return getModule().cbor_reader_refcount(this.ptr);
+  }
+  /** Release native storage immediately. Safe to call repeatedly. */
+  public dispose(): void {
+    if (!this.ptr) return;
+    finalizationRegistry.unregister(this);
+    unrefObject(this.ptr);
+    this.ptr = 0;
   }
 }

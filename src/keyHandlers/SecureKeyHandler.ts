@@ -92,6 +92,9 @@ export interface Bip32SecureKeyHandler {
    */
   signTransaction(txCbor: string, derivationPaths: DerivationPath[]): Promise<VkeyWitnessSet>;
 
+  /** Sign a Dijkstra sub-transaction when supported by the key handler. */
+  signSubTransaction?(cbor: string, derivationPaths: DerivationPath[]): Promise<VkeyWitnessSet>;
+
   /**
    * Signs arbitrary data using a BIP32-derived key.
    * @param data - The hex-encoded data to be signed.
@@ -146,6 +149,9 @@ export interface Ed25519SecureKeyHandler {
    * @returns {Promise<VkeyWitnessSet>} A promise that resolves with the `VkeyWitnessSet` containing the signature.
    */
   signTransaction(transaction: string): Promise<VkeyWitnessSet>;
+
+  /** Sign a Dijkstra sub-transaction when supported by the key handler. */
+  signSubTransaction?(cbor: string): Promise<VkeyWitnessSet>;
 
   /**
    * Signs arbitrary data using the securely stored Ed25519 private key.

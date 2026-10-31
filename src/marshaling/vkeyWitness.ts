@@ -62,9 +62,9 @@ const readVkeyWitness = (ptr: number): VkeyWitness => {
  */
 const writeVkeyWitness = (witness: VkeyWitness): number => {
   const module = getModule();
-  const witnessPtrPtr = module._malloc(4);
   const sig = Ed25519Signature.fromHex(witness.signature);
   const vkey = Ed25519PublicKey.fromHex(witness.vkey);
+  const witnessPtrPtr = module._malloc(4);
 
   try {
     assertSuccess(module.vkey_witness_new(vkey.ptr, sig.ptr, witnessPtrPtr), 'Failed to create new VkeyWitness');

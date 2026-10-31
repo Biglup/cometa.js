@@ -107,3 +107,12 @@ export const writeI64 = (ptr: number, value: number | bigint, signed = true): vo
   module.setValue(ptr, low, 'i32');
   module.setValue(ptr + 4, high, 'i32');
 };
+
+/** @hidden Read a legalized WASM uint64 return value without discarding its high word. */
+export const readUint64Result = (fn: (...args: number[]) => number, ...args: number[]): number => {
+  const low = fn(...args) >>> 0;
+  const high = getModule().getTempRet0() >>> 0;
+  const value = high * 0x100000000 + low;
+  if (!Number.isSafeInteger(value)) throw new RangeError('Integer exceeds JavaScript safe integer range.');
+  return value;
+};

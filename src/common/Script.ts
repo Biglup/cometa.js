@@ -17,11 +17,21 @@
 
 /* IMPORTS **************************************************************/
 
-import { Address, CredentialType, EnterpriseAddress, NetworkId } from '../address';
+import { Address, Credential, CredentialType, EnterpriseAddress, NetworkId } from '../address';
 import { CborReader, CborWriter } from '../encoding';
-import { assertSuccess, readBlake2bHashData, readScript, unrefObject, writeScript } from '../marshaling';
+import {
+  assertSuccess,
+  readBlake2bHashData,
+  readScript,
+  unrefObject,
+  writeScript,
+  writePlutusData,
+  readBufferData
+} from '../marshaling';
 import { getModule } from '../module';
-import { uint8ArrayToHex } from '../cometa';
+import { uint8ArrayToHex, hexToUint8Array } from '../cometa';
+
+import { PlutusData } from './PlutusData';
 
 /* DEFINITIONS **********************************************************/
 
@@ -38,7 +48,8 @@ export enum NativeScriptKind {
   RequireAnyOf = 2,
   RequireNOf = 3,
   RequireTimeAfter = 4,
-  RequireTimeBefore = 5
+  RequireTimeBefore = 5,
+  RequireGuard = 6
 }
 
 /**
@@ -143,6 +154,13 @@ export interface RequireTimeAfterScript {
   kind: NativeScriptKind.RequireTimeAfter;
 }
 
+/** A native script requiring a key or script guard. */
+export interface RequireGuardScript {
+  type: ScriptType.Native;
+  kind: NativeScriptKind.RequireGuard;
+  credential: Credential;
+}
+
 /**
  * The Native scripts form an expression tree, the evaluation of the script produces either true or false.
  *
@@ -155,7 +173,8 @@ export type NativeScript =
   | RequireAnyOfScript
   | RequireAtLeastScript
   | RequireTimeBeforeScript
-  | RequireTimeAfterScript;
+  | RequireTimeAfterScript
+  | RequireGuardScript;
 
 /**
  * The Cardano ledger tags scripts with a language that determines what the ledger will do with the script.
@@ -188,7 +207,10 @@ export enum PlutusLanguageVersion {
    *
    * - The value of costmdls map at key 2 is encoded as a definite length list.
    */
-  V3 = 2
+  V3 = 2,
+
+  /** Dijkstra Plutus language. */
+  V4 = 3
 }
 
 /**
@@ -366,6 +388,10 @@ export const jsonToNativeScript = (json: any): NativeScript => {
   }
 
   switch (json.type) {
+    case 'guard': {
+      coreScript = { type: ScriptType.Native, kind: NativeScriptKind.RequireGuard, credential: json.credential };
+      break;
+    }
     case 'sig': {
       coreScript = {
         keyHash: json.keyHash,
@@ -381,9 +407,7 @@ export const jsonToNativeScript = (json: any): NativeScript => {
         scripts: new Array<NativeScript>(),
         type: ScriptType.Native
       };
-      for (let i = 0; i < json.scripts.length; ++i) {
-        coreScript.scripts.push(jsonToNativeScript(json.scripts[i]));
-      }
+      coreScript.scripts = json.scripts.map(jsonToNativeScript);
 
       break;
     }
@@ -393,9 +417,7 @@ export const jsonToNativeScript = (json: any): NativeScript => {
         scripts: new Array<NativeScript>(),
         type: ScriptType.Native
       };
-      for (let i = 0; i < json.scripts.length; ++i) {
-        coreScript.scripts.push(jsonToNativeScript(json.scripts[i]));
-      }
+      coreScript.scripts = json.scripts.map(jsonToNativeScript);
 
       break;
     }
@@ -408,9 +430,7 @@ export const jsonToNativeScript = (json: any): NativeScript => {
         type: ScriptType.Native
       };
 
-      for (let i = 0; i < json.scripts.length; ++i) {
-        coreScript.scripts.push(jsonToNativeScript(json.scripts[i]));
-      }
+      coreScript.scripts = json.scripts.map(jsonToNativeScript);
 
       break;
     }
@@ -449,6 +469,8 @@ export const jsonToNativeScript = (json: any): NativeScript => {
  */
 export const nativeScriptToJson = (script: NativeScript): any => {
   switch (script.kind) {
+    case NativeScriptKind.RequireGuard:
+      return { credential: script.credential, type: 'guard' };
     case NativeScriptKind.RequireSignature:
       return { keyHash: script.keyHash, type: 'sig' };
     case NativeScriptKind.RequireTimeBefore:
@@ -471,5 +493,32 @@ export const nativeScriptToJson = (script: NativeScript): any => {
         scripts: script.scripts?.map(nativeScriptToJson) ?? [],
         type: 'atLeast'
       };
+  }
+};
+
+/** Apply Plutus-data parameters to a single-CBOR-wrapped flat script. */
+export const applyParamsToScript = (script: PlutusScript, params: PlutusData[]): PlutusScript => {
+  const m = getModule();
+  const bytes = hexToUint8Array(script.bytes);
+  let data = 0;
+  let list = 0;
+  let bytesPtr = 0;
+  const out = m._malloc(4);
+  try {
+    data = writePlutusData({ items: params });
+    assertSuccess(m.plutus_data_to_list(data, out));
+    list = m.getValue(out, 'i32');
+    bytesPtr = m._malloc(bytes.length);
+    m.HEAPU8.set(bytes, bytesPtr);
+    assertSuccess(
+      m.uplc_apply_params_to_script(list, bytesPtr, bytes.length, out),
+      'Failed to apply script parameters'
+    );
+    return { ...script, bytes: uint8ArrayToHex(readBufferData(m.getValue(out, 'i32'))) };
+  } finally {
+    unrefObject(list);
+    unrefObject(data);
+    m._free(bytesPtr);
+    m._free(out);
   }
 };

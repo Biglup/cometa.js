@@ -49,7 +49,13 @@ const unsignedTx = await builder
 
 `2.0.0-rc.1` bundles cardano-c `2.0.0-rc.2`, including native Plutus evaluation and the latest transaction-building fixes. Install it with `npm install @biglup/cometa@next`. The default npm release remains on the stable 1.2 series.
 
-This candidate retains the existing Conway API. Dedicated JavaScript APIs for Dijkstra transactions are not included yet. See the [changelog](CHANGELOG.md) for migration notes.
+This candidate adds Plutus V4, key and script guards, direct deposits, account-balance constraints, deferred redeemers, and standalone sub-transactions that can be combined into a batch. Dijkstra support is experimental. Use protocol parameters for the network you target.
+
+`SubTransactionBuilder` shares the transaction builder's input, output, minting, staking and governance methods. It builds a fee-free sub-transaction; `TransactionBuilder.addSubTransaction(cbor, resolvedUtxos)` includes it in the enclosing transaction and balances the batch. Software key handlers provide `signSubTransaction()`, and `applySubTransactionWitnesses()` attaches the resulting witnesses.
+
+Deferred methods such as `addInputWithDeferredRedeemer(utxo, callback)` receive a synchronous callback `(draftCbor, resolvedInputs) => PlutusData`. It runs on each balancing iteration and must be pure and deterministic. `applyParamsToScript(script, params)` applies script parameters using the native VM.
+
+Builders provide `dispose()` for immediate cleanup. Call it after `build()` finishes, and await each build before starting another. See the [changelog](CHANGELOG.md) for migration notes.
 
 ## **Conway Era Support**
 

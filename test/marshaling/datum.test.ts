@@ -29,14 +29,14 @@ describe('Datum', () => {
     await Cometa.ready();
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     detector = new MemoryLeakDetector(Cometa.getModule());
-    detector.start();
+    await detector.start();
   });
 
   // Stop the detector and check for leaks after each test
-  afterEach(() => {
-    detector.stop();
+  afterEach(async () => {
+    await detector.stop();
     detector.detect();
   });
 

@@ -69,9 +69,10 @@ export const readVoter = (ptr: number): Voter => {
 export const writeVoter = (voter: Voter): number => {
   const module = getModule();
   const voterPtrPtr = module._malloc(4);
-  const credentialPtr = writeCredential(voter.credential);
+  let credentialPtr = 0;
 
   try {
+    credentialPtr = writeCredential(voter.credential);
     const result = module.voter_new(voter.type, credentialPtr, voterPtrPtr);
     assertSuccess(result, 'Failed to create new voter');
 

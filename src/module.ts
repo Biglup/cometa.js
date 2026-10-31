@@ -26,6 +26,7 @@ import { base64ToBytes } from './cometa';
 
 let _Module: any;
 let _isReady = false;
+let _initializing: Promise<void> | undefined;
 
 /* DEFINITIONS ****************************************************************/
 
@@ -38,45 +39,24 @@ let _isReady = false;
  *
  * @returns {Promise<void>} A Promise that resolves when the WASM module is ready.
  */
-export const ready = async (): Promise<void> => {
-  if (_isReady) return;
-
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  const EmscriptenModule = (await import('../libcardano-c/cardano_c_compressed.js')).default;
-  const ModuleFactory = EmscriptenModule;
-
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  const compressedWasmBase64 = EmscriptenModule.compressedWasmBase64;
-
-  const compressedBytes = base64ToBytes(compressedWasmBase64);
-  const decompressedWasmBinary = pako.inflate(compressedBytes);
-
-  return new Promise<void>((resolve, reject) => {
+export const ready = (): Promise<void> => {
+  if (_isReady) return Promise.resolve();
+  if (_initializing) return _initializing;
+  _initializing = (async () => {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    const factory: any = (await import('../libcardano-c/cardano_c_compressed.js')).default;
+    const wasmBinary = pako.inflate(base64ToBytes(factory.compressedWasmBase64));
     Object.assign(globalThis, bridgeCallbacks);
-
-    const moduleInstance = ModuleFactory({
-      onAbort: (err: unknown) => {
-        reject(err);
-      },
-      onRuntimeInitialized: () => {
-        _isReady = true;
-
-        resolve();
-      },
-      wasmBinary: decompressedWasmBinary
-    });
-
-    moduleInstance
-      .then((instance: any) => {
-        _Module = instance;
-        ensureModuleHasRandomValue(_Module);
-      })
-      .catch((error: any) => {
-        reject(error);
-      });
+    const options = { wasmBinary };
+    await ensureModuleHasRandomValue(options);
+    _Module = await factory(options);
+    _isReady = true;
+  })().catch((error) => {
+    _initializing = undefined;
+    throw error;
   });
+  return _initializing;
 };
 
 /**

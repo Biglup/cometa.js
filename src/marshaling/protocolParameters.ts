@@ -26,9 +26,10 @@ import { derefPoolVotingThresholds, readPoolVotingThresholds, writePoolVotingThr
 import { derefProtocolVersion, readProtocolVersion, writeProtocolVersion } from './protocolVersion';
 import { derefUnitInterval, readIntervalComponents, writeUnitInterval } from './unitInterval';
 import { getModule } from '../module';
-import { splitToLowHigh64bit } from './number';
+import { splitToLowHigh64bit, readUint64Result } from './number';
 import { uint8ArrayToHex } from '../cometa';
 
+import { readExtendedProtocolParameters, writeExtendedProtocolParameters } from './extendedProtocolParameters';
 /* DEFINITIONS ****************************************************************/
 
 /**
@@ -274,6 +275,7 @@ export const writeProtocolParameters = (params: ProtocolParameters): number => {
         derefUnitInterval(refScriptCostPerBytePtr);
       }
 
+      writeExtendedProtocolParameters(paramsPtr, params, false);
       return paramsPtr;
     } catch (error) {
       unrefObject(paramsPtr);
@@ -301,15 +303,15 @@ export const readProtocolParameters = (ptr: number): ProtocolParameters => {
   const module = getModule();
   const valuePtrPtr = module._malloc(4);
   try {
-    const minFeeA = module.protocol_parameters_get_min_fee_a(ptr);
-    const minFeeB = module.protocol_parameters_get_min_fee_b(ptr);
-    const maxBlockBodySize = module.protocol_parameters_get_max_block_body_size(ptr);
-    const maxTxSize = module.protocol_parameters_get_max_tx_size(ptr);
-    const maxBlockHeaderSize = module.protocol_parameters_get_max_block_header_size(ptr);
-    const keyDeposit = module.protocol_parameters_get_key_deposit(ptr);
-    const poolDeposit = module.protocol_parameters_get_pool_deposit(ptr);
-    const maxEpoch = module.protocol_parameters_get_max_epoch(ptr);
-    const nOpt = module.protocol_parameters_get_n_opt(ptr);
+    const minFeeA = readUint64Result(module.protocol_parameters_get_min_fee_a, ptr);
+    const minFeeB = readUint64Result(module.protocol_parameters_get_min_fee_b, ptr);
+    const maxBlockBodySize = readUint64Result(module.protocol_parameters_get_max_block_body_size, ptr);
+    const maxTxSize = readUint64Result(module.protocol_parameters_get_max_tx_size, ptr);
+    const maxBlockHeaderSize = readUint64Result(module.protocol_parameters_get_max_block_header_size, ptr);
+    const keyDeposit = readUint64Result(module.protocol_parameters_get_key_deposit, ptr);
+    const poolDeposit = readUint64Result(module.protocol_parameters_get_pool_deposit, ptr);
+    const maxEpoch = readUint64Result(module.protocol_parameters_get_max_epoch, ptr);
+    const nOpt = readUint64Result(module.protocol_parameters_get_n_opt, ptr);
 
     let obj = module.protocol_parameters_get_pool_pledge_influence(ptr);
     const poolPledgeInfluence = readIntervalComponents(obj);
@@ -339,8 +341,8 @@ export const readProtocolParameters = (ptr: number): ProtocolParameters => {
     const protocolVersion = readProtocolVersion(obj);
     derefProtocolVersion(obj);
 
-    const minPoolCost = module.protocol_parameters_get_min_pool_cost(ptr);
-    const adaPerUtxoByte = module.protocol_parameters_get_ada_per_utxo_byte(ptr);
+    const minPoolCost = readUint64Result(module.protocol_parameters_get_min_pool_cost, ptr);
+    const adaPerUtxoByte = readUint64Result(module.protocol_parameters_get_ada_per_utxo_byte, ptr);
 
     obj = module.protocol_parameters_get_cost_models(ptr);
     const costModels = readCostModels(obj);
@@ -358,9 +360,9 @@ export const readProtocolParameters = (ptr: number): ProtocolParameters => {
     const maxBlockExUnits = readExUnits(obj);
     derefExUnits(obj);
 
-    const maxValueSize = module.protocol_parameters_get_max_value_size(ptr);
-    const collateralPercent = module.protocol_parameters_get_collateral_percentage(ptr);
-    const maxCollateralInputs = module.protocol_parameters_get_max_collateral_inputs(ptr);
+    const maxValueSize = readUint64Result(module.protocol_parameters_get_max_value_size, ptr);
+    const collateralPercent = readUint64Result(module.protocol_parameters_get_collateral_percentage, ptr);
+    const maxCollateralInputs = readUint64Result(module.protocol_parameters_get_max_collateral_inputs, ptr);
 
     obj = module.protocol_parameters_get_pool_voting_thresholds(ptr);
     const poolVotingThresholds = readPoolVotingThresholds(obj);
@@ -370,18 +372,22 @@ export const readProtocolParameters = (ptr: number): ProtocolParameters => {
     const drepVotingThresholds = readDRepVotingThresholds(obj);
     derefDRepVotingThresholds(obj);
 
-    const minCommitteeSize = module.protocol_parameters_get_min_committee_size(ptr);
-    const committeeTermLimit = module.protocol_parameters_get_committee_term_limit(ptr);
-    const governanceActionValidityPeriod = module.protocol_parameters_get_governance_action_validity_period(ptr);
-    const governanceActionDeposit = module.protocol_parameters_get_governance_action_deposit(ptr);
-    const drepDeposit = module.protocol_parameters_get_drep_deposit(ptr);
-    const drepInactivityPeriod = module.protocol_parameters_get_drep_inactivity_period(ptr);
+    const minCommitteeSize = readUint64Result(module.protocol_parameters_get_min_committee_size, ptr);
+    const committeeTermLimit = readUint64Result(module.protocol_parameters_get_committee_term_limit, ptr);
+    const governanceActionValidityPeriod = readUint64Result(
+      module.protocol_parameters_get_governance_action_validity_period,
+      ptr
+    );
+    const governanceActionDeposit = readUint64Result(module.protocol_parameters_get_governance_action_deposit, ptr);
+    const drepDeposit = readUint64Result(module.protocol_parameters_get_drep_deposit, ptr);
+    const drepInactivityPeriod = readUint64Result(module.protocol_parameters_get_drep_inactivity_period, ptr);
 
     obj = module.protocol_parameters_get_ref_script_cost_per_byte(ptr);
     const refScriptCostPerByte = readIntervalComponents(obj);
     derefUnitInterval(obj);
 
     return {
+      ...readExtendedProtocolParameters(ptr, false),
       adaPerUtxoByte,
       collateralPercent,
       committeeTermLimit,

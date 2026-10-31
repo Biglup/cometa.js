@@ -31,7 +31,8 @@ export enum RedeemerPurpose {
   certificate = 'certificate',
   withdrawal = 'withdrawal',
   propose = 'propose',
-  vote = 'vote'
+  vote = 'vote',
+  guard = 'guard'
 }
 
 /**

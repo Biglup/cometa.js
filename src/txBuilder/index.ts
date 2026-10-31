@@ -19,3 +19,5 @@
 export * from './TransactionBuilder';
 export * from './coinSelection';
 export * from './txEvaluator';
+
+export * from './SubTransactionBuilder';

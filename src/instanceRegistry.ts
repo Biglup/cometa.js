@@ -22,13 +22,15 @@
  * categorized by their type.
  * @private
  */
-const _registry = new Map<number, Map<number, any>>();
+const _registry = new Map<number, Map<number, WeakRef<object>>>();
 
 /**
  * A registry for instance-specific error handlers.
  * @private
  */
-const _handlerRegistry = new Map<number, Map<number, (exception: any) => void>>();
+type BridgeErrorHandler = (exception: any) => void;
+
+const _handlerRegistry = new Map<number, Map<number, BridgeErrorHandler>>();
 
 /* DEFINITIONS ****************************************************************/
 
@@ -50,9 +52,9 @@ export enum InstanceType {
  */
 export const registerInstance = (type: InstanceType, id: number, obj: any): void => {
   if (!_registry.has(type)) {
-    _registry.set(type, new Map<number, any>());
+    _registry.set(type, new Map<number, WeakRef<object>>());
   }
-  _registry.get(type)!.set(id, obj);
+  _registry.get(type)!.set(id, new WeakRef(obj));
 };
 
 /**
@@ -77,7 +79,7 @@ export const unregisterInstance = (type: InstanceType, id: number): void => {
  */
 export const getFromInstanceRegistry = (type: InstanceType, id: number): any | undefined => {
   const typeMap = _registry.get(type);
-  return typeMap?.get(id);
+  return typeMap?.get(id)?.deref();
 };
 
 /**
@@ -88,7 +90,7 @@ export const getFromInstanceRegistry = (type: InstanceType, id: number): any | u
  */
 export const registerBridgeErrorHandler = (type: InstanceType, id: number, handler: (exception: any) => void) => {
   if (!_handlerRegistry.has(type)) {
-    _handlerRegistry.set(type, new Map<number, (exception: any) => void>());
+    _handlerRegistry.set(type, new Map<number, BridgeErrorHandler>());
   }
   _handlerRegistry.get(type)!.set(id, handler);
 };

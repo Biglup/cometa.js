@@ -45,6 +45,8 @@ const _mapPurposeToTag = (purpose: RedeemerPurpose): number => {
       return 4;
     case RedeemerPurpose.propose:
       return 5;
+    case RedeemerPurpose.guard:
+      return 6;
     default:
       throw new Error(`Unsupported redeemer purpose: ${purpose}`);
   }
@@ -69,6 +71,8 @@ const _mapTagToPurpose = (tag: number): RedeemerPurpose => {
       return RedeemerPurpose.vote;
     case 5:
       return RedeemerPurpose.propose;
+    case 6:
+      return RedeemerPurpose.guard;
     default:
       throw new Error(`Unsupported redeemer tag: ${tag}`);
   }

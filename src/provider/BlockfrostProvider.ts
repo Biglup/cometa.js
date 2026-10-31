@@ -93,7 +93,8 @@ const createRedeemerMap = (redeemers: Redeemer[]): Map<string, Redeemer> => {
 const plutusVersionToApiString: Record<PlutusLanguageVersion, string> = {
   [PlutusLanguageVersion.V1]: 'plutus:v1',
   [PlutusLanguageVersion.V2]: 'plutus:v2',
-  [PlutusLanguageVersion.V3]: 'plutus:v3'
+  [PlutusLanguageVersion.V3]: 'plutus:v3',
+  [PlutusLanguageVersion.V4]: 'plutus:v4'
 };
 
 /**
