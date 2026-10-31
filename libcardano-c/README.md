@@ -12,13 +12,3 @@ yarn build
 ```
 
 Preparation handles ESM directory lookup, supplies Node modules through factory options, and compacts the generated glue. The embedded WASM bytes are preserved. `yarn build` removes unused JavaScript export wrappers, retains runtime exports needed by Asyncify, gzip-compresses the embedded WASM, and builds CJS, ESM and IIFE distributions. Export pruning does not remove WASM functions.
-
-## Allocation tests
-
-`yarn test` checks the shipped artifact. Live native allocation checks additionally need the optional `mallinfo` export, which is absent from release packages. To run those checks, install Emscripten 3.1.49, CMake, Ninja and Python 3, and provide a C checkout containing the release tag:
-
-```sh
-yarn test:memory /path/to/cardano-c
-```
-
-This rebuilds the pinned tag with `CARDANO_WASM_ALLOCATOR_STATS=ON`, runs the suite with allocation checks required, then restores the release glue and rebuilds the distributions, including when tests fail. No C source changes or custom linker exports are applied. `scripts/build-wasm.sh` also supports standalone rebuilds, with allocator statistics off by default.
