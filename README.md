@@ -50,7 +50,7 @@ const unsignedTx = await builder
 | Version | Status | cardano-c |
 | --- | --- | --- |
 | [1.2.0](https://github.com/Biglup/cometa.js/releases/tag/v1.2.0) | Stable | [1.2 series](https://github.com/Biglup/cardano-c/releases/tag/v1.2.1) |
-| [2.0.0-rc.3](https://github.com/Biglup/cometa.js/releases/tag/v2.0.0-rc.3) | Release candidate | [2.0.0-rc.6](https://github.com/Biglup/cardano-c/releases/tag/v2.0.0-rc.6) |
+| [2.0.0-rc.4](https://github.com/Biglup/cometa.js/releases/tag/v2.0.0-rc.4) | Release candidate | [2.0.0-rc.6](https://github.com/Biglup/cardano-c/releases/tag/v2.0.0-rc.6) |
 
 Install the candidate with `npm install @biglup/cometa@next`. The default npm release remains on 1.2.0.
 
