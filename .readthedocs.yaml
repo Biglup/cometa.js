@@ -10,7 +10,7 @@ build:
   commands:
     - sed -i "/Documentation Status/d" README.md
     - npm install --global yarn
-    - yarn install
+    - yarn install --frozen-lockfile
     - yarn docs
     - mkdir --parents _readthedocs/html/
     - cp --recursive docs/html/* _readthedocs/html/

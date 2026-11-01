@@ -21,7 +21,7 @@
  */
 export const getRandomValue = (): number => {
   // Prefer browser crypto if available
-  if (globalThis.crypto?.getRandomValues) {
+  if (typeof globalThis.crypto?.getRandomValues === 'function') {
     const buf = new Uint8Array(4);
     globalThis.crypto.getRandomValues(buf);
     return ((buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3]) >>> 0;
@@ -40,7 +40,7 @@ export const getRandomValue = (): number => {
  */
 export const ensureModuleHasRandomValue = async (moduleInst: any): Promise<void> => {
   if (typeof moduleInst.getRandomValue !== 'undefined') return;
-  if (globalThis.crypto?.getRandomValues) {
+  if (typeof globalThis.crypto?.getRandomValues === 'function') {
     moduleInst.getRandomValue = getRandomValue;
     return;
   }
