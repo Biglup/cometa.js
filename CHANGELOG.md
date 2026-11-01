@@ -1,3 +1,9 @@
+Unreleased
+---------------------
+
+- Add Dijkstra transaction examples to the README.
+- Fix reward withdrawals using Bech32 string addresses in both transaction builders, preserving all 64 amount bits.
+
 V2.0.0-rc.1
 ---------------------
 
