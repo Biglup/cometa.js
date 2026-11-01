@@ -132,7 +132,7 @@ describe('Transaction CBOR Serialization', () => {
           transaction_id: '0f3abbc8fc19c2e61bab6059bf8a466e6e754833a08a62a6c56fe0e78f19d9d5'
         }
       ],
-      required_signers: ['6199186adb51974690d7247d2646097d2c62763b16fb7ed3f9f55d39'],
+      guards: [{ tag: 'pubkey_hash', value: '6199186adb51974690d7247d2646097d2c62763b16fb7ed3f9f55d39' }],
       script_data_hash: '6199186adb51974690d7247d2646097d2c62763b16fb7ed3f9f55d38abc123de',
       total_collateral: '100',
       ttl: '1000',

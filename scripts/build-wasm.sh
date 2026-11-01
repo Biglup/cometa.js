@@ -8,7 +8,7 @@ binding_root="$(cd "$(dirname "$0")/.." && pwd)"
 build_root="$(mktemp -d)"
 trap 'rm -rf "$build_root"' EXIT
 mkdir -p "$build_root/source"
-git -C "$source_repo" archive v2.0.0-rc.5 | tar -x -C "$build_root/source"
+git -C "$source_repo" archive v2.0.0-rc.6 | tar -x -C "$build_root/source"
 emcmake cmake -S "$build_root/source" -B "$build_root/build" -G Ninja \
   -DCMAKE_BUILD_TYPE=Release -DCLANG_TIDY_EXE=CLANG_TIDY_EXE-NOTFOUND \
   -DCARDANO_WASM_ALLOCATOR_STATS="${CARDANO_WASM_ALLOCATOR_STATS:-OFF}"

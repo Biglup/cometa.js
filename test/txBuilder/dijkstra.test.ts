@@ -140,6 +140,8 @@ describe('Dijkstra bindings', () => {
         .addSubTransaction(cbor, [])
         .build();
       const inspected = C.inspectTx(batch);
+      expect(inspected.body.guards).toEqual([{ tag: 'pubkey_hash', value: guard.hash }]);
+      expect(inspected.body).not.toHaveProperty('required_signers');
       expect(inspected.body.sub_transactions).toHaveLength(1);
       expect(inspected.body.sub_transactions[0].body.guards).toEqual([{ tag: 'pubkey_hash', value: guard.hash }]);
       expect(inspected.body.sub_transactions[0].body.required_top_level_guards).toEqual([
