@@ -207,8 +207,8 @@ const outputFromUtxo = (address: string, utxo: any, script: Script | undefined):
 export type BlockfrostProviderConfig = {
   /** The network identifier (e.g., Mainnet, Preprod). This is ignored if a custom `url` is provided. */
   network: NetworkMagic;
-  /** The Blockfrost project ID for authentication. */
-  projectId: string;
+  /** The optional Blockfrost project ID. Omit for endpoints that do not require client authentication. */
+  projectId?: string;
   /** An optional, custom base URL for the Blockfrost API. Overrides the `network` setting for URL construction. */
   baseUrl?: string;
 };
@@ -228,7 +228,7 @@ export class BlockfrostProvider implements Provider {
    * Creates an instance of BlockfrostProvider.
    *
    * @param {BlockfrostProviderConfig} config - The configuration object for the provider.
-   * @param {string} config.projectId - The Blockfrost project ID for authentication.
+   * @param {string} [config.projectId] - The optional Blockfrost project ID for authentication.
    * @param {string} [config.baseUrl] - An optional, custom base URL for the API. If provided, this URL is used directly and the `network` parameter is ignored for URL construction.
    * @param {NetworkMagic} [config.network] - The network identifier (e.g., Mainnet, Preprod). This is required if a custom `url` is not provided.
    */
@@ -237,7 +237,7 @@ export class BlockfrostProvider implements Provider {
     this.networkMagic = network;
 
     if (baseUrl) {
-      this.url = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+      this.url = `${baseUrl.replace(/\/+$/, '')}/`;
     } else {
       this.url = `https://${networkMagicBlockfrostPrefix(network)}.blockfrost.io/api/v0/`;
     }
@@ -246,10 +246,12 @@ export class BlockfrostProvider implements Provider {
   /**
    * Returns the headers required for Blockfrost API requests.
    *
-   * @returns {Object} An object containing the project ID header.
+   * @returns {Object} Request headers, including the project ID only when configured.
    */
-  headers() {
-    return { Origin: 'http://localhost', project_id: this.projectId };
+  headers(): Record<string, string> {
+    const headers: Record<string, string> = { Origin: 'http://localhost' };
+    if (this.projectId) headers.project_id = this.projectId;
+    return headers;
   }
 
   /**
@@ -424,7 +426,7 @@ export class BlockfrostProvider implements Provider {
 
     for (;;) {
       const pagination = `count=${maxPageCount}&page=${page}`;
-      const query = `/addresses/${addr}/utxos?${pagination}`;
+      const query = `addresses/${addr}/utxos?${pagination}`;
       const response = await fetch(`${this.url}${query}`, {
         headers: this.headers()
       });
@@ -487,7 +489,7 @@ export class BlockfrostProvider implements Provider {
 
     for (;;) {
       const pagination = `count=${maxPageCount}&page=${page}`;
-      const query = `/addresses/${addr}/utxos/${assetId}?${pagination}`;
+      const query = `addresses/${addr}/utxos/${assetId}?${pagination}`;
       const response = await fetch(`${this.url}${query}`, {
         headers: this.headers()
       });
@@ -534,7 +536,7 @@ export class BlockfrostProvider implements Provider {
    * @returns {Promise<UTxO>} A promise that resolves to the UTxO containing the NFT.
    */
   async getUnspentOutputByNft(assetId: string): Promise<UTxO> {
-    const query = `/assets/${assetId}/addresses`;
+    const query = `assets/${assetId}/addresses`;
     const response = await fetch(`${this.url}${query}`, {
       headers: this.headers()
     });
@@ -578,7 +580,7 @@ export class BlockfrostProvider implements Provider {
     const results: UTxO[] = [];
 
     for (const txIn of txIns) {
-      const query = `/txs/${txIn.txId}/utxos`;
+      const query = `txs/${txIn.txId}/utxos`;
       const response = await fetch(`${this.url}${query}`, {
         headers: this.headers()
       });
@@ -622,7 +624,7 @@ export class BlockfrostProvider implements Provider {
    * @returns {Promise<string>} A promise that resolves to the CBOR-encoded datum.
    */
   async resolveDatum(datumHash: string): Promise<string> {
-    const query = `/scripts/datum/${datumHash}/cbor`;
+    const query = `scripts/datum/${datumHash}/cbor`;
     const response = await fetch(`${this.url}${query}`, {
       headers: this.headers()
     });
@@ -654,7 +656,7 @@ export class BlockfrostProvider implements Provider {
   async confirmTransaction(txId: string, timeout?: number): Promise<boolean> {
     const averageBlockTime = 20_000;
 
-    const query = `/txs/${txId}/metadata/cbor`;
+    const query = `txs/${txId}/metadata/cbor`;
     const startTime = Date.now();
 
     const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -691,7 +693,7 @@ export class BlockfrostProvider implements Provider {
    * @returns {Promise<string>} A promise that resolves to the submitted transaction ID (hash).
    */
   async submitTransaction(tx: string): Promise<string> {
-    const query = '/tx/submit';
+    const query = 'tx/submit';
     const response = await fetch(`${this.url}${query}`, {
       body: hexToUint8Array(tx),
       headers: {
@@ -725,7 +727,7 @@ export class BlockfrostProvider implements Provider {
       cbor: tx
     };
 
-    const query = '/utils/txs/evaluate/utxos';
+    const query = 'utils/txs/evaluate/utxos';
     const response = await fetch(`${this.url}${query}`, {
       body: JSON.stringify(payload, (_, value) => (typeof value === 'bigint' ? value.toString() : value)),
       headers: {
@@ -786,7 +788,7 @@ export class BlockfrostProvider implements Provider {
    */
   // eslint-disable-next-line max-statements
   private async getScriptRef(scriptHash: string): Promise<Script> {
-    const typeQuery = `/scripts/${scriptHash}`;
+    const typeQuery = `scripts/${scriptHash}`;
     const typeJsonResponse = await fetch(`${this.url}${typeQuery}`, {
       headers: this.headers()
     });
@@ -810,7 +812,7 @@ export class BlockfrostProvider implements Provider {
     const type: string = typeJson.type;
 
     if (type === 'timelock') {
-      const jsonQuery = `/scripts/${scriptHash}/json`;
+      const jsonQuery = `scripts/${scriptHash}/json`;
       const scriptJsonResponse = await fetch(`${this.url}${jsonQuery}`, {
         headers: this.headers()
       });
@@ -840,7 +842,7 @@ export class BlockfrostProvider implements Provider {
       throw new Error(`Unsupported script type "${type}" for script hash ${scriptHash}`);
     }
 
-    const cborQuery = `/scripts/${scriptHash}/cbor`;
+    const cborQuery = `scripts/${scriptHash}/cbor`;
     const cborJsonResponse = await fetch(`${this.url}${cborQuery}`, {
       headers: this.headers()
     });
