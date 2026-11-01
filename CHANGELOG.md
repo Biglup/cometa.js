@@ -1,3 +1,8 @@
+V2.0.0-rc.4
+---------------------
+
+- Reissue RC3 as RC4 after npm accepted RC3 but did not make it publicly available. No API or runtime changes; bundled cardano-c remains 2.0.0-rc.6.
+
 V2.0.0-rc.3
 ---------------------
 
