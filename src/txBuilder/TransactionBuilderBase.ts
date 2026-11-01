@@ -681,7 +681,14 @@ export abstract class TransactionBuilderBase {
       if (typeof rewardAddress === 'string') {
         const addressPtr = writeStringToMemory(rewardAddress);
         try {
-          this.native.withdraw_rewards_ex(this.ptr, addressPtr, rewardAddress.length, withdrawalAmount, redeemerPtr);
+          this.native.withdraw_rewards_ex(
+            this.ptr,
+            addressPtr,
+            rewardAddress.length,
+            parts.low,
+            parts.high,
+            redeemerPtr
+          );
         } finally {
           module._free(addressPtr);
         }
