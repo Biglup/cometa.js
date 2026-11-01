@@ -81,20 +81,15 @@ Transfer 2 ADA between registered reward accounts, with wallet UTxOs paying the 
 import { RewardAddress, TransactionBuilder } from '@biglup/cometa';
 
 const builder = TransactionBuilder.create({ params, slotConfig });
-let transactionCbor: string;
-try {
-  transactionCbor = await builder
-    .setUtxos(walletUtxos)
-    .setChangeAddress(changeAddress)
-    .withdrawRewards({
-      rewardAddress: RewardAddress.fromBech32(sourceRewardAddress),
-      amount: 2_000_000n
-    })
-    .addDirectDeposit(destinationRewardAddress, 2_000_000n)
-    .build();
-} finally {
-  builder.dispose();
-}
+const transactionCbor = await builder
+  .setUtxos(walletUtxos)
+  .setChangeAddress(changeAddress)
+  .withdrawRewards({
+    rewardAddress: RewardAddress.fromBech32(sourceRewardAddress),
+    amount: 2_000_000n
+  })
+  .addDirectDeposit(destinationRewardAddress, 2_000_000n)
+  .build();
 ```
 
 Sign with the source account's staking key and the wallet input keys before
@@ -118,39 +113,29 @@ import {
 } from '@biglup/cometa';
 
 const intent = SubTransactionBuilder.create({ params, slotConfig });
-let signedIntentCbor: string;
-try {
-  const intentCbor = await intent
-    .addInput({ utxo: partyUtxo })
-    .sendLovelace({ address: partyAddress, amount: 12_000_000n })
-    .requireTopLevelGuard(batcherCredential)
-    .build();
+const intentCbor = await intent
+  .addInput({ utxo: partyUtxo })
+  .sendLovelace({ address: partyAddress, amount: 12_000_000n })
+  .requireTopLevelGuard(batcherCredential)
+  .build();
 
-  signedIntentCbor = applySubTransactionWitnesses(
-    intentCbor,
-    await partyKeys.signSubTransaction(intentCbor)
-  );
-} finally {
-  intent.dispose();
-}
+const signedIntentCbor = applySubTransactionWitnesses(
+  intentCbor,
+  await partyKeys.signSubTransaction(intentCbor)
+);
 
 const batch = TransactionBuilder.create({ params, slotConfig });
-let signedTransactionCbor: string;
-try {
-  const transactionCbor = await batch
-    .setUtxos(batcherUtxos)
-    .setChangeAddress(batcherAddress)
-    .addGuard(batcherCredential)
-    .addSubTransaction(signedIntentCbor, [partyUtxo])
-    .build();
+const transactionCbor = await batch
+  .setUtxos(batcherUtxos)
+  .setChangeAddress(batcherAddress)
+  .addGuard(batcherCredential)
+  .addSubTransaction(signedIntentCbor, [partyUtxo])
+  .build();
 
-  signedTransactionCbor = applyVkeyWitnessSet(
-    transactionCbor,
-    await batcherKeys.signTransaction(transactionCbor)
-  );
-} finally {
-  batch.dispose();
-}
+const signedTransactionCbor = applyVkeyWitnessSet(
+  transactionCbor,
+  await batcherKeys.signTransaction(transactionCbor)
+);
 ```
 
 `partyKeys` and `batcherKeys` are `SoftwareEd25519SecureKeyHandler` instances;
@@ -174,21 +159,16 @@ balance at the start of the block:
 import { TransactionBuilder } from '@biglup/cometa';
 
 const builder = TransactionBuilder.create({ params, slotConfig });
-let transactionCbor: string;
-try {
-  transactionCbor = await builder
-    .setUtxos(walletUtxos)
-    .setChangeAddress(changeAddress)
-    .sendLovelace({ address: recipientAddress, amount: 2_000_000n })
-    .addAccountBalanceInterval(rewardAddress, {
-      inclusiveLowerBound: 5_000_000n,
-      exclusiveUpperBound: 10_000_000n
-    })
-    .addStartingAccountBalanceInterval(rewardAddress, { exact: 5_000_000n })
-    .build();
-} finally {
-  builder.dispose();
-}
+const transactionCbor = await builder
+  .setUtxos(walletUtxos)
+  .setChangeAddress(changeAddress)
+  .sendLovelace({ address: recipientAddress, amount: 2_000_000n })
+  .addAccountBalanceInterval(rewardAddress, {
+    inclusiveLowerBound: 5_000_000n,
+    exclusiveUpperBound: 10_000_000n
+  })
+  .addStartingAccountBalanceInterval(rewardAddress, { exact: 5_000_000n })
+  .build();
 ```
 
 Range lower bounds are inclusive and upper bounds are exclusive. Either may be
@@ -219,19 +199,14 @@ const guardScript: PlutusScript = {
 const guard = { type: CredentialType.ScriptHash, hash: computeScriptHash(guardScript) };
 
 const builder = TransactionBuilder.create({ params, slotConfig });
-let transactionCbor: string;
-try {
-  transactionCbor = await builder
-    .setUtxos(walletUtxos)
-    .setChangeAddress(changeAddress)
-    .setCollateralUtxos(collateralUtxos)
-    .setCollateralChangeAddress(changeAddress)
-    .addScript(guardScript)
-    .addGuard(guard, 0n)
-    .build();
-} finally {
-  builder.dispose();
-}
+const transactionCbor = await builder
+  .setUtxos(walletUtxos)
+  .setChangeAddress(changeAddress)
+  .setCollateralUtxos(collateralUtxos)
+  .setCollateralChangeAddress(changeAddress)
+  .addScript(guardScript)
+  .addGuard(guard, 0n)
+  .build();
 ```
 
 Replace `0n` with the redeemer expected by your validator.
@@ -277,8 +252,6 @@ The callback receives transaction CBOR and canonically ordered resolved inputs, 
 Transaction builders evaluate Plutus scripts locally using cardano-c's virtual machine compiled to WASM. This is the default for both `TransactionBuilder.create()` and `wallet.createTransactionBuilder()`; no provider evaluation service is needed. Providers still supply network data and submit transactions.
 
 Provide current protocol parameters, including cost models, and the UTxOs and scripts needed by the transaction. To use a custom evaluator, call `setTxEvaluator()` explicitly.
-
-Builders provide `dispose()` for immediate cleanup. Call it after `build()` finishes, and await each build before starting another.
 
 ### Applying Script Parameters
 
