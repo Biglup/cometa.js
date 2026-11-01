@@ -49,12 +49,13 @@ export const readWithdrawalMap = (mapPtr: number): Withdrawals => {
       );
 
       rewardAddressPtr = module.getValue(rewardAddressPtrPtr, 'i32');
-      const rewardAddress = new RewardAddress(rewardAddressPtr);
+      const rewardAddress = new RewardAddress(rewardAddressPtr, false);
 
       const low = module.getValue(amountPtr, 'i32') >>> 0;
-      const high = module.getValue(amountPtr + 4, 'i32');
+      const high = module.getValue(amountPtr + 4, 'i32') >>> 0;
       result[rewardAddress.toBech32()] = (BigInt(high) << 32n) | BigInt(low);
     } finally {
+      if (rewardAddressPtr) unrefObject(rewardAddressPtr);
       module._free(rewardAddressPtrPtr);
       module._free(amountPtr);
     }

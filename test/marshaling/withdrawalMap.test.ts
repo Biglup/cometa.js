@@ -31,7 +31,7 @@ describe('WithdrawalMap', () => {
   };
 
   const withdrawals2: Cometa.Withdrawals = {
-    stake178phkx6acpnf78fuvxn0mkew3l0fd058hzquvz7w36x4gtcccycj5: 999999999999999999n
+    stake178phkx6acpnf78fuvxn0mkew3l0fd058hzquvz7w36x4gtcccycj5: 0xffffffffffffffffn
   };
 
   beforeAll(async () => {
