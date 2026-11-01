@@ -1,6 +1,6 @@
 {
   "name": "@biglup/cometa",
-  "version": "2.0.0-rc.1",
+  "version": "2.0.0-rc.2",
   "description": "Cometa JS is a lightweight and high performance library designed to streamline transaction building and smart contract interactions on the Cardano blockchain",
   "engines": {
     "node": ">=16.0.0",

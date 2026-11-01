@@ -1,6 +1,7 @@
-Unreleased
+V2.0.0-rc.2
 ---------------------
 
+- Bundle cardano-c 2.0.0-rc.5 so transaction inspection includes Dijkstra fields and nested witnesses.
 - Fix documentation generation and check the docs build in CI.
 - Add Dijkstra transaction examples to the README.
 - Fix reward withdrawals using Bech32 string addresses in both transaction builders, preserving all 64 amount bits.
