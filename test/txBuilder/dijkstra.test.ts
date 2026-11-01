@@ -139,7 +139,13 @@ describe('Dijkstra bindings', () => {
         .addGuard(guard)
         .addSubTransaction(cbor, [])
         .build();
-      expect(C.inspectTx(batch)).toBeDefined();
+      const inspected = C.inspectTx(batch);
+      expect(inspected.body.sub_transactions).toHaveLength(1);
+      expect(inspected.body.sub_transactions[0].body.guards).toEqual([{ tag: 'pubkey_hash', value: guard.hash }]);
+      expect(inspected.body.sub_transactions[0].body.required_top_level_guards).toEqual([
+        { key: { tag: 'pubkey_hash', value: guard.hash }, value: null }
+      ]);
+      expect(inspected.body.sub_transactions[0].witness_set).toBeDefined();
     } finally {
       sub.dispose();
       main.dispose();
@@ -157,7 +163,14 @@ describe('Dijkstra bindings', () => {
         .addAccountBalanceInterval(rewardAddress, { inclusiveLowerBound: 0n, exclusiveUpperBound: 100000000n })
         .addStartingAccountBalanceInterval(rewardAddress, { exact: 0n })
         .build();
-      expect(C.inspectTx(tx)).toBeDefined();
+      const inspected = C.inspectTx(tx);
+      expect(inspected.body.direct_deposits).toEqual([{ key: rewardAddress, value: '1000000' }]);
+      expect(inspected.body.account_balance_intervals).toEqual([
+        { key: rewardAddress, value: { tag: 'range', inclusive_lower_bound: '0', exclusive_upper_bound: '100000000' } }
+      ]);
+      expect(inspected.body.starting_account_balance_intervals).toEqual([
+        { key: rewardAddress, value: { tag: 'exact', value: '0' } }
+      ]);
     } finally {
       builder.dispose();
     }
