@@ -1,6 +1,7 @@
 V2.0.0-rc.2
 ---------------------
 
+- Release temporary withdrawal-map reward addresses immediately and preserve unsigned 64-bit withdrawal amounts when reading maps.
 - Bundle cardano-c 2.0.0-rc.5 so transaction inspection includes Dijkstra fields and nested witnesses.
 - Fix documentation generation and check the docs build in CI.
 - Add Dijkstra transaction examples to the README.
