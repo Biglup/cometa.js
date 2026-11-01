@@ -36,7 +36,10 @@ jobs:
           submodules: "true"
 
       - name: Install Dependencies
-        run: yarn install
+        run: yarn install --frozen-lockfile
+
+      - name: Build Documentation
+        run: yarn docs
 
       - name: Run Unit Tests
         run: yarn test
