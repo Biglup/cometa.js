@@ -163,6 +163,27 @@ describe('Dijkstra bindings', () => {
     }
   });
 
+  it.each([
+    [false, 2000000n],
+    [false, 0x100000007n],
+    [true, 2000000n],
+    [true, 0x100000007n]
+  ])('preserves withdrawal amounts for string addresses (sub=%s, amount=%s)', async (sub, amount) => {
+    const build = async (asString: boolean) => {
+      const account = C.RewardAddress.fromBech32(rewardAddress);
+      const builder = sub ? makeSub() : makeMain().setUtxos([input()]).setChangeAddress(address);
+      try {
+        return await builder
+          .withdrawRewards({ rewardAddress: asString ? rewardAddress : account, amount: amount as bigint })
+          .addDirectDeposit(rewardAddress, amount as bigint)
+          .build();
+      } finally {
+        builder.dispose();
+      }
+    };
+    expect(await build(true)).toBe(await build(false));
+  });
+
   it('resolves a deferred zero redeemer and preserves callback errors', async () => {
     const builder = makeSub();
     const scriptInput = {

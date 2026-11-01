@@ -58,15 +58,201 @@ See the [changelog](CHANGELOG.md) for migration notes.
 
 ## Dijkstra Era Support
 
-The 2.0 candidate adds experimental Dijkstra support:
+The 2.0 candidate supports direct deposits into reward accounts, independently
+signed sub-transactions, key and script guards, account balance constraints, and
+Plutus V4.
 
-- Plutus V4 and key or script guards.
-- Direct deposits and account-balance constraints.
-- Fee-free sub-transactions that can be signed independently and combined into a batch.
+The examples below use `params` and `slotConfig` from the target network, with
+protocol version 12 and the network's V4 cost model for Plutus V4 evaluation.
+Addresses, UTxOs and key handlers belong to the participating wallets. Initialize
+Cometa once before using the builders:
 
-`SubTransactionBuilder` shares the transaction builder's input, output, minting, staking and governance methods. Pass its result to `TransactionBuilder.addSubTransaction(cbor, resolvedUtxos)` to include it in an enclosing transaction and balance the batch. Software key handlers provide `signSubTransaction()`, and `applySubTransactionWitnesses()` attaches the resulting witnesses.
+```typescript
+import { ready } from '@biglup/cometa';
 
-Use protocol parameters for the network you target. Dijkstra features require a network that supports them.
+await ready();
+```
+
+### Direct account transfers
+
+Transfer 2 ADA between registered reward accounts, with wallet UTxOs paying the fee:
+
+```typescript
+import { RewardAddress, TransactionBuilder } from '@biglup/cometa';
+
+const builder = TransactionBuilder.create({ params, slotConfig });
+let transactionCbor: string;
+try {
+  transactionCbor = await builder
+    .setUtxos(walletUtxos)
+    .setChangeAddress(changeAddress)
+    .withdrawRewards({
+      rewardAddress: RewardAddress.fromBech32(sourceRewardAddress),
+      amount: 2_000_000n
+    })
+    .addDirectDeposit(destinationRewardAddress, 2_000_000n)
+    .build();
+} finally {
+  builder.dispose();
+}
+```
+
+Sign with the source account's staking key and the wallet input keys before
+submission. `addDirectDeposit()` credits the destination without creating a UTxO.
+To fund the deposit from wallet UTxOs instead, omit `withdrawRewards()`.
+Repeated deposits to the same account accumulate.
+
+### Build, sign, and batch sub-transactions
+
+A sub-transaction expresses a party's intent. Its inputs and outputs need not
+balance on their own, and it pays no fee or collateral. The enclosing transaction
+balances the whole batch. Here, `partyUtxo` contains 10 ADA and the party requests
+12 ADA back; the batcher supplies the remaining 2 ADA and pays the fee.
+
+```typescript
+import {
+  SubTransactionBuilder,
+  TransactionBuilder,
+  applySubTransactionWitnesses,
+  applyVkeyWitnessSet
+} from '@biglup/cometa';
+
+const intent = SubTransactionBuilder.create({ params, slotConfig });
+let signedIntentCbor: string;
+try {
+  const intentCbor = await intent
+    .addInput({ utxo: partyUtxo })
+    .sendLovelace({ address: partyAddress, amount: 12_000_000n })
+    .requireTopLevelGuard(batcherCredential)
+    .build();
+
+  signedIntentCbor = applySubTransactionWitnesses(
+    intentCbor,
+    await partyKeys.signSubTransaction(intentCbor)
+  );
+} finally {
+  intent.dispose();
+}
+
+const batch = TransactionBuilder.create({ params, slotConfig });
+let signedTransactionCbor: string;
+try {
+  const transactionCbor = await batch
+    .setUtxos(batcherUtxos)
+    .setChangeAddress(batcherAddress)
+    .addGuard(batcherCredential)
+    .addSubTransaction(signedIntentCbor, [partyUtxo])
+    .build();
+
+  signedTransactionCbor = applyVkeyWitnessSet(
+    transactionCbor,
+    await batcherKeys.signTransaction(transactionCbor)
+  );
+} finally {
+  batch.dispose();
+}
+```
+
+`partyKeys` and `batcherKeys` are `SoftwareEd25519SecureKeyHandler` instances;
+`batcherCredential` is the batcher's key credential (`{ type: CredentialType.KeyHash,
+hash: paymentKeyHash }`). Requiring it prevents inclusion without that party's
+authorization. The batch preserves each sub-transaction's body and signatures.
+BIP32 key handlers also provide `signSubTransaction(cbor, derivationPaths)`.
+
+Resolve all spent inputs when adding each sub-transaction, plus reference inputs
+carrying scripts. `SubTransactionBuilder` shares the input, output, minting,
+staking, governance, direct-deposit and deferred-redeemer methods. Sub-transactions
+can run native scripts and Plutus V4 scripts; provide collateral on the enclosing
+builder when scripts require it. Their execution budgets are fixed before signing.
+
+### Account balance constraints
+
+Constrain an account's balance when the transaction executes, and separately its
+balance at the start of the block:
+
+```typescript
+import { TransactionBuilder } from '@biglup/cometa';
+
+const builder = TransactionBuilder.create({ params, slotConfig });
+let transactionCbor: string;
+try {
+  transactionCbor = await builder
+    .setUtxos(walletUtxos)
+    .setChangeAddress(changeAddress)
+    .sendLovelace({ address: recipientAddress, amount: 2_000_000n })
+    .addAccountBalanceInterval(rewardAddress, {
+      inclusiveLowerBound: 5_000_000n,
+      exclusiveUpperBound: 10_000_000n
+    })
+    .addStartingAccountBalanceInterval(rewardAddress, { exact: 5_000_000n })
+    .build();
+} finally {
+  builder.dispose();
+}
+```
+
+Range lower bounds are inclusive and upper bounds are exclusive. Either may be
+omitted, but a range needs at least one bound. Sub-transactions support
+execution-time balance constraints; starting-balance constraints belong to the
+enclosing transaction.
+
+### Script guards
+
+A Plutus V4 guard authorizes a transaction through its own redeemer. Build its
+script from your compiled validator's CBOR:
+
+```typescript
+import {
+  CredentialType,
+  PlutusLanguageVersion,
+  PlutusScript,
+  ScriptType,
+  TransactionBuilder,
+  computeScriptHash
+} from '@biglup/cometa';
+
+const guardScript: PlutusScript = {
+  type: ScriptType.Plutus,
+  version: PlutusLanguageVersion.V4,
+  bytes: validatorCborHex
+};
+const guard = { type: CredentialType.ScriptHash, hash: computeScriptHash(guardScript) };
+
+const builder = TransactionBuilder.create({ params, slotConfig });
+let transactionCbor: string;
+try {
+  transactionCbor = await builder
+    .setUtxos(walletUtxos)
+    .setChangeAddress(changeAddress)
+    .setCollateralUtxos(collateralUtxos)
+    .setCollateralChangeAddress(changeAddress)
+    .addScript(guardScript)
+    .addGuard(guard, 0n)
+    .build();
+} finally {
+  builder.dispose();
+}
+```
+
+Replace `0n` with the redeemer expected by your validator.
+`SubTransactionBuilder.addGuard()` applies the same requirement within an intent.
+`requireTopLevelGuard(credential, terms)` can attach Plutus data for an enclosing
+guard to check.
+
+Native scripts can require a guard too, including inside all/any/n-of-k scripts:
+
+```typescript
+import { NativeScript, NativeScriptKind, ScriptType } from '@biglup/cometa';
+
+const requireBatcher: NativeScript = {
+  type: ScriptType.Native,
+  kind: NativeScriptKind.RequireGuard,
+  credential: batcherCredential
+};
+```
+
+Use this script to lock an output or as a minting policy, then include the required
+guard when spending or minting.
 
 ## Deferred Redeemers
 
