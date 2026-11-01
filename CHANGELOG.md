@@ -1,3 +1,9 @@
+V2.0.0-rc.3
+---------------------
+
+- Bundle cardano-c 2.0.0-rc.6.
+- **Breaking JSON change:** `inspectTx` now returns all key and script guards in `body.guards`, including Conway key-only guards. `body.required_signers` is no longer emitted; read key hashes from credentials tagged `pubkey_hash`. CBOR and signing are unchanged.
+
 V2.0.0-rc.2
 ---------------------
 
