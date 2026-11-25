@@ -75,6 +75,16 @@ describe('additional providers', () => {
       expect(fetch).not.toHaveBeenCalled();
     });
 
+    test('an exhausted confirmation deadline returns false after aborting HTTP', async () => {
+      jest.spyOn(globalThis, 'fetch').mockImplementation(
+        async (_, options) =>
+          new Promise<Response>((_resolve, reject) => {
+            options?.signal?.addEventListener('abort', () => reject(new Error('Aborted')), { once: true });
+          })
+      );
+      await expect(create().confirmTransaction(txId, 10)).resolves.toBe(false);
+    });
+
     test('rejects a mismatched transaction ID after one submission', async () => {
       const fetch = jest
         .spyOn(globalThis, 'fetch')

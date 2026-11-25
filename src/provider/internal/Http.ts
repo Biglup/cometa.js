@@ -132,7 +132,15 @@ export class Http {
     for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value);
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), Math.max(1, Math.min(timeout, this.timeout)));
+    const budget = Math.max(1, Math.min(timeout, this.timeout));
+    const deadline = performance.now() + budget;
+    let timer: ReturnType<typeof setTimeout>;
+    const expire = (): void => {
+      const remaining = deadline - performance.now();
+      if (remaining > 0) timer = setTimeout(expire, Math.ceil(remaining));
+      else controller.abort();
+    };
+    timer = setTimeout(expire, Math.ceil(budget));
     try {
       const response = await fetch(url.toString(), {
         body,
