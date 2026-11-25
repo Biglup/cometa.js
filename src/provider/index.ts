@@ -19,3 +19,6 @@
 export * from './BlockfrostProvider';
 export * from './EmscriptenProvider';
 export * from './Provider';
+export * from './HydraProvider';
+export * from './KoiosProvider';
+export * from './KupmiosProvider';
