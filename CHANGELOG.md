@@ -1,3 +1,8 @@
+Unreleased
+---------------------
+
+- Add Koios, Kupmios and Hydra providers with explicit networks, bounded HTTP, exact quantities, validated evaluation budgets and documented L2 semantics.
+
 V2.0.0-rc.4
 ---------------------
 

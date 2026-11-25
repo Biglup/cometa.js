@@ -362,6 +362,45 @@ const provider = new Cometa.BlockfrostProvider({
 ```
 
 > [!TIP]
+Koios, Kupmios, and Hydra also implement `Provider`:
+
+```typescript
+const koios = new Cometa.KoiosProvider({
+  network: Cometa.NetworkMagic.Preprod
+});
+
+const kupmios = new Cometa.KupmiosProvider({
+  network: Cometa.NetworkMagic.Preprod,
+  kupoUrl: 'http://localhost:1442',
+  ogmiosUrl: 'http://localhost:1337'
+});
+
+const hydra = new Cometa.HydraProvider({
+  network: Cometa.NetworkMagic.Preprod,
+  baseUrl: 'http://localhost:4001'
+});
+```
+
+Koios and Hydra accept an optional bearer `token`; Kupmios accepts separate
+`kupoToken` and `ogmiosToken` credentials. Each supports `timeoutMs` and
+`pollIntervalMs` from 1 through 60000 (defaults: 30000 and 1000).
+Koios accepts `baseUrl` for a proxy or custom endpoint. Operation query parameters
+override base query parameters. Redirects are disabled and submissions are never
+retried. Responses over 8 MiB fail explicitly.
+
+Koios uses extended UTxO queries and Ogmios v6. Kupmios requires Kupo to index every
+address/asset queried and retain confirmation history. Hydra uses the parameters
+and confirmed UTxOs of an existing Conway Head and submits to L2 `/transaction`.
+Its confirmation check observes transaction records in the latest signed
+snapshot; it cannot rediscover older transactions absent from that list. It never
+mistakes an L1 deposit UTxO for L2 confirmation. Use Hydra's event stream when you
+need a complete history. Head lifecycle operations remain external.
+
+Hydra has no remote evaluator or staking rewards; both operations fail explicitly.
+Use local evaluation configured for the Head. Its datum lookup can only find
+inline data still present in confirmed UTxOs. L2 confirmation does not mean L1
+settlement.
+
 >You can create your own providers by implementing the [Cometa.Provider interface](https://cometajs.readthedocs.io/en/latest/interfaces/Provider.html). 
 
 Cometa comes with two types of wallets depending on your environment.
