@@ -17,7 +17,7 @@
 import { Address, RewardAddress } from '../address';
 import { Blake2b } from '../crypto';
 import { Http, ProviderHttpError, credential } from './internal/Http';
-import { NetworkMagic, ProtocolParameters, Redeemer, TxIn, UTxO, plutusDataToCbor } from '../common';
+import { NetworkMagic, ProtocolParameters, Redeemer, TxIn, UTxO } from '../common';
 import { Provider } from './Provider';
 import { addressText } from './internal/Outputs';
 import { array, hex, invalid, natural, networkName, object, resolveOrder, transactionId } from './internal/Values';
@@ -99,9 +99,12 @@ export class HydraProvider implements Provider {
 
   async resolveDatum(hash: string): Promise<string> {
     const expected = hex(hash, 32);
-    for (const value of await this.outputs()) {
-      if (value.output.datum === undefined) continue;
-      const cbor = plutusDataToCbor(value.output.datum);
+    const snapshot = object(await this.http.json(['snapshot', 'utxo']));
+    hydraOutputs(snapshot);
+    for (const value of Object.values(snapshot)) {
+      const raw = object(value).inlineDatumRaw;
+      if (raw === undefined || raw === null) continue;
+      const cbor = hex(raw);
       if (uint8ArrayToHex(Blake2b.computeHash(hexToUint8Array(cbor), 32)) === expected) return cbor;
     }
     throw new Error('Datum is not available in the current Hydra snapshot');

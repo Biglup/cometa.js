@@ -191,6 +191,14 @@ describe('Hydra', () => {
     expect(outputs[0].output.value.coins).toBe(3797645294248714119n);
   });
 
+  test('datum lookup preserves noncanonical primitive CBOR', async () => {
+    const [key, original] = Object.entries(hydraUtxos)[0] as [string, Record<string, unknown>];
+    const hash = C.uint8ArrayToHex(C.Blake2b.computeHash(new Uint8Array([0x18, 0x01]), 32));
+    const row = { ...original, datumhash: null, inlineDatumRaw: '1801', inlineDatumhash: hash };
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ [key]: row }));
+    await expect(createHydra().resolveDatum(hash)).resolves.toBe('1801');
+  });
+
   test('rejects an inline datum hash without its CBOR', async () => {
     const [key, original] = Object.entries(hydraUtxos)[0] as [string, Record<string, unknown>];
     const row = { ...original, inlineDatumRaw: null, inlineDatumhash: '11'.repeat(32) };

@@ -131,10 +131,10 @@ const hydraAssets = (amount: Record<string, unknown>): Record<string, bigint> =>
   return assets;
 };
 
-/** @internal Keep inline datum bytes and verify optional claimed hashes. */
+/** @internal Distinguish omitted values from present datum metadata. */
 const present = (value: unknown): boolean => value !== null && value !== undefined;
 
-/** @internal Keep inline datum bytes and verify optional claimed hashes. */
+/** @internal Decode inline datum bytes and verify optional claimed hashes. */
 const hydraDatum = (row: Record<string, unknown>): Partial<UTxO['output']> => {
   if (present(row.inlineDatumRaw)) {
     const bytes = hex(row.inlineDatumRaw);
@@ -163,5 +163,5 @@ const hydraOutput = ([key, raw]: [string, unknown]): UTxO => {
   };
 };
 
-/** @internal Decode confirmed snapshot outputs, preserving raw inline datums. */
+/** @internal Decode confirmed snapshot outputs and validate inline datum hashes. */
 export const hydraOutputs = (value: unknown): UTxO[] => uniqueOutputs(Object.entries(object(value)).map(hydraOutput));
