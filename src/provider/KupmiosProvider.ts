@@ -191,7 +191,7 @@ export class KupmiosProvider implements Provider {
 
   /** Kupo streams all matches; the HTTP reader rejects oversized responses. */
   private async outputs(pattern: string, query: Record<string, string> = {}): Promise<UTxO[]> {
-    const rows = array(await this.kupo.json(['matches', pattern], { ...query, unspent: '' }));
+    const rows = array(await this.kupo.json(['matches', pattern], { ...query, unspent: null }));
     const outputs: UTxO[] = [];
     for (const value of rows) outputs.push(await this.output(value));
     return uniqueOutputs(outputs);

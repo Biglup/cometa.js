@@ -106,6 +106,19 @@ export const credential = (value: string): string => {
   return value;
 };
 
+/** Preserve the distinction between bare flags and empty query values. */
+const applyQuery = (url: URL, query: Record<string, string | null>): void => {
+  for (const [key, value] of Object.entries(query)) {
+    if (value === null) url.searchParams.delete(key);
+    else url.searchParams.set(key, value);
+  }
+  // URLSearchParams serializes flags as key=, which Kupo rejects.
+  const flags = Object.entries(query)
+    .filter(([, value]) => value === null)
+    .map(([key]) => encodeURIComponent(key));
+  if (flags.length > 0) url.search += `${url.search ? '&' : '?'}${flags.join('&')}`;
+};
+
 /** @internal Bounded HTTP client with no redirects or automatic submission retries. */
 export class Http {
   private readonly base: URL;
@@ -122,14 +135,14 @@ export class Http {
 
   async request(
     path: string[],
-    query: Record<string, string> = {},
+    query: Record<string, string | null> = {},
     body?: string | Uint8Array,
     contentType = JSON_MEDIA_TYPE,
     timeout = this.timeout
   ): Promise<{ status: number; text: string }> {
     const url = new URL(this.base.toString());
     if (path.length > 0) url.pathname = `${url.pathname.replace(/\/+$/, '')}/${path.map(encodeURIComponent).join('/')}`;
-    for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value);
+    applyQuery(url, query);
 
     const controller = new AbortController();
     const budget = Math.max(1, Math.min(timeout, this.timeout));
@@ -167,14 +180,19 @@ export class Http {
     }
   }
 
-  async json(path: string[], query: Record<string, string> = {}, body?: unknown, timeout?: number): Promise<unknown> {
+  async json(
+    path: string[],
+    query: Record<string, string | null> = {},
+    body?: unknown,
+    timeout?: number
+  ): Promise<unknown> {
     return (await this.jsonResponse(path, query, body, timeout)).value;
   }
 
   /** Decode JSON while retaining status for protocols with distinct success states. */
   async jsonResponse(
     path: string[],
-    query: Record<string, string> = {},
+    query: Record<string, string | null> = {},
     body?: unknown,
     timeout?: number
   ): Promise<{ status: number; value: unknown }> {

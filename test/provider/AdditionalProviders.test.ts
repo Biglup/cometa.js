@@ -135,6 +135,22 @@ describe('additional providers', () => {
     expect(result.map((value) => value.input)).toEqual([requested[0], requested[2]]);
   });
 
+  test('Kupmios sends bare unspent flags while retaining empty asset names', async () => {
+    const fetch = jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse([]));
+    const provider = new C.KupmiosProvider({
+      kupoUrl: 'https://kupo.test?unspent=wrong&tenant=fixture',
+      network: C.NetworkMagic.Preprod,
+      ogmiosUrl: 'https://ogmios.test'
+    });
+    await expect(provider.getUnspentOutputs(address)).resolves.toEqual([]);
+    expect(String(fetch.mock.calls[0][0])).toBe(`https://kupo.test/matches/${address}?tenant=fixture&unspent`);
+    await expect(provider.getUnspentOutputByNft('ab'.repeat(28))).rejects.toThrow('Expected exactly one NFT output');
+    const url = String(fetch.mock.calls[1][0]);
+    expect(url).toContain('asset_name=');
+    expect(url).toMatch(/&unspent$/);
+    expect(url).not.toContain('unspent=');
+  });
+
   test('Kupmios preserves dotted asset IDs, empty asset names and quantities', async () => {
     const policy = '22'.repeat(28);
     jest
