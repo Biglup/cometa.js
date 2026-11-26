@@ -17,11 +17,13 @@
 /* IMPORTS *******************************************************************/
 
 import { CborReader, CborWriter } from '../encoding';
-import { UTxO } from '../common';
+import { PoolParameters, UTxO } from '../common';
 import { assertSuccess, unrefObject } from './object';
 import { getModule } from '../module';
 import { readBlake2bHashData } from './blake2b';
+import { splitToLowHigh64bit } from './number';
 import { uint8ArrayToHex } from '../cometa';
+import { withPoolState } from './poolParams';
 import { writeUtxoList } from './utxo';
 
 /* DEFINITIONS ****************************************************************/
@@ -101,21 +103,31 @@ export const readTransactionFromCbor = (transactionCbor: string): number => {
  * @param {UTxO[]} utxos - An array of resolved UTxO objects that are spent by the transaction. If
  * empty, the function won't resolve signers from inputs or collateral inputs. Additionally if the resolved
  * inputs are provided, they must account for all inputs and collateral inputs in the transaction or the function will fail.
+ * @param protocolMajor Ledger protocol version; the default retains conservative owner requirements.
+ * @param poolState Latest registered pools, pending preferred over active, one entry per pool.
  * @returns {string[]} An array of unique public key hashes (signers) as hex strings.
  * @throws {Error} Throws an error if any part of the process fails.
  */
 // eslint-disable-next-line max-statements
-export const getUniqueSigners = (transactionCbor: string, utxos: UTxO[]): string[] => {
+export const getUniqueSigners = (
+  transactionCbor: string,
+  utxos: UTxO[],
+  protocolMajor = 0,
+  poolState: PoolParameters[] = []
+): string[] => {
+  if (!Number.isSafeInteger(protocolMajor) || protocolMajor < 0) {
+    throw new RangeError('Protocol major must be a nonnegative safe integer.');
+  }
   const module = getModule();
 
   let txPtr = 0;
   let resolvedInputsListPtr = 0;
   let signersSetPtr = 0;
+  const cborReader = CborReader.fromHex(transactionCbor);
   const txPtrPtr = module._malloc(4);
   const signersSetPtrPtr = module._malloc(4);
 
   try {
-    const cborReader = CborReader.fromHex(transactionCbor);
     let result = module.transaction_from_cbor(cborReader.ptr, txPtrPtr);
     assertSuccess(result, `Failed to unmarshal transaction: ${cborReader.getLastError()}`);
     txPtr = module.getValue(txPtrPtr, 'i32');
@@ -124,7 +136,18 @@ export const getUniqueSigners = (transactionCbor: string, utxos: UTxO[]): string
       resolvedInputsListPtr = writeUtxoList(utxos);
     }
 
-    result = module.transaction_get_unique_signers(txPtr, resolvedInputsListPtr, signersSetPtrPtr);
+    const { low, high } = splitToLowHigh64bit(protocolMajor);
+    result = withPoolState(poolState, (ptr) =>
+      module.transaction_get_unique_signers_with_pool_state(
+        txPtr,
+        resolvedInputsListPtr,
+        low,
+        high,
+        ptr,
+        poolState.length,
+        signersSetPtrPtr
+      )
+    );
     assertSuccess(result, 'Failed to get unique signers from transaction');
 
     signersSetPtr = module.getValue(signersSetPtrPtr, 'i32');
@@ -155,6 +178,7 @@ export const getUniqueSigners = (transactionCbor: string, utxos: UTxO[]): string
     unrefObject(txPtr);
     unrefObject(resolvedInputsListPtr);
     unrefObject(signersSetPtr);
+    cborReader.dispose();
     module._free(txPtrPtr);
     module._free(signersSetPtrPtr);
   }

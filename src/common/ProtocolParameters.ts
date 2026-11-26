@@ -86,6 +86,9 @@ export interface ProtocolParameters {
   perasTargetCommitteeSize?: number;
   perasBootstrapRound?: number | null;
   perasQuorumThresholdSafetyMargin?: UnitInterval;
+  /** Reference-input multi-asset overhead cost per byte (parameter 55). */
+  refInputsCostPerMultiAssetByte?: number;
+  /** @deprecated Use refInputsCostPerMultiAssetByte. Accepted as an input alias. */
   refInputsCostPerMultiAssetPolicy?: number;
   refInputsCostPerDatumByte?: number;
 }
