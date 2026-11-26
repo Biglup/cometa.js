@@ -26,7 +26,7 @@ describe('Cometa', () => {
   });
 
   it('getLibCardanoCVersion', () => {
-    expect(Cometa.getLibCardanoCVersion()).toBe('2.0.0-rc.6');
+    expect(Cometa.getLibCardanoCVersion()).toBe('2.0.0-rc.7');
   });
 
   describe('hexToUint8Array', () => {

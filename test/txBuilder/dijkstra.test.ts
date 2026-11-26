@@ -60,6 +60,37 @@ describe('Dijkstra bindings', () => {
     detector.detect();
   });
 
+  it('snapshots pool state and applies owner exemptions only from protocol 12', async () => {
+    const pool: C.PoolParameters = {
+      id: '22'.repeat(28),
+      vrf: '33'.repeat(32),
+      pledge: 0n,
+      cost: 0n,
+      margin: 0.05,
+      rewardAccount: rewardAddress,
+      owners: ['44'.repeat(28)],
+      relays: []
+    };
+    const builder = C.TransactionBuilder.create({
+      params: { ...dijkstra, poolDeposit: 0 },
+      slotConfig: C.CARDANO_PREVIEW_SLOT_CONFIG
+    });
+    try {
+      builder.setPoolState([pool]);
+      const certificate = { type: C.CertificateType.PoolRegistration as const, poolParameters: { ...pool } };
+      pool.cost = 1n;
+      const tx = await builder.setUtxos([input()]).setChangeAddress(address).addCertificate({ certificate }).build();
+      const latest = certificate.poolParameters;
+      expect(C.getUniqueSigners(tx, [input()], 12, [latest])).toHaveLength(2);
+      expect(C.getUniqueSigners(tx, [input()], 11, [latest])).toHaveLength(3);
+      expect(C.getUniqueSigners(tx, [input()])).toHaveLength(3);
+      expect(() => builder.setPoolState([latest, latest])).toThrow();
+      expect(() => builder.setPoolState([])).not.toThrow();
+    } finally {
+      builder.dispose();
+    }
+  });
+
   it('round-trips Plutus V4 and both guard credential kinds', () => {
     const scripts: C.Script[] = [
       script,

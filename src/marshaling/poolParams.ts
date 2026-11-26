@@ -575,3 +575,47 @@ export const writePoolParameters = (params: PoolParameters): number => {
     }
   }
 };
+
+/**
+ * Whether a pool registration needs owner witnesses under protocol version 12 or later.
+ * Supply the latest registered parameters, preferring pending over active parameters.
+ * Unknown pools require owner witnesses. The operator is always required separately.
+ *
+ * @param proposed The proposed registration parameters.
+ * @param latest The latest registered parameters, if known.
+ * @returns Whether owner witnesses are required.
+ */
+export const poolParametersRequireOwnerWitnesses = (proposed: PoolParameters, latest?: PoolParameters): boolean => {
+  const m = getModule();
+  let proposedPtr = 0;
+  let latestPtr = 0;
+  const out = m._malloc(1);
+  try {
+    proposedPtr = writePoolParameters(proposed);
+    if (latest) latestPtr = writePoolParameters(latest);
+    assertSuccess(m.pool_params_requires_owner_witnesses(proposedPtr, latestPtr, out));
+    return m.getValue(out, 'i8') !== 0;
+  } finally {
+    unrefObject(proposedPtr);
+    unrefObject(latestPtr);
+    m._free(out);
+  }
+};
+
+/** @hidden Marshals borrowed pool pointers for the duration of a synchronous call. */
+export const withPoolState = <T>(pools: PoolParameters[], action: (ptr: number) => T): T => {
+  const m = getModule();
+  const array = pools.length > 0 ? m._malloc(pools.length * 4) : 0;
+  const pointers: number[] = [];
+  try {
+    for (const pool of pools) {
+      const ptr = writePoolParameters(pool);
+      pointers.push(ptr);
+      m.setValue(array + (pointers.length - 1) * 4, ptr, 'i32');
+    }
+    return action(array);
+  } finally {
+    for (const ptr of pointers) unrefObject(ptr);
+    m._free(array);
+  }
+};

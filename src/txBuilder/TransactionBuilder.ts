@@ -38,10 +38,12 @@ import {
   writeUtxoList
 } from '../';
 
+import { AccountBalanceInterval, PoolParameters } from '../common';
 import { TransactionBuilderBase } from './TransactionBuilderBase';
+import { assertSuccess } from '../marshaling/object';
 import { transactionBuilderApi } from './builderApi';
+import { withPoolState } from '../marshaling/poolParams';
 
-import { AccountBalanceInterval } from '../common';
 import { RewardAddress } from '../address';
 import { readSubTransactionFromCbor } from '../marshaling';
 
@@ -112,6 +114,22 @@ export class TransactionBuilder extends TransactionBuilderBase {
       unrefObject(protocolParamsPtr);
       getModule()._free(slotConfigPtr);
     }
+  }
+
+  /**
+   * Sets an owned snapshot of the latest registered pool parameters for witness estimation.
+   * Prefer pending parameters over active parameters and include each pool only once.
+   * Unknown pools remain conservative; an empty array clears the snapshot.
+   * Pool deposits are unaffected. The owner exemption applies from protocol version 12.
+   *
+   * @param pools The latest parameters for each known pool.
+   * @returns The builder for chaining.
+   */
+  public setPoolState(pools: PoolParameters[]): this {
+    withPoolState(pools, (ptr) => {
+      assertSuccess(getModule().tx_builder_set_pool_state(this.ptr, ptr, pools.length));
+    });
+    return this;
   }
 
   /**

@@ -174,4 +174,23 @@ describe('Protocol Parameter Update', () => {
       }
     });
   });
+  it('round trips parameter 55 with its per-byte name and accepts the old input alias', () => {
+    for (const value of [{ refInputsCostPerMultiAssetByte: 123 }, { refInputsCostPerMultiAssetPolicy: 123 }]) {
+      const ptr = Cometa.writeProtocolParamUpdate(value);
+      try {
+        expect(Cometa.readProtocolParamUpdate(ptr)).toEqual({ refInputsCostPerMultiAssetByte: 123 });
+      } finally {
+        Cometa.unrefObject(ptr);
+      }
+    }
+  });
+
+  it('rejects conflicting parameter 55 aliases', () => {
+    expect(() =>
+      Cometa.writeProtocolParamUpdate({
+        refInputsCostPerMultiAssetByte: 1,
+        refInputsCostPerMultiAssetPolicy: 2
+      })
+    ).toThrow('Conflicting values');
+  });
 });

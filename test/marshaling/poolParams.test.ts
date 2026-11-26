@@ -59,6 +59,17 @@ describe('PoolParameters', () => {
     detector.detect();
   });
 
+  it('compares known pools without requiring owners for an unchanged registration', () => {
+    expect(Cometa.poolParametersRequireOwnerWitnesses(VALID_POOL_PARAMS)).toBe(true);
+    expect(Cometa.poolParametersRequireOwnerWitnesses(VALID_POOL_PARAMS, VALID_POOL_PARAMS)).toBe(false);
+    expect(
+      Cometa.poolParametersRequireOwnerWitnesses(
+        { ...VALID_POOL_PARAMS, cost: VALID_POOL_PARAMS.cost + 1n },
+        VALID_POOL_PARAMS
+      )
+    ).toBe(true);
+  });
+
   describe('writePoolParameters & readPoolParameters', () => {
     it('should correctly write and read a full PoolParameters object', () => {
       // Act
