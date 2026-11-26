@@ -1,6 +1,9 @@
 Unreleased
 ---------------------
 
+V2.0.0-rc.5
+---------------------
+
 - Bundle cardano-c v2.0.0-rc.7, including CIP-172 created-output reference scripts from protocol 12 and corrected fee/deposit accounting.
 - Add `setPoolState`, pool-aware `getUniqueSigners`, and `poolParametersRequireOwnerWitnesses` for latest registered pool parameters. Unknown pools remain conservative; pool deposits are unchanged by the supplied snapshot.
 - Expose parameter 55 as `refInputsCostPerMultiAssetByte`; accept the deprecated per-policy input alias and reject conflicting aliases. Update JSON follows the native per-byte name.
